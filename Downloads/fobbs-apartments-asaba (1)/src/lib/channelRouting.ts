@@ -49,6 +49,7 @@ export function buildRoomServiceMessage(payload: any): string {
 ${itemsList}
 
 *Subtotal:* ₦${payload.subtotal.toLocaleString()}
+*Payment:* ${payload.payment_method || "Bill to Room"}
 ------------------------
 *Notes:* ${payload.notes || "None"}
 
@@ -120,6 +121,7 @@ export function buildBarOrderMessage(payload: any): string {
 ${itemsList}
 
 *Subtotal:* ₦${payload.subtotal.toLocaleString()}
+*Payment:* ${payload.payment_method || "Bill to Room"}
 ------------------------
 *Notes:* ${payload.notes || "None"}
 

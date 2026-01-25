@@ -10,6 +10,7 @@ const Bar: React.FC = () => {
     const [cart, setCart] = useState<{ id: string, name: string, price: number, quantity: number }[]>([]);
     const [notes, setNotes] = useState('');
     const [delivery, setDelivery] = useState('Room Delivery');
+    const [paymentMethod, setPaymentMethod] = useState('Bill to Room');
 
     const addToCart = (item: any) => {
         setCart(prev => {
@@ -46,6 +47,7 @@ const Bar: React.FC = () => {
             {
                 items: cart,
                 subtotal: subtotal,
+                payment_method: paymentMethod,
                 notes: `Delivery: ${delivery}. ${notes}`,
                 summary: `${cart.length} drinks (₦${subtotal.toLocaleString()})`
             },
@@ -159,6 +161,20 @@ const Bar: React.FC = () => {
                                     >
                                         <option value="Room Delivery">Room Delivery</option>
                                         <option value="Pickup">Pickup at Bar</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Payment Method</label>
+                                    <select
+                                        value={paymentMethod}
+                                        onChange={(e) => setPaymentMethod(e.target.value)}
+                                        className="w-full text-sm p-2 bg-gray-50 rounded-lg"
+                                    >
+                                        <option value="Bill to Room">Bill to Room</option>
+                                        <option value="POS on Delivery">POS on Delivery</option>
+                                        <option value="Transfer">Transfer</option>
+                                        <option value="Cash">Cash</option>
                                     </select>
                                 </div>
 
