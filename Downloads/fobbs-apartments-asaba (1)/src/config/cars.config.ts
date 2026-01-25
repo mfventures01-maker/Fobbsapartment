@@ -127,13 +127,13 @@ export const HOTEL_CONFIG: DeploymentConfig = {
     hero_image: "https://picsum.photos/seed/fobbshero/1600/900",
     channels: {
         whatsapp_numbers: {
-            frontdesk: "2348000000000",
-            kitchen: "2348000000000",
-            manager: "2348000000000"
+            frontdesk: "2347048033575",
+            kitchen: "2347048033575",
+            manager: "2347048033575"
         },
         telegram_handle: "Captlee77",
         telegram_url: "https://t.me/Captlee77",
-        phone: "0800 000 0000",
+        phone: "0704 803 3575",
         email: "reservations@fobbsapartments.com"
     },
     policy: {
@@ -277,15 +277,14 @@ export const HOTEL_CONFIG: DeploymentConfig = {
                 { id: "sprite", name: "Sprite", price: 500, category: "Soft Drinks" }
             ]
         }
-    }
-    ,
+    },
     restaurant_section: {
         title: "Culinary Delight",
         subtitle: "Experience local flavors and continental classics.",
         hero_image_url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1600&q=80",
         highlights: ["Freshly sourced ingredients", "24/7 Room Service", "Expert Chefs"],
         cta_text: "Order Now",
-        cta_route: "/guest"
+        cta_route: "/restaurant"
     },
     services_section: {
         title: "At Your Service",
@@ -296,21 +295,21 @@ export const HOTEL_CONFIG: DeploymentConfig = {
                 title: "In-Room Dining",
                 description: "Enjoy delicious meals delivered straight to your door.",
                 image_url: "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1600&q=80",
-                route_target: "/guest"
+                route_target: "/restaurant"
             },
             {
                 key: "transport",
                 title: "Chauffeur Service",
                 description: "Seamless airport pickups and city trips.",
                 image_url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=80",
-                route_target: "/guest"
+                route_target: "/services/transport"
             },
             {
                 key: "housekeeping",
                 title: "Housekeeping",
                 description: "Fresh towels, cleaning, and more on demand.",
                 image_url: "https://cdn.pixabay.com/photo/2017/08/07/16/56/room-2601350_1280.jpg",
-                route_target: "/guest"
+                route_target: "/services/cleaning"
             },
         ]
     },

@@ -147,6 +147,40 @@ _Sent via CARSS_`;
 
 // --- ROUTING UTILS ---
 
+export function buildTransportMessage(payload: any): string {
+    return `*TRANSPORT REQUEST* 🚗
+  
+*${HOTEL_CONFIG.business_name}*
+------------------------
+*Type:* ${payload.type || "Pickup"}
+*Guest:* ${payload.guest_name}
+*Phone:* ${payload.phone}
+------------------------
+*From:* ${payload.pickup_location}
+*To:* ${payload.destination}
+*Time:* ${payload.time}
+------------------------
+*Notes:* ${payload.notes || "None"}
+
+_Sent via CARSS_`;
+}
+
+export function buildLaundryMessage(payload: any): string {
+    return `*LAUNDRY REQUEST* 🧺
+  
+*${HOTEL_CONFIG.business_name}*
+------------------------
+*Room:* ${payload.room_number}
+*Guest:* ${payload.guest_name}
+------------------------
+*Pickup Time:* ${payload.time}
+*Items:* ${payload.items_summary}
+------------------------
+*Notes:* ${payload.notes || "None"}
+
+_Sent via CARSS_`;
+}
+
 export function sanitizePhoneToE164NG(phone: string): string {
     let p = phone.replace(/[^0-9]/g, '');
     if (p.startsWith('0')) p = '234' + p.substring(1);

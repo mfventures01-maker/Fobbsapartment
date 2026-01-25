@@ -4,7 +4,8 @@ import { HOTEL_CONFIG, Room } from '@/config/cars.config';
 import { getWhatsAppTargetNumber, buildHotelBookingMessage, openWhatsApp, openTelegram, BookingForm, calculateNights } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
 import { generateBookingId } from '@/lib/ids';
-import { Users, Wifi, Wind, MapPin, MessageSquare, X, Send, Calendar, User, Phone, FileText, ChevronLeft, Bell, Star, ArrowRight, Utensils, ShieldCheck } from 'lucide-react';
+import { Users, Wifi, Wind, MapPin, MessageSquare, X, Send, Calendar, User, Phone, FileText, ChevronLeft, Bell, Star, ArrowRight, Utensils, ShieldCheck, Wine, Lock } from 'lucide-react';
+
 
 const HotelLanding: React.FC = () => {
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -109,9 +110,15 @@ const HotelLanding: React.FC = () => {
                         <MapPin className="w-4 h-4" />
                         <span>{HOTEL_CONFIG.location}</span>
                     </div>
-                    <div className="mt-6">
-                        <Link to="/dashboard/guest-hub" className="px-8 py-3 bg-emerald-500 text-white font-bold rounded-full shadow-lg hover:bg-emerald-600 transition-all transform hover:scale-105 backdrop-blur-sm bg-opacity-90">
-                            Open Guest Hub
+                    <div className="mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                        <Link to="/restaurant" className="min-w-[140px] px-6 py-3 bg-white text-emerald-900 font-bold rounded-full shadow-lg hover:bg-emerald-50 transition-all flex items-center justify-center">
+                            <Utensils className="w-4 h-4 mr-2" /> Restaurant
+                        </Link>
+                        <Link to="/bar" className="min-w-[140px] px-6 py-3 bg-emerald-900 text-white font-bold rounded-full shadow-lg hover:bg-emerald-800 transition-all flex items-center justify-center border border-emerald-700">
+                            <Wine className="w-4 h-4 mr-2" /> Bar
+                        </Link>
+                        <Link to="/services" className="min-w-[140px] px-6 py-3 bg-emerald-500 text-white font-bold rounded-full shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center backdrop-blur-sm bg-opacity-90">
+                            <Bell className="w-4 h-4 mr-2" /> Services
                         </Link>
                     </div>
                 </div>
@@ -120,7 +127,7 @@ const HotelLanding: React.FC = () => {
             {/* Rooms Grid */}
             <div className="max-w-7xl mx-auto px-4 -mt-16 relative z-30">
                 <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 mb-12">
-                    {/* Guest Hub Promo */}
+                    {/* Guest Hub Promo (Updated Link) */}
                     <div className="mb-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center space-x-4 text-center sm:text-left">
                             <div className="w-12 h-12 bg-white text-emerald-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 mx-auto sm:mx-0">
@@ -131,7 +138,7 @@ const HotelLanding: React.FC = () => {
                                 <div className="text-sm text-emerald-700">Order room service, request cleaning, and more.</div>
                             </div>
                         </div>
-                        <Link to="/dashboard/guest-hub" className="px-6 py-3 bg-emerald-900 text-white text-sm font-bold rounded-xl shadow-lg hover:bg-emerald-800 transition-colors w-full sm:w-auto text-center">
+                        <Link to="/services" className="px-6 py-3 bg-emerald-900 text-white text-sm font-bold rounded-xl shadow-lg hover:bg-emerald-800 transition-colors w-full sm:w-auto text-center">
                             Open Guest Hub
                         </Link>
                     </div>
@@ -485,6 +492,17 @@ const HotelLanding: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Footer */}
+            <div className="bg-emerald-950 text-emerald-400 py-12 px-4 mt-12">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm">
+                    <div className="mb-4 md:mb-0">
+                        &copy; {new Date().getFullYear()} {HOTEL_CONFIG.business_name}.
+                    </div>
+                    <Link to="/staff-login" className="flex items-center text-emerald-600 hover:text-emerald-400 font-bold transition-colors">
+                        <Lock className="w-3 h-3 mr-1" /> Staff Portal
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 };
