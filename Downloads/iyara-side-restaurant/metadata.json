@@ -1,7 +1,0 @@
-{
-  "name": "Iyarà Side Restaurant",
-  "description": "Premium contemporary African and Intercontinental dining experience in Asaba, Nigeria.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
-}

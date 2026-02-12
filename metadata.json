@@ -1,0 +1,8 @@
+{
+  "name": "Fobbs Apartments Asaba",
+  "description": "Premium serviced apartments and aparthotel in Asaba, Delta State, featuring integrated restaurant, bar, and booking engine.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
