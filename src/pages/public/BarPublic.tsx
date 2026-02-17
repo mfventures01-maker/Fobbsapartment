@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
+import { logLeadOrBooking } from '@/lib/logging';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -57,6 +58,24 @@ const BarPublic: React.FC = () => {
             alert("Please provide a Room Number for 'Bill to Room' payment.");
             return;
         }
+
+        // Log to Supabase for Dashboard visibility
+        logLeadOrBooking({
+            customer_name: name,
+            customer_phone: phone,
+            item_name: "Bar Order",
+            total_value: subtotal,
+            business_type: 'bar',
+            metadata: {
+                cart_items: cart,
+                payment_method: paymentMethod,
+                delivery_method: delivery,
+                room_number: room || 'N/A',
+                table_number: tableNumber || 'N/A',
+                notes: notes,
+                channel: channel
+            }
+        });
 
         sendRequest(
             'Bar Order',
