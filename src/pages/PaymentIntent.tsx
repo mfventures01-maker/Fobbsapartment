@@ -103,7 +103,7 @@ const PaymentIntent: React.FC = () => {
                 .from('payment_intents')
                 .insert({
                     order_id: orderId,
-                    business_id: order.org_id,
+                    org_id: order.org_id,
                     branch_id: order.location_id,
                     // staff_id: null, // Public flow
                     // shift_id: null, // Public flow

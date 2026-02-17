@@ -5,7 +5,7 @@ export type ShiftStatus = 'open' | 'closed';
 export interface PaymentIntent {
     id: string;
     order_id: string;
-    business_id: string;
+    org_id: string;
     branch_id: string;
     staff_id: string;
     shift_id: string | null;

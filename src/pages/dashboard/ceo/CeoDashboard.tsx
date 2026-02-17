@@ -69,7 +69,7 @@ const CeoDashboard: React.FC = () => {
             // 1. Parallel Data Fetching
             const [ordersRes, intentsRes, txsRes, shiftsRes] = await Promise.all([
                 supabase.from('orders').select('*').eq('org_id', businessId).gte('created_at', todayISO),
-                supabase.from('payment_intents').select('*').eq('business_id', businessId).gte('created_at', todayISO),
+                supabase.from('payment_intents').select('*').eq('org_id', businessId).gte('created_at', todayISO),
                 supabase.from('transactions').select('*').eq('business_id', businessId).gte('created_at', todayISO),
                 supabase.from('shifts').select('*').eq('org_id', businessId).is('ends_at', null) // Active shifts
             ]);
@@ -170,8 +170,7 @@ const CeoDashboard: React.FC = () => {
             // For active shifts, calculate current run-rate
             const activeShiftsData = await Promise.all(shifts.map(async (s) => {
                 // Fetch stats for this shift
-                // Ideally we filter transactions by shift_id if available, or by time window + staff_id
-                // Here we try strict shift_id linkage if column exists, else time/staff fallback
+                if (!supabase) return { ...s, total_processed: 0, method_breakdown: {}, status: 'active' } as ShiftData;
                 const { data: shiftTxs } = await supabase
                     .from('transactions')
                     .select('amount, payment_type')
@@ -223,10 +222,7 @@ const CeoDashboard: React.FC = () => {
     }, [demoMode, fetchData]);
 
 
-    const formatCurrency = (val: number) => {
-        if (value === null || value === undefined) return '-';
-        return '₦' + val.toLocaleString('en-NG', { maximumFractionDigits: 0 });
-    };
+
 
     if (loading) return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-emerald-500">

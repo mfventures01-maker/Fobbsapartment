@@ -121,7 +121,7 @@ const ConfirmPayment: React.FC = () => {
                     .from('payment_intents')
                     .insert({
                         order_id: order.id,
-                        business_id: order.org_id,
+                        org_id: order.org_id,
                         branch_id: order.location_id,
                         staff_id: user.id,
                         shift_id: currentShift.id,

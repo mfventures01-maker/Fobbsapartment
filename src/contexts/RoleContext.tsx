@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useAuth } from './AuthContext';
 
 export type UserRole = 'super_admin' | 'ceo' | 'manager' | 'staff' | 'cashier' | 'storekeeper';
@@ -21,26 +21,18 @@ const RoleContext = createContext<RoleContextType>({
 
 export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { profile, loading: authLoading } = useAuth();
-    const [role, setRole] = useState<UserRole | null>(null);
-    const [businessId, setBusinessId] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (profile) {
-            setRole(profile.role as UserRole);
-            setBusinessId(profile.business_id);
-        } else {
-            setRole(null);
-            setBusinessId(null);
-        }
-    }, [profile]);
+    // Derive synchronously to avoid render flash
+    const role = profile?.role as UserRole | null;
+    const businessId = profile?.business_id || null;
 
     return (
         <RoleContext.Provider value={{
             role,
             businessId,
-            loading: authLoading,
+            loading: authLoading, // Loading follows Auth loading EXACTLY
             error: null,
-            refreshRole: async () => { } // No-op as verified by auth
+            refreshRole: async () => { } // No-op
         }}>
             {children}
         </RoleContext.Provider>
