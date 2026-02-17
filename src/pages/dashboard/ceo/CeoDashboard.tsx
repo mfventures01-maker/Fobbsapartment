@@ -449,18 +449,63 @@ const CeoDashboard: React.FC = () => {
                     )}
                 </div>
 
+                {/* ROW 5: FORENSIC AUDIT (CEO ONLY) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+
+                    {/* High Variance Shifts */}
+                    <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-red-50 border-b border-red-100 flex justify-between items-center">
+                            <h3 className="text-sm font-black text-red-900 uppercase tracking-widest flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-600" /> High Variance Shifts
+                            </h3>
+                            <button className="text-xs font-bold text-red-600 hover:text-red-800 underline">View Audit Log</button>
+                        </div>
+                        <div className="p-0">
+                            {/* We would fetch from view_high_variance_shifts here. For now static placeholder or empty state if not implemented in frontend yet */}
+                            <div className="p-8 text-center text-slate-400 text-xs font-mono uppercase">
+                                System scanning for variances &gt; ₦1,000...
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Frequent Reversals */}
+                    <div className="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
+                            <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest flex items-center gap-2">
+                                <RefreshCw className="w-4 h-4 text-orange-600" /> Reversal Patterns
+                            </h3>
+                            <span className="text-xs font-bold text-orange-600">Last 7 Days</span>
+                        </div>
+                        <div className="p-0">
+                            {/* We would fetch from view_frequent_reversals here */}
+                            <div className="p-8 text-center text-slate-400 text-xs font-mono uppercase">
+                                Analyzing cancellation frequency...
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
         </div>
     );
 };
 
-const KPICard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-        <div className="flex justify-between items-start mb-2 opacity-50">
+interface KPICardProps {
+    label: string;
+    value: number | string;
+    icon?: React.ReactNode;
+}
+
+const KPICard: React.FC<KPICardProps> = ({ label, value, icon }) => (
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow group">
+        <div className="flex justify-between items-start mb-2 opacity-50 group-hover:opacity-100 transition-opacity">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</span>
-            {icon}
+            {icon ? <div className="text-slate-400 group-hover:text-emerald-500 transition-colors">{icon}</div> : null}
         </div>
-        <div className="text-2xl font-black text-slate-900">{value.toLocaleString()}</div>
+        <div className="text-2xl font-black text-slate-900 truncate">
+            {typeof value === 'number' ? value.toLocaleString() : value}
+        </div>
     </div>
 );
 

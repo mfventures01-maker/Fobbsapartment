@@ -18,13 +18,19 @@ export interface PaymentIntent {
 
 export interface Shift {
     id: string;
-    business_id: string;
-    branch_id: string;
     staff_id: string;
+    business_id: string;
+    branch_id?: string;
+    status: 'open' | 'closed';
     start_time: string;
     end_time?: string;
-    status: ShiftStatus;
-    metadata?: any;
+    created_at?: string;
+    // Forensic Fields
+    physical_cash_total?: number;
+    pos_machine_total?: number;
+    transfer_total?: number;
+    variance?: number;
+    manager_approval_id?: string;
 }
 
 export interface ShiftReconciliation {
