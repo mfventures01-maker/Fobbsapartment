@@ -71,7 +71,7 @@ const CeoDashboard: React.FC = () => {
                 supabase.from('orders').select('*').eq('org_id', businessId).gte('created_at', todayISO),
                 supabase.from('payment_intents').select('*').eq('org_id', businessId).gte('created_at', todayISO),
                 supabase.from('transactions').select('*').eq('business_id', businessId).gte('created_at', todayISO),
-                supabase.from('shifts').select('*').eq('business_id', businessId).is('ends_at', null) // Active shifts
+                supabase.from('shifts').select('*').eq('business_id', businessId).eq('status', 'open') // Active shifts
             ]);
 
             if (ordersRes.error) throw ordersRes.error;
@@ -175,8 +175,8 @@ const CeoDashboard: React.FC = () => {
                     .from('transactions')
                     .select('amount, payment_type')
                     .eq('business_id', businessId)
-                    .eq('staff_id', s.staff_user_id) // simplified linkage
-                    .gte('created_at', s.starts_at);
+                    .eq('staff_id', s.staff_id) // simplified linkage
+                    .gte('created_at', s.start_time);
 
                 const total = shiftTxs?.reduce((acc, t) => acc + Number(t.amount), 0) || 0;
                 const breakdown: any = {};
@@ -187,8 +187,8 @@ const CeoDashboard: React.FC = () => {
 
                 return {
                     id: s.id,
-                    staff_id: s.staff_user_id,
-                    start_time: s.starts_at,
+                    staff_id: s.staff_id,
+                    start_time: s.start_time,
                     total_processed: total,
                     method_breakdown: breakdown,
                     status: 'active'
