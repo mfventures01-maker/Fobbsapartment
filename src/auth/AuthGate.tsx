@@ -7,17 +7,18 @@ interface AuthGateProps {
 }
 
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
-    const { user, profile, loading, signOut } = useAuth();
+    const { user, profile, loading, authState, signOut } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
     useEffect(() => {
         const checkAuth = async () => {
-            if (loading) return;
+            // Wait for full hydration
+            if (loading || authState === 'initializing' || authState === 'session_loaded') return;
 
             const path = location.pathname;
 
-            // List of public paths that don't require login
+            // List of public paths
             const publicPaths = [
                 '/',
                 '/hotel',
@@ -30,16 +31,20 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
                 '/restaurant',
                 '/bar',
                 '/services',
-                '/ceo-view', // The public CEO dashboard if any
+                '/ceo-view',
                 '/debug-auth'
             ];
 
             const isPublic = publicPaths.some(p => path === p || path.startsWith('/services/'));
 
-            // 1. Unauthenticated user trying to access protected route
+            // 1. Unauthenticated or Error
             if (!user && !isPublic) {
-                console.log(`[AuthGate] Redirecting unauthenticated user from ${path} to /login`);
-                navigate('/login', { replace: true });
+                // If we are in 'error' state, maybe we should show the error screen instead of redirecting?
+                // But generally redirect to login is safer for unauthenticated.
+                if (authState === 'unauthenticated') {
+                    console.log(`[AuthGate] Redirecting unauthenticated user from ${path} to /login`);
+                    navigate('/login', { replace: true });
+                }
                 return;
             }
 
@@ -47,10 +52,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
             if (user) {
                 // Missing profile check
                 if (!profile) {
-                    console.warn(`[AuthGate] User ${user.email} has no profile!`);
-                    // Optionally redirect to a "setup profile" page or show error
-                    // For now, we might want to let them see public pages, but if they are on /login, we can't redirect them to dashboard.
-                    // But strictly per instructions: "If profile not found: Block routing. Show 'Account not configured'".
+                    // This is handled by the render block below
                     return;
                 }
 
@@ -70,19 +72,40 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         };
 
         checkAuth();
-    }, [user, profile, loading, location.pathname, navigate]);
+    }, [user, profile, authState, loading, location.pathname, navigate]);
 
-    if (loading) {
+    // Render Logic based on State Machine
+
+    if (authState === 'initializing' || authState === 'session_loaded') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center text-emerald-900 bg-slate-50">
                 <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <div className="font-bold tracking-widest uppercase text-xs">Loading permissions...</div>
-                <div className="text-[10px] text-gray-400 mt-2">v.2026.02.16</div>
+                <div className="font-bold tracking-widest uppercase text-xs">
+                    {authState === 'initializing' ? 'Initializing System...' : 'Loading Profile...'}
+                </div>
+                <div className="text-[10px] text-gray-400 mt-2">v.2026.02.17</div>
             </div>
         );
     }
 
-    if (user && !profile && !loading) {
+    if (authState === 'error') {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 text-red-900">
+                <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
+                    <h2 className="text-xl font-bold mb-2">Connection Error</h2>
+                    <p className="text-gray-600 mb-6">Failed to connect to the authentication service.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    >
+                        Retry Connection
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (user && !profile) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900">
                 <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
