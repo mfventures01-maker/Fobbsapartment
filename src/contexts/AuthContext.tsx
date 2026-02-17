@@ -48,13 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authState, setAuthState] = useState<AuthState>('initializing');
 
   // Helper: Resilient Profile Fetch with Timeout
-  const _fetchProfilePayload = async (userId: string, retryCount = 0): Promise<Profile | null> => {
+  // Returns: { data: Profile | null, error: any | null }
+  const _fetchProfilePayload = async (userId: string, retryCount = 0): Promise<{ data: Profile | null, error: any | null }> => {
     try {
-      if (!supabase) return null;
+      if (!supabase) return { data: null, error: 'Supabase client not initialized' };
       console.log(`[AUTH] Fetching profile for user: ${userId} (Attempt ${retryCount + 1})`);
 
       const TIMEOUT_MS = 5000;
-      const timeoutPromise = new Promise<null>((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Profile fetch timeout')), TIMEOUT_MS)
       );
 
@@ -65,21 +66,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       // Race against timeout
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const { data, error } = result;
 
       if (error) {
         console.error("[AUTH] Profile fetch error:", error.message);
         // Retry logic for network errors
-        if (retryCount < 2 && (error.message.includes('fetch') || error.message.includes('network'))) {
+        if (retryCount < 2 && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
           await new Promise(res => setTimeout(res, 1000));
           return _fetchProfilePayload(userId, retryCount + 1);
         }
-        return null;
+        // If it's a "PGRST116" (JSON object not found) it means strictly no row, which is valid "Not Configured" state, not a network error.
+        if (error.code === 'PGRST116') {
+          return { data: null, error: null }; // No profile found, but operation successful
+        }
+
+        return { data: null, error: error };
       }
 
       if (data) {
         console.log(`[AUTH] Profile loaded for ${data.full_name || userId} (${data.role})`);
-        return data as Profile;
+        return { data: data as Profile, error: null };
       }
     } catch (err: any) {
       console.error("[AUTH] Profile fetch exception:", err.message);
@@ -87,8 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await new Promise(res => setTimeout(res, 1000));
         return _fetchProfilePayload(userId, retryCount + 1);
       }
+      return { data: null, error: err };
     }
-    return null;
+    return { data: null, error: null };
   };
 
   const initAuth = async () => {
@@ -119,22 +127,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(initialSession.user);
         setAuthState('session_loaded');
 
-        const profileData = await _fetchProfilePayload(initialSession.user.id);
-        if (profileData) {
-          setProfile(profileData);
-          setAuthState('authenticated');
+        const { data: profileData, error: profileError } = await _fetchProfilePayload(initialSession.user.id);
+
+        if (profileError) {
+          console.error("[AUTH] Critical: Profile fetch failed.", profileError);
+          setAuthState('error');
         } else {
-          // User has session but no profile (or fetch failed)
-          // We keep them in session_loaded or error? 
-          // Instructions say: "Block routing. Show 'Account not configured'". 
-          // AuthGate handles 'authenticated' but no profile.
-          // So we can technically go to 'authenticated' state but with null profile? 
-          // Or stay in 'session_loaded'? 
-          // Let's set 'authenticated' but profile is null. AuthGate checks !profile.
-          // Actually, better to keep state strictly consistent. 
-          // If profile fetch FAILED (network), we should show Error/Retry.
-          // If profile MISSING (db), we proceed so AuthGate shows "Not Configured".
-          // Since _fetchPayload returns null for both, we assume "Authenticated but partial"
+          // profileData might be null if not found (PGRST116), which is valid "Authenticated but not configured"
+          if (profileData) setProfile(profileData);
           setAuthState('authenticated');
         }
       } else {
@@ -173,9 +173,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setAuthState('session_loaded');
             setSession(newSession);
             setUser(newSession.user);
-            const p = await _fetchProfilePayload(newSession.user.id);
-            setProfile(p);
-            setAuthState('authenticated');
+            const { data: p, error: err } = await _fetchProfilePayload(newSession.user.id);
+            if (err) {
+              setAuthState('error');
+            } else {
+              setProfile(p);
+              setAuthState('authenticated');
+            }
           }
           break;
 
@@ -187,8 +191,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Only refetch if we somehow lost the profile or it's missing (edge case)
             // But generally, don't block UI on token refresh
             if (authState === 'authenticated' && !profile && newSession.user) {
-              _fetchProfilePayload(newSession.user.id).then(p => {
-                if (p) setProfile(p);
+              _fetchProfilePayload(newSession.user.id).then(({ data }) => {
+                if (data) setProfile(data);
               });
             }
           }
