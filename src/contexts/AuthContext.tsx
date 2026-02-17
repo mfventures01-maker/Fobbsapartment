@@ -34,61 +34,105 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [profile, setProfile] = useState<Profile | null>(null);
+  // Helper to safely fetch profile
+  const _fetchProfilePayload = async (userId: string, currentSession: Session) => {
+    try {
+      console.log(`[AUTH] Fetching profile for user: ${userId}`);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-  const fetchProfile = async (userId: string) => {
-    if (!supabase) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    if (data) setProfile(data as Profile);
+      if (error) {
+        console.error("[AUTH] Profile fetch error:", error.message);
+        return null;
+      }
+
+      if (data) {
+        console.log(`[AUTH] Profile loaded for ${data.full_name || userId} (${data.role})`);
+        return data as Profile;
+      }
+    } catch (err) {
+      console.error("[AUTH] Profile fetch exception:", err);
+    }
+    return null;
   };
 
-  useEffect(() => {
+  const initAuth = async () => {
     if (!supabase) {
       setLoading(false);
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.warn("Auth session error on init:", error.message);
-        if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
-          if (supabase) {
-            supabase.auth.signOut().catch(() => { });
-          }
-        }
-        setLoading(false);
-        return;
-      }
+    // 1. Get Session
+    const { data: { session: initialSession }, error } = await supabase.auth.getSession();
 
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+    if (error) {
+      console.warn("[AUTH] Session error on init:", error.message);
+      if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+        await supabase.auth.signOut().catch(() => { });
       }
       setLoading(false);
-    });
+      return;
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`[AUTH] Event: ${event}`);
+    // 2. Hydrate State
+    if (initialSession?.user) {
+      console.log("[AUTH] Found active session, hydrating profile...");
+      setSession(initialSession);
+      setUser(initialSession.user);
+
+      const profileData = await _fetchProfilePayload(initialSession.user.id, initialSession);
+      if (profileData) {
+        setProfile(profileData);
+      }
+    } else {
+      console.log("[AUTH] No active session on init.");
+    }
+
+    // 3. Ready
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Mount phase
+    console.log("[AUTH] AuthProvider mounting...");
+    initAuth();
+
+    // Subscription phase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log(`[AUTH] Auth Event: ${event}`);
 
       if (event === 'SIGNED_OUT') {
+        console.log("[AUTH] Clearing session...");
         setSession(null);
         setUser(null);
         setProfile(null);
-      } else {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id);
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (newSession?.user) {
+          console.log("[AUTH] Session updated/restored.");
+          // Only set loading true if we interpret this as a full reload needed, 
+          // but for TOKEN_REFRESHED we might want to stay silent or just update session.
+          // For SIGNED_IN (login), we want to show loading until profile is ready.
+          if (event === 'SIGNED_IN') setLoading(true);
+
+          setSession(newSession);
+          setUser(newSession.user);
+
+          // Always refresh profile on these events to ensure sync
+          const profileData = await _fetchProfilePayload(newSession.user.id, newSession);
+          if (profileData) setProfile(profileData);
+
+          setLoading(false);
         }
+      } else if (event === 'INITIAL_SESSION') {
+        // Handled by initAuth usually, but good to have
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -101,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInAsDemo = async (role: Profile['role'], department?: string) => {
+    setLoading(true);
     const mockId = 'demo-user-' + Math.random().toString(36).substr(2, 9);
     const mockUser = {
       id: mockId,
@@ -122,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockProfile: Profile = {
       user_id: mockId,
       role: role,
-      business_id: '7102604d-e99d-48ef-968b-59d4c7943d74', // Valid UUID for demo
+      business_id: '7102604d-e99d-48ef-968b-59d4c7943d74',
       department: department,
       full_name: `Demo ${role.toUpperCase()}`,
     };
