@@ -1,30 +1,21 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useRole } from '@/contexts/RoleContext';
-import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthGateProps {
     children: React.ReactNode;
 }
 
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
-    const { role, loading: roleLoading } = useRole();
+    const { user, profile, loading } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
     useEffect(() => {
         const checkAuth = async () => {
-            if (roleLoading) return;
+            if (loading) return;
 
             const path = location.pathname;
-
-            if (!supabase) {
-                console.warn("[AuthGate] Supabase client is null");
-                return;
-            }
-
-            const { data: { session } } = await supabase.auth.getSession();
-            const user = session?.user;
 
             // List of public paths that don't require login
             const publicPaths = [
@@ -47,7 +38,6 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
             // 1. Unauthenticated user trying to access protected route
             if (!user && !isPublic) {
-                // allow access to public sub-routes if any, otherwise redirect
                 console.log(`[AuthGate] Redirecting unauthenticated user from ${path} to /login`);
                 navigate('/login', { replace: true });
                 return;
@@ -57,26 +47,25 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
             if (user) {
                 // If on login page or root, redirect to role-specific dashboard
                 if (path === '/login' || path === '/staff-login' || path === '/') {
-                    if (role) {
+                    if (profile?.role) {
+                        const role = profile.role;
                         console.log(`[AuthGate] Redirecting ${role} to dashboard`);
                         if (role === 'super_admin') navigate('/super-admin', { replace: true });
                         else if (role === 'ceo') navigate('/ceo', { replace: true });
                         else if (role === 'manager') navigate('/manager', { replace: true });
                         else if (role === 'staff' || role === 'cashier' || role === 'storekeeper') navigate('/staff', { replace: true });
-                        else navigate('/unauthorized'); // Role exists but no route mapped
+                        else navigate('/unauthorized');
                     } else {
-                        // User logged in but no role found yet (or fetching)
-                        // If not loading, then maybe unauthorized
-                        // But fetchUserRole sets role=null if no membership
+                        // User logged in but no role found yet
                     }
                 }
             }
         };
 
         checkAuth();
-    }, [role, roleLoading, location.pathname, navigate]);
+    }, [user, profile, loading, location.pathname, navigate]);
 
-    if (roleLoading) {
+    if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center text-emerald-900 bg-slate-50">
                 <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>

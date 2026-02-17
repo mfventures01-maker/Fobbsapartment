@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 
 export interface Profile {
   user_id: string;
-  role: 'super_admin' | 'owner' | 'ceo' | 'manager' | 'staff' | 'viewer';
+  role: 'super_admin' | 'owner' | 'ceo' | 'manager' | 'staff' | 'cashier' | 'storekeeper' | 'viewer';
   business_id: string;
   department?: string;
   full_name?: string;
