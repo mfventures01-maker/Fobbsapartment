@@ -3,13 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
-export interface Profile {
-  user_id: string;
-  role: 'super_admin' | 'owner' | 'ceo' | 'manager' | 'staff' | 'cashier' | 'storekeeper' | 'viewer';
-  business_id: string;
-  department?: string;
-  full_name?: string;
-}
+import { Profile } from '@/types/db';
 
 // Explicit finite states for auth hydration
 export type AuthState =

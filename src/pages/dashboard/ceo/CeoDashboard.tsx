@@ -71,7 +71,7 @@ const CeoDashboard: React.FC = () => {
                 supabase.from('orders').select('*').eq('org_id', businessId).gte('created_at', todayISO),
                 supabase.from('payment_intents').select('*').eq('org_id', businessId).gte('created_at', todayISO),
                 supabase.from('transactions').select('*').eq('business_id', businessId).gte('created_at', todayISO),
-                supabase.from('shifts').select('*').eq('org_id', businessId).is('ends_at', null) // Active shifts
+                supabase.from('shifts').select('*').eq('business_id', businessId).is('ends_at', null) // Active shifts
             ]);
 
             if (ordersRes.error) throw ordersRes.error;

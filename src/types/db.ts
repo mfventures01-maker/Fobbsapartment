@@ -2,6 +2,14 @@
 export type PaymentStatus = 'pending' | 'confirmed' | 'voided';
 export type ShiftStatus = 'open' | 'closed';
 
+export interface Profile {
+    user_id: string;
+    role: 'super_admin' | 'owner' | 'ceo' | 'manager' | 'staff' | 'cashier' | 'storekeeper' | 'viewer';
+    business_id: string;
+    department?: string;
+    full_name?: string;
+}
+
 export interface PaymentIntent {
     id: string;
     order_id: string;
