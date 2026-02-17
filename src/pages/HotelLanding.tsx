@@ -19,7 +19,8 @@ const HotelLanding: React.FC = () => {
         checkIn: '',
         checkOut: '',
         guests: 1,
-        notes: ''
+        notes: '',
+        paymentMethod: 'Bank Transfer'
     });
 
     const handleBookClick = (room: Room) => {
@@ -393,6 +394,19 @@ const HotelLanding: React.FC = () => {
                                                 ))}
                                             </select>
                                         </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Payment Method</label>
+                                        <select
+                                            className="w-full p-3 bg-gray-50 rounded-xl font-medium border-none focus:ring-2 focus:ring-emerald-500"
+                                            value={formData.paymentMethod}
+                                            onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                                        >
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="POS on Arrival">POS on Arrival</option>
+                                            <option value="Cash on Arrival">Cash on Arrival</option>
+                                        </select>
                                     </div>
 
                                     <div className="space-y-1">

@@ -8,6 +8,7 @@ export interface BookingForm {
     guests: number;
     notes?: string;
     bookingId?: string;
+    paymentMethod?: string;
 }
 
 export function buildHotelBookingMessage(formData: BookingForm, room: Room): string {
@@ -29,6 +30,7 @@ export function buildHotelBookingMessage(formData: BookingForm, room: Room): str
 *Guests:* ${formData.guests}
 ------------------------
 *Total Estimate:* ₦${totalCost.toLocaleString()}
+*Payment:* ${formData.paymentMethod || "Not Selected"}
 *Notes:* ${formData.notes || "None"}
 
 _Sent via CARSS_`;
