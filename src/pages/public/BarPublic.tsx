@@ -18,6 +18,7 @@ const BarPublic: React.FC = () => {
     const [notes, setNotes] = useState('');
     const [delivery, setDelivery] = useState('Room Delivery');
     const [paymentMethod, setPaymentMethod] = useState('POS on Delivery');
+    const [tableNumber, setTableNumber] = useState('');
 
     const addToCart = (item: any) => {
         setCart(prev => {
@@ -52,6 +53,11 @@ const BarPublic: React.FC = () => {
             return;
         }
 
+        if (paymentMethod === 'Bill to Room' && !room) {
+            alert("Please provide a Room Number for 'Bill to Room' payment.");
+            return;
+        }
+
         sendRequest(
             'Bar Order',
             buildBarOrderMessage,
@@ -59,7 +65,7 @@ const BarPublic: React.FC = () => {
                 items: cart,
                 subtotal: subtotal,
                 payment_method: paymentMethod,
-                notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}. Delivery: ${delivery}. ${notes}`,
+                notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
                 room_number: room || "N/A",
                 summary: `${cart.length} drinks (₦${subtotal.toLocaleString()})`
             },
@@ -172,6 +178,19 @@ const BarPublic: React.FC = () => {
                                             />
                                         </div>
                                     </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Table (Opt)</label>
+                                        <div className="relative">
+                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={tableNumber}
+                                                onChange={(e) => setTableNumber(e.target.value)}
+                                                className="w-full pl-8 p-2 bg-gray-50 rounded-lg text-sm"
+                                                placeholder="Table #"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -213,6 +232,7 @@ const BarPublic: React.FC = () => {
                                                 className="w-full text-sm p-2 bg-gray-50 rounded-lg"
                                             >
                                                 <option value="Room Delivery">Room Delivery</option>
+                                                <option value="Dine In">Dine In (Table)</option>
                                                 <option value="Pickup">Pickup at Bar</option>
                                             </select>
                                         </div>
@@ -227,6 +247,7 @@ const BarPublic: React.FC = () => {
                                                 <option value="POS on Delivery">POS on Delivery</option>
                                                 <option value="Transfer">Transfer</option>
                                                 <option value="Cash">Cash</option>
+                                                <option value="Bill to Room">Bill to Room</option>
                                             </select>
                                         </div>
 
