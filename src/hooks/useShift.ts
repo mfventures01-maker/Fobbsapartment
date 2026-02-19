@@ -18,11 +18,12 @@ export function useShift() {
         }
 
         const fetchShift = async () => {
+            if (!supabase) return;
             const { data, error } = await supabase
                 .from('shifts')
                 .select('*')
                 .eq('staff_id', user.id)
-                .eq('status', 'open')
+                .is('ends_at', null)
                 .order('start_time', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -38,24 +39,27 @@ export function useShift() {
         fetchShift();
 
         // Subscribe to shift changes? Ideally yes for realtime enforcement
+        if (!supabase) return;
         const channel = supabase
             .channel(`shift_updates_${user.id}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'shifts', filter: `staff_id=eq.${user.id}` },
-                (payload) => {
+                () => {
                     fetchShift();
                 }
             )
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            if (supabase) {
+                supabase.removeChannel(channel);
+            }
         };
     }, [user]);
 
     const startShift = async () => {
-        if (!user || !profile) return;
+        if (!user || !profile || !supabase) return;
         if (currentShift) return;
 
         const { data, error } = await supabase
@@ -64,7 +68,6 @@ export function useShift() {
                 staff_id: user.id,
                 business_id: profile.business_id,
                 branch_id: profile.business_id, // Assuming single branch for now
-                status: 'open',
                 start_time: new Date().toISOString()
             })
             .select()
@@ -87,7 +90,7 @@ export function useShift() {
         expected_transfer: number;
         transfer_total: number;
     }) => {
-        if (!currentShift) return;
+        if (!currentShift || !supabase) return;
 
         const variance = (reconciliationData.counted_cash - reconciliationData.expected_cash) +
             (reconciliationData.pos_machine_total - reconciliationData.expected_pos) +
@@ -114,22 +117,13 @@ export function useShift() {
         // 2. Close Shift
         if (variance !== 0) {
             toast.error('Variance detected. Manager approval required to close shift completely.');
-            // We might update shift status to 'pending_approval' if we had that status.
-            // For now, prompt says "Prevent shift closure until reconciliation recorded".
-            // It also says "Shift cannot close without reconciliation".
-            // Implementation: We recorded reconciliation. 
-            // If strict: Do not close shift status yet?
-            // "Prevent shift closure until reconciliation recorded". OK it is recorded.
-            // "If variance != 0 -> require manager approval". This implies the *process* halts.
-            // I'll leave shift open if variance != 0.
             return;
         }
 
         const { error: closeError } = await supabase
             .from('shifts')
             .update({
-                status: 'closed',
-                end_time: new Date().toISOString()
+                ends_at: new Date().toISOString()
             })
             .eq('id', currentShift.id);
 

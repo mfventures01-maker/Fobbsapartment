@@ -234,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockProfile: Profile = {
       user_id: mockId,
       role: role,
-      business_id: '7102604d-e99d-48ef-968b-59d4c7943d74',
+      business_id: '601576d8-9a10-476d-bad1-a1b46f5e830d',
       department: department,
       full_name: `Demo ${role.toUpperCase()}`,
     };

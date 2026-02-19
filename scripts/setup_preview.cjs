@@ -44,7 +44,7 @@ async function setup() {
         await supabase.from('profiles').upsert({
             user_id: userId,
             role: 'manager',
-            business_id: '7102604d-e99d-48ef-968b-59d4c7943d74',
+            business_id: '601576d8-9a10-476d-bad1-a1b46f5e830d',
             full_name: 'Preview Manager',
             department: 'Management'
         }, { onConflict: 'user_id' });
@@ -68,10 +68,9 @@ async function setup() {
         const { data: newOrder, error: insertError } = await supabase
             .from('orders')
             .insert({
-                status: 'open',
                 total: 8000,
-                org_id: '7102604d-e99d-48ef-968b-59d4c7943d74',
-                location_id: '7102604d-e99d-48ef-968b-59d4c7943d74', // Fallback
+                org_id: '601576d8-9a10-476d-bad1-a1b46f5e830d',
+                location_id: '601576d8-9a10-476d-bad1-a1b46f5e830d', // Fallback
                 created_by: userId
             })
             .select()

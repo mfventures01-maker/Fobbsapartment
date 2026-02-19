@@ -29,9 +29,8 @@ export interface Shift {
     staff_id: string;
     business_id: string;
     branch_id?: string;
-    status: 'open' | 'closed';
     start_time: string;
-    end_time?: string;
+    ends_at?: string;
     created_at?: string;
     // Forensic Fields
     physical_cash_total?: number;
