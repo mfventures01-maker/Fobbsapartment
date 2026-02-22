@@ -3,14 +3,12 @@ import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/contexts/AuthContext';
 
 const StaffLogin: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { signInAsDemo } = useAuth();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -97,39 +95,6 @@ const StaffLogin: React.FC = () => {
                     </button>
                 </form>
 
-                <div className="mt-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-400">
-                                Or Use Demo Access
-                            </span>
-                        </div>
-                    </div>
-                    <div className="mt-6">
-                        <button
-                            type="button"
-                            disabled={loading}
-                            onClick={async () => {
-                                try {
-                                    setLoading(true);
-                                    await signInAsDemo('staff', 'restaurant');
-                                    // Navigation is handled inside signInAsDemo or via auth state change
-                                } catch (err) {
-                                    toast.error("Demo login failed");
-                                    console.error(err);
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }}
-                            className="w-full bg-slate-100 text-slate-600 py-3 rounded-xl font-semibold hover:bg-slate-200 transition-colors"
-                        >
-                            {loading ? 'Loading...' : 'Demo Staff Access'}
-                        </button>
-                    </div>
-                </div>
 
                 <div className="mt-6 text-center text-xs text-gray-400">
                     Fobbs Apartments Internal System

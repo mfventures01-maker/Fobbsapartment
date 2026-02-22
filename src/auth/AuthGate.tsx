@@ -50,22 +50,28 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
             // 2. Authenticated user
             if (user) {
-                // Missing profile check
-                if (!profile) {
-                    // This is handled by the render block below
-                    return;
-                }
+                if (!profile) return;
 
-                // If on login page or root, redirect to role-specific dashboard
+                // Deterministic Routing Sequence
                 if (path === '/login' || path === '/staff-login' || path === '/') {
-                    if (profile?.role) {
-                        const role = profile.role;
-                        console.log(`[AuthGate] Redirecting ${role} to dashboard`);
-                        if (role === 'super_admin') navigate('/super-admin', { replace: true });
-                        else if (role === 'ceo') navigate('/ceo', { replace: true });
-                        else if (role === 'manager') navigate('/manager', { replace: true });
-                        else if (role === 'staff' || role === 'cashier' || role === 'storekeeper') navigate('/staff', { replace: true });
-                        else navigate('/unauthorized');
+                    const role = profile.role;
+                    console.log(`[AuthGate] Deterministic Routing: ${role}`);
+
+                    switch (role) {
+                        case 'super_admin':
+                            navigate('/super-admin', { replace: true });
+                            break;
+                        case 'ceo':
+                            navigate('/ceo', { replace: true });
+                            break;
+                        case 'manager':
+                            navigate('/manager', { replace: true });
+                            break;
+                        case 'staff':
+                            navigate('/staff', { replace: true });
+                            break;
+                        default:
+                            navigate('/unauthorized', { replace: true });
                     }
                 }
             }

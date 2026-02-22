@@ -4,10 +4,10 @@ export type ShiftStatus = 'open' | 'closed';
 
 export interface Profile {
     user_id: string;
-    role: 'super_admin' | 'owner' | 'ceo' | 'manager' | 'staff' | 'cashier' | 'storekeeper' | 'viewer';
+    role: 'super_admin' | 'ceo' | 'manager' | 'staff';
     business_id: string;
     department?: string;
-    full_name?: string;
+    full_name: string; // Now required
 }
 
 export interface PaymentIntent {

@@ -1,14 +1,14 @@
 import React, { createContext, useContext } from 'react';
 import { useAuth } from './AuthContext';
 
-export type UserRole = 'super_admin' | 'ceo' | 'manager' | 'staff' | 'cashier' | 'storekeeper';
+export type UserRole = 'super_admin' | 'ceo' | 'manager' | 'staff';
 
 interface RoleContextType {
     role: UserRole | null;
     businessId: string | null;
     loading: boolean;
     error: string | null;
-    refreshRole: () => Promise<void>;
+    setOverrideBusinessId: (id: string | null) => void;
 }
 
 const RoleContext = createContext<RoleContextType>({
@@ -16,29 +16,31 @@ const RoleContext = createContext<RoleContextType>({
     businessId: null,
     loading: true,
     error: null,
-    refreshRole: async () => { },
+    setOverrideBusinessId: () => { },
 });
 
 export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { profile, loading: authLoading } = useAuth();
+    const [overrideBusinessId, setOverrideBusinessId] = React.useState<string | null>(null);
 
-    // Derive synchronously to avoid render flash
     const role = profile?.role as UserRole | null;
-    const businessId = profile?.business_id || null;
+
+    // Super-admin can override business ID to view different businesses
+    const businessId = (role === 'super_admin')
+        ? (overrideBusinessId || null)
+        : (profile?.business_id || null);
 
     return (
         <RoleContext.Provider value={{
             role,
             businessId,
-            loading: authLoading, // Loading follows Auth loading EXACTLY
+            loading: authLoading,
             error: null,
-            refreshRole: async () => { } // No-op
+            setOverrideBusinessId
         }}>
             {children}
         </RoleContext.Provider>
     );
 };
-
-
 
 export const useRole = () => useContext(RoleContext);

@@ -41,56 +41,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authState, setAuthState] = useState<AuthState>('initializing');
 
-  // Helper: Resilient Profile Fetch with Timeout
-  // Returns: { data: Profile | null, error: any | null }
-  const _fetchProfilePayload = async (userId: string, retryCount = 0): Promise<{ data: Profile | null, error: any | null }> => {
-    try {
-      if (!supabase) return { data: null, error: 'Supabase client not initialized' };
-      console.log(`[AUTH] Fetching profile for user: ${userId} (Attempt ${retryCount + 1})`);
+  // Task 4: Harden fetchProfile
+  const fetchProfile = async (userId: string) => {
+    if (!supabase) return;
+    console.log("[AUTH] Fetching profile for user:", userId);
 
-      const TIMEOUT_MS = 5000;
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timeout')), TIMEOUT_MS)
-      );
-
-      const fetchPromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      // Race against timeout
-      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      const { data, error } = result;
-
-      if (error) {
-        console.error("[AUTH] Profile fetch error:", error.message);
-        // Retry logic for network errors
-        if (retryCount < 2 && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
-          await new Promise(res => setTimeout(res, 1000));
-          return _fetchProfilePayload(userId, retryCount + 1);
-        }
-        // If it's a "PGRST116" (JSON object not found) it means strictly no row, which is valid "Not Configured" state, not a network error.
-        if (error.code === 'PGRST116') {
-          return { data: null, error: null }; // No profile found, but operation successful
-        }
-
-        return { data: null, error: error };
-      }
-
-      if (data) {
-        console.log(`[AUTH] Profile loaded for ${data.full_name || userId} (${data.role})`);
-        return { data: data as Profile, error: null };
-      }
-    } catch (err: any) {
-      console.error("[AUTH] Profile fetch exception:", err.message);
-      if (retryCount < 2) {
-        await new Promise(res => setTimeout(res, 1000));
-        return _fetchProfilePayload(userId, retryCount + 1);
-      }
-      return { data: null, error: err };
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession) {
+      console.log("[AUTH] No session available. Aborting profile fetch.");
+      return;
     }
-    return { data: null, error: null };
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("[AUTH] Profile fetch failed:", error);
+      setAuthState('error');
+      return;
+    }
+
+    if (data) {
+      console.log("[AUTH] Profile loaded for", data.full_name, `(${data.role})`);
+      setProfile(data as Profile);
+      setAuthState('authenticated');
+    }
   };
 
   const initAuth = async () => {
@@ -105,32 +83,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.warn("[AUTH] Session error on init:", error.message);
-        // Handle bad tokens gracefully
         if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
           await supabase.auth.signOut().catch(() => { });
           setAuthState('unauthenticated');
         } else {
-          setAuthState('error'); // Genuine error
+          setAuthState('error');
         }
         return;
       }
 
-      // 2. Hydrate State
       if (initialSession?.user) {
         setSession(initialSession);
         setUser(initialSession.user);
+        // We set session_loaded, the listener for INITIAL_SESSION will trigger fetchProfile
         setAuthState('session_loaded');
-
-        const { data: profileData, error: profileError } = await _fetchProfilePayload(initialSession.user.id);
-
-        if (profileError) {
-          console.error("[AUTH] Critical: Profile fetch failed.", profileError);
-          setAuthState('error');
-        } else {
-          // profileData might be null if not found (PGRST116), which is valid "Authenticated but not configured"
-          if (profileData) setProfile(profileData);
-          setAuthState('authenticated');
-        }
       } else {
         console.log("[AUTH] No active session on init.");
         setAuthState('unauthenticated');
@@ -149,52 +115,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!supabase) return;
 
     // Subscription phase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log(`[AUTH] Event Fired: ${event}`);
 
-      switch (event) {
-        case 'SIGNED_OUT':
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setAuthState('unauthenticated');
-          // Clear any local state if needed
-          break;
+      // Task 3: Implement Correct Hydration Flow
+      if (event === "INITIAL_SESSION" && currentSession?.user) {
+        console.log("[AUTH] Session hydrated. Fetching profile...");
+        setSession(currentSession);
+        setUser(currentSession.user);
+        setAuthState('session_loaded');
+        await fetchProfile(currentSession.user.id);
+      }
 
-        case 'SIGNED_IN':
-          // New login
-          if (newSession?.user) {
-            setAuthState('session_loaded');
-            setSession(newSession);
-            setUser(newSession.user);
-            const { data: p, error: err } = await _fetchProfilePayload(newSession.user.id);
-            if (err) {
-              setAuthState('error');
-            } else {
-              setProfile(p);
-              setAuthState('authenticated');
-            }
-          }
-          break;
+      if (event === "SIGNED_IN") {
+        // Task 2: Remove Early Fetch from SIGNED_IN <-- Reverted: we need to fetch profile so AuthGate doesn't show "Account Not Configured".
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          setAuthState('session_loaded');
+          await fetchProfile(currentSession.user.id);
+        }
+      }
 
-        case 'TOKEN_REFRESHED':
-          // Just update session, no need to refetch profile unless missing
-          if (newSession) {
-            setSession(newSession);
-            setUser(newSession.user);
-            // Only refetch if we somehow lost the profile or it's missing (edge case)
-            // But generally, don't block UI on token refresh
-            if (authState === 'authenticated' && !profile && newSession.user) {
-              _fetchProfilePayload(newSession.user.id).then(({ data }) => {
-                if (data) setProfile(data);
-              });
-            }
-          }
-          break;
+      if (event === "SIGNED_OUT") {
+        console.log("[AUTH] Signed out.");
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setAuthState('unauthenticated');
+      }
 
-        case 'INITIAL_SESSION':
-          // Handled by initAuth
-          break;
+      if (event === "TOKEN_REFRESHED") {
+        console.log("[AUTH] Token refreshed.");
+        if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+        }
       }
     });
 
@@ -234,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockProfile: Profile = {
       user_id: mockId,
       role: role,
-      business_id: '601576d8-9a10-476d-bad1-a1b46f5e830d',
+      business_id: role === 'super_admin' ? '' : '601576d8-9a10-476d-bad1-a1b46f5e830d',
       department: department,
       full_name: `Demo ${role.toUpperCase()}`,
     };

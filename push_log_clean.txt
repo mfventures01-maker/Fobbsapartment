@@ -1,0 +1,32 @@
+﻿npx : Connecting to remote 
+database...
+At line:1 char:1
++ npx supabase db push 2>&1 
+| Out-File -Encoding utf8 
+-FilePath push_lo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Connect  
+  ing to remote database..   
+ .:String) [], RemoteExce    
+ption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+Remote migration versions 
+not found in local 
+migrations directory.
+
+Make sure your local git 
+repo is up-to-date. If the 
+error persists, try 
+repairing the migration 
+history table:
+supabase migration repair 
+--status reverted 
+20260212143015
+
+And update local migrations 
+to match remote database:
+supabase db pull
+

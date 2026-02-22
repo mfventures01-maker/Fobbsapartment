@@ -6,7 +6,7 @@ import PaymentIntent from '@/pages/PaymentIntent';
 import ConfirmPayment from '@/pages/ConfirmPayment';
 import Fulfillment from '@/pages/Fulfillment';
 import CeoDashboard from '@/pages/dashboard/ceo/CeoDashboard';
-import DebugAuth from '@/components/auth/DebugAuth';
+import DebugAuth from '@/pages/auth/DebugAuth';
 
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DemoProvider } from '@/contexts/DemoContext';
@@ -107,12 +107,12 @@ const AppContent: React.FC = () => {
           </Route>
 
           {/* POS Route - Accessible to staff and admins */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'manager', 'staff', 'cashier', 'storekeeper']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'ceo', 'manager', 'staff']} />}>
             <Route path="/pos" element={<POSPage />} />
           </Route>
 
           {/* Staff */}
-          <Route element={<ProtectedRoute allowedRoles={['staff', 'cashier', 'storekeeper']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['staff']} />}>
             <Route path="/staff" element={<DashboardLayout />}>
               <Route index element={<StaffDashboardPage />} />
               <Route path="restaurant" element={<RestaurantStaff />} />

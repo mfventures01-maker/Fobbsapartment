@@ -1,0 +1,1024 @@
+﻿
+supabase\migrations\202602040
+64344_remote_schema.sql:752:a
+lter table 
+"public"."audit_logs" add 
+constraint 
+"audit_logs_branch_id_fkey" 
+FOREIGN KEY (branch_id) 
+REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:756:a
+lter table 
+"public"."audit_logs" add 
+constraint 
+"audit_logs_user_id_fkey" 
+FOREIGN KEY (actor_id) 
+REFERENCES auth.users(id) 
+not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:760:a
+lter table 
+"public"."bookings" add 
+constraint 
+"bookings_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:764:a
+lter table 
+"public"."bookings" add 
+constraint 
+"bookings_property_id_fkey" 
+FOREIGN KEY (property_id) 
+REFERENCES 
+public.properties(id) ON 
+DELETE RESTRICT not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:768:a
+lter table 
+"public"."branches" add 
+constraint 
+"branches_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:772:a
+lter table 
+"public"."business_settings" 
+add constraint "business_sett
+ings_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:780:a
+lter table 
+"public"."customers" add 
+constraint 
+"customers_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:784:a
+lter table 
+"public"."lead_followups" 
+add constraint "lead_followup
+s_lead_id_fkey" FOREIGN KEY 
+(lead_id) REFERENCES 
+public.leads(id) ON DELETE 
+CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:788:a
+lter table 
+"public"."lead_followups" 
+add constraint 
+"lead_followups_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:792:a
+lter table "public"."leads" 
+add constraint 
+"leads_org_id_fkey" FOREIGN 
+KEY (org_id) REFERENCES 
+public.orgs(id) ON DELETE 
+CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:796:a
+lter table "public"."leads" 
+add constraint 
+"leads_pipeline_id_fkey" 
+FOREIGN KEY (pipeline_id) 
+REFERENCES 
+public.pipelines(id) ON 
+DELETE SET NULL not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:800:a
+lter table "public"."leads" 
+add constraint 
+"leads_stage_id_fkey" 
+FOREIGN KEY (stage_id) 
+REFERENCES 
+public.pipeline_stages(id) 
+ON DELETE SET NULL not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:804:a
+lter table 
+"public"."locations" add 
+constraint 
+"locations_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:808:a
+lter table 
+"public"."loyalty_accounts" 
+add constraint "loyalty_accou
+nts_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:814:a
+lter table 
+"public"."loyalty_accounts" 
+add constraint "loyalty_accou
+nts_customer_id_fkey" 
+FOREIGN KEY (customer_id) 
+REFERENCES 
+public.customers(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:822:a
+lter table "public"."notifica
+tion_outbox" add constraint "
+notification_outbox_business_
+id_fkey" FOREIGN KEY 
+(business_id) REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:834:a
+lter table 
+"public"."order_items" add 
+constraint 
+"order_items_order_id_fkey" 
+FOREIGN KEY (order_id) 
+REFERENCES public.orders(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:838:a
+lter table 
+"public"."order_items" add 
+constraint 
+"order_items_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:842:a
+lter table "public"."orders" 
+add constraint 
+"orders_location_id_fkey" 
+FOREIGN KEY (location_id) 
+REFERENCES 
+public.locations(id) ON 
+DELETE SET NULL not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:846:a
+lter table "public"."orders" 
+add constraint 
+"orders_org_id_fkey" FOREIGN 
+KEY (org_id) REFERENCES 
+public.orgs(id) ON DELETE 
+CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:850:a
+lter table 
+"public"."org_members" add 
+constraint 
+"org_members_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:860:a
+lter table 
+"public"."payment_audit" add 
+constraint "payment_audit_bra
+nch_id_fkey" FOREIGN KEY 
+(branch_id) REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:864:a
+lter table 
+"public"."payment_audit" add 
+constraint "payment_audit_bus
+iness_id_fkey" FOREIGN KEY 
+(business_id) REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:868:a
+lter table 
+"public"."payment_audit" add 
+constraint "payment_audit_pay
+ment_id_fkey" FOREIGN KEY 
+(payment_id) REFERENCES 
+public.payments(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:872:a
+lter table 
+"public"."payment_disputes" 
+add constraint "payment_dispu
+tes_branch_id_fkey" FOREIGN 
+KEY (branch_id) REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:876:a
+lter table 
+"public"."payment_disputes" 
+add constraint "payment_dispu
+tes_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:880:a
+lter table 
+"public"."payment_disputes" 
+add constraint "payment_dispu
+tes_payment_id_fkey" FOREIGN 
+KEY (payment_id) REFERENCES 
+public.payments(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:892:a
+lter table 
+"public"."payments" add 
+constraint 
+"payments_branch_id_fkey" 
+FOREIGN KEY (branch_id) 
+REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:896:a
+lter table 
+"public"."payments" add 
+constraint 
+"payments_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:900:a
+lter table 
+"public"."payments" add 
+constraint 
+"payments_customer_id_fkey" 
+FOREIGN KEY (customer_id) 
+REFERENCES 
+public.customers(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:912:a
+lter table 
+"public"."pipeline_stages" 
+add constraint "pipeline_stag
+es_org_id_fkey" FOREIGN KEY 
+(org_id) REFERENCES 
+public.orgs(id) ON DELETE 
+CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:916:a
+lter table 
+"public"."pipeline_stages" 
+add constraint "pipeline_stag
+es_pipeline_id_fkey" FOREIGN 
+KEY (pipeline_id) REFERENCES 
+public.pipelines(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:920:a
+lter table 
+"public"."pipelines" add 
+constraint 
+"pipelines_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:924:a
+lter table 
+"public"."profiles" add 
+constraint 
+"profiles_branch_id_fkey" 
+FOREIGN KEY (branch_id) 
+REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:928:a
+lter table 
+"public"."profiles" add 
+constraint 
+"profiles_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) ON 
+DELETE SET NULL not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:942:a
+lter table 
+"public"."profiles" add 
+constraint 
+"profiles_user_id_fkey" 
+FOREIGN KEY (user_id) 
+REFERENCES auth.users(id) ON 
+DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:946:a
+lter table 
+"public"."properties" add 
+constraint "properties_locati
+on_id_fkey" FOREIGN KEY 
+(location_id) REFERENCES 
+public.locations(id) ON 
+DELETE SET NULL not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:950:a
+lter table 
+"public"."properties" add 
+constraint 
+"properties_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:954:a
+lter table 
+"public"."service_requests" 
+add constraint "service_reque
+sts_branch_id_fkey" FOREIGN 
+KEY (branch_id) REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:966:a
+lter table "public"."shifts" 
+add constraint 
+"shifts_org_id_fkey" FOREIGN 
+KEY (org_id) REFERENCES 
+public.orgs(id) ON DELETE 
+CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:970:a
+lter table 
+"public"."staff_invitations" 
+add constraint "staff_invitat
+ions_branch_id_fkey" FOREIGN 
+KEY (branch_id) REFERENCES 
+public.branches(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:974:a
+lter table 
+"public"."staff_invitations" 
+add constraint "staff_invitat
+ions_business_id_fkey" 
+FOREIGN KEY (business_id) 
+REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:978:a
+lter table 
+"public"."staff_invitations" 
+add constraint "staff_invitat
+ions_created_by_fkey" 
+FOREIGN KEY (created_by) 
+REFERENCES 
+public.profiles(user_id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:990:a
+lter table 
+"public"."staff_invitations" 
+add constraint "staff_invitat
+ions_id_verified_by_fkey" 
+FOREIGN KEY (id_verified_by) 
+REFERENCES 
+public.profiles(user_id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:1010:
+alter table 
+"public"."staff_profiles" 
+add constraint 
+"staff_profiles_org_id_fkey" 
+FOREIGN KEY (org_id) 
+REFERENCES public.orgs(id) 
+ON DELETE CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:1016:
+alter table "public"."tasks" 
+add constraint 
+"tasks_org_id_fkey" FOREIGN 
+KEY (org_id) REFERENCES 
+public.orgs(id) ON DELETE 
+CASCADE not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:1020:
+alter table "public"."user_no
+tifications" add constraint "
+user_notifications_business_i
+d_fkey" FOREIGN KEY 
+(business_id) REFERENCES 
+public.businesses(id) not 
+valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:1028:
+alter table "public"."user_no
+tifications" add constraint "
+user_notifications_user_id_fk
+ey" FOREIGN KEY (user_id) 
+REFERENCES auth.users(id) 
+not valid;
+supabase\migrations\202602040
+64344_remote_schema.sql:2247:
+grant references on table 
+"public"."audit_logs" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2261:
+grant references on table 
+"public"."audit_logs" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2275:
+grant references on table 
+"public"."audit_logs" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2289:
+grant references on table 
+"public"."bookings" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2303:
+grant references on table 
+"public"."bookings" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2317:
+grant references on table 
+"public"."bookings" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2331:
+grant references on table 
+"public"."branches" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2345:
+grant references on table 
+"public"."branches" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2359:
+grant references on table 
+"public"."branches" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2373:
+grant references on table 
+"public"."business_settings" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2387:
+grant references on table 
+"public"."business_settings" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2401:
+grant references on table 
+"public"."business_settings" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2415:
+grant references on table 
+"public"."businesses" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2429:
+grant references on table 
+"public"."businesses" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2443:
+grant references on table 
+"public"."businesses" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2457:
+grant references on table 
+"public"."customers" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2471:
+grant references on table 
+"public"."customers" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2485:
+grant references on table 
+"public"."customers" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2499:
+grant references on table 
+"public"."lead_followups" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2513:
+grant references on table 
+"public"."lead_followups" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2527:
+grant references on table 
+"public"."lead_followups" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2541:
+grant references on table 
+"public"."leads" to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2555:
+grant references on table 
+"public"."leads" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2569:
+grant references on table 
+"public"."leads" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2583:
+grant references on table 
+"public"."locations" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2597:
+grant references on table 
+"public"."locations" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2611:
+grant references on table 
+"public"."locations" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2625:
+grant references on table 
+"public"."loyalty_accounts" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2639:
+grant references on table 
+"public"."loyalty_accounts" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2653:
+grant references on table 
+"public"."loyalty_accounts" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2667:
+grant references on table "pu
+blic"."notification_outbox" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2681:
+grant references on table "pu
+blic"."notification_outbox" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2695:
+grant references on table "pu
+blic"."notification_outbox" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2709:
+grant references on table 
+"public"."order_items" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2723:
+grant references on table 
+"public"."order_items" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2737:
+grant references on table 
+"public"."order_items" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2751:
+grant references on table 
+"public"."orders" to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2765:
+grant references on table 
+"public"."orders" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2779:
+grant references on table 
+"public"."orders" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2793:
+grant references on table 
+"public"."org_members" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2807:
+grant references on table 
+"public"."org_members" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2821:
+grant references on table 
+"public"."org_members" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2835:
+grant references on table 
+"public"."orgs" to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2849:
+grant references on table 
+"public"."orgs" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2863:
+grant references on table 
+"public"."orgs" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2877:
+grant references on table 
+"public"."payment_audit" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2891:
+grant references on table 
+"public"."payment_audit" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2905:
+grant references on table 
+"public"."payment_audit" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2919:
+grant references on table 
+"public"."payment_disputes" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2933:
+grant references on table 
+"public"."payment_disputes" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2947:
+grant references on table 
+"public"."payment_disputes" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:2961:
+grant references on table 
+"public"."payments" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:2975:
+grant references on table 
+"public"."payments" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:2989:
+grant references on table 
+"public"."payments" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3003:
+grant references on table 
+"public"."pipeline_stages" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3017:
+grant references on table 
+"public"."pipeline_stages" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3031:
+grant references on table 
+"public"."pipeline_stages" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3045:
+grant references on table 
+"public"."pipelines" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3059:
+grant references on table 
+"public"."pipelines" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3073:
+grant references on table 
+"public"."pipelines" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3087:
+grant references on table 
+"public"."profiles" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3101:
+grant references on table 
+"public"."profiles" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3115:
+grant references on table 
+"public"."profiles" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3129:
+grant references on table 
+"public"."properties" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3143:
+grant references on table 
+"public"."properties" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3157:
+grant references on table 
+"public"."properties" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3171:
+grant references on table 
+"public"."role_definitions" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3185:
+grant references on table 
+"public"."role_definitions" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3199:
+grant references on table 
+"public"."role_definitions" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3213:
+grant references on table 
+"public"."service_requests" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3227:
+grant references on table 
+"public"."service_requests" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3241:
+grant references on table 
+"public"."service_requests" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3255:
+grant references on table 
+"public"."shifts" to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3269:
+grant references on table 
+"public"."shifts" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3283:
+grant references on table 
+"public"."shifts" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3297:
+grant references on table 
+"public"."staff_invitations" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3311:
+grant references on table 
+"public"."staff_invitations" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3325:
+grant references on table 
+"public"."staff_invitations" 
+to "service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3339:
+grant references on table 
+"public"."staff_profiles" to 
+"anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3353:
+grant references on table 
+"public"."staff_profiles" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3367:
+grant references on table 
+"public"."staff_profiles" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3381:
+grant references on table 
+"public"."tasks" to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3395:
+grant references on table 
+"public"."tasks" to 
+"authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3409:
+grant references on table 
+"public"."tasks" to 
+"service_role";
+supabase\migrations\202602040
+64344_remote_schema.sql:3423:
+grant references on table "pu
+blic"."user_notifications" 
+to "anon";
+supabase\migrations\202602040
+64344_remote_schema.sql:3437:
+grant references on table "pu
+blic"."user_notifications" 
+to "authenticated";
+supabase\migrations\202602040
+64344_remote_schema.sql:3451:
+grant references on table "pu
+blic"."user_notifications" 
+to "service_role";
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:19:    business_id 
+UUID NOT NULL REFERENCES 
+public.businesses(id),
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:20:    branch_id UUID 
+NOT NULL REFERENCES 
+public.branches(id),
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:22:    staff_id UUID 
+NOT NULL REFERENCES 
+auth.users(id),
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:31:    verified_by 
+UUID REFERENCES 
+auth.users(id),
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:33:    reversed_by 
+UUID REFERENCES 
+auth.users(id),
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:45:    transaction_id 
+UUID NOT NULL REFERENCES 
+public.transactions(id) ON 
+DELETE CASCADE,
+supabase\migrations\202602142
+24500_production_fintech_sche
+ma.sql:47:    actor_id UUID 
+NOT NULL REFERENCES 
+auth.users(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:5:    business_id UUID 
+NOT NULL, -- References 
+businesses(id)
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:6:    branch_id UUID 
+NOT NULL,   -- References 
+branches(id)
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:7:    staff_id UUID 
+NOT NULL REFERENCES 
+auth.users(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:24:    order_id UUID 
+NOT NULL REFERENCES 
+public.orders(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:25:    business_id 
+UUID NOT NULL, -- References 
+businesses(id)
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:26:    branch_id UUID 
+NOT NULL,   -- References 
+branches(id)
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:27:    staff_id UUID 
+NOT NULL REFERENCES 
+auth.users(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:28:    shift_id UUID 
+REFERENCES 
+public.shifts(id), -- 
+Nullable if shift system 
+rollout is staged, but 
+eventually required
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:42:ADD COLUMN IF NOT 
+EXISTS order_id UUID 
+REFERENCES public.orders(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:43:ADD COLUMN IF NOT 
+EXISTS payment_intent_id 
+UUID REFERENCES 
+public.payment_intents(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:44:ADD COLUMN IF NOT 
+EXISTS shift_id UUID 
+REFERENCES public.shifts(id);
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:49:    shift_id UUID 
+NOT NULL REFERENCES 
+public.shifts(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:50:    staff_id UUID 
+NOT NULL REFERENCES 
+auth.users(id),
+supabase\migrations\202602152
+10000_financial_reconciliatio
+n.sql:65:    manager_id UUID 
+REFERENCES auth.users(id),
+supabase\migrations\202602152
+30000_fintech_hardening_phase
+1.sql:10:        ALTER TABLE 
+public.transactions ADD 
+COLUMN shift_id UUID 
+REFERENCES public.shifts(id);
+supabase\migrations\202602170
+00000_forensic_hardening.sql:
+94:        ALTER TABLE 
+public.shifts ADD COLUMN 
+manager_approval_id UUID 
+REFERENCES auth.users(id);
+supabase\migrations\202602170
+00000_forensic_hardening.sql:
+153:    actor_id UUID 
+REFERENCES auth.users(id),
+supabase\migrations\202602181
+83000_carss_core_stable_v1.sq
+l:13:    user_id UUID NOT 
+NULL REFERENCES 
+auth.users(id) ON DELETE 
+CASCADE,
+supabase\migrations\202602181
+83000_carss_core_stable_v1.sq
+l:14:    business_id UUID 
+NOT NULL REFERENCES 
+public.businesses(id) ON 
+DELETE CASCADE,
+supabase\migrations\202602181
+83000_carss_core_stable_v1.sq
+l:81:-- A. PROFILES (Now 
+references memberships, no 
+self-recursion)
+supabase\migrations\202602191
+40000_stabilization_hardening
+.sql:34:-- Remove ALL 
+complex policies and role 
+references from profiles 
+table
+
+
