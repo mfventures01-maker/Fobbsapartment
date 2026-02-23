@@ -41,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authState, setAuthState] = useState<AuthState>('initializing');
 
-  // Task 4: Harden fetchProfile
   const fetchProfile = async (userId: string) => {
     if (!supabase) return;
     console.log("[AUTH] Fetching profile for user:", userId);
@@ -52,21 +51,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    const [profileRes, membershipRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).single(),
+      supabase.from("business_memberships").select("*").eq("user_id", userId).single()
+    ]);
 
-    if (error) {
-      console.error("[AUTH] Profile fetch failed:", error);
+    if (profileRes.error && profileRes.error.code !== 'PGRST116') {
+      console.error("[AUTH] Profile fetch failed:", profileRes.error);
       setAuthState('error');
       return;
     }
 
-    if (data) {
-      console.log("[AUTH] Profile loaded for", data.full_name, `(${data.role})`);
-      setProfile(data as Profile);
+    // Merge identity and role/business_id
+    const mergedData = {
+      ...(profileRes.data || { user_id: userId, full_name: 'Unknown User' }),
+      role: membershipRes.data?.role || profileRes.data?.role || 'staff',
+      business_id: membershipRes.data?.business_id || profileRes.data?.business_id || null,
+      department: membershipRes.data?.department || profileRes.data?.department || null
+    };
+
+    if (mergedData) {
+      console.log("[AUTH] Profile loaded for", mergedData.full_name, `(${mergedData.role})`);
+      setProfile(mergedData as Profile);
       setAuthState('authenticated');
     }
   };

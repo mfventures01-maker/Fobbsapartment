@@ -145,7 +145,7 @@ const CeoDashboard: React.FC = () => {
 
             let pipelineQuery = supabase.from('dashboard_financial_integrity').select('*').limit(50).order('created_at', { ascending: false });
             let txsQuery = supabase.from('transactions').select('*').gte('created_at', todayISO);
-            let shiftsQuery = supabase.from('shifts').select('*').is('end_time', null);
+            let shiftsQuery = supabase.from('shifts').select('*').is('ends_at', null);
 
             if (!isGlobal && businessId) {
                 pipelineQuery = pipelineQuery.eq('business_id', businessId);
@@ -173,8 +173,8 @@ const CeoDashboard: React.FC = () => {
 
             const activeShifts = (sRes.data || []).map(s => ({
                 id: s.id,
-                staff_id: s.staff_id,
-                start_time: s.start_time,
+                staff_id: s.staff_user_id || s.staff_id,
+                start_time: s.started_at || s.start_time,
                 total_processed: 0,
                 method_breakdown: {},
                 status: 'active'
@@ -200,7 +200,7 @@ const CeoDashboard: React.FC = () => {
 
         if (!supabase) return;
 
-        console.log(`[CEO DASHBOARD] Subscribing Realtime Channel for ID: ${businessId || 'GLOBAL'}`);
+        console.log(`[CEO DASHBOARD] Subscribing Realtime Channel for ID: ${businessId || 'global'}`);
         const channel = supabase.channel(`dashboard_live_${businessId || 'global'}`);
 
         // Construct filter string if isolated
@@ -253,14 +253,14 @@ const CeoDashboard: React.FC = () => {
                 if (payload.eventType === 'INSERT') {
                     setShiftData(prev => [{
                         id: payload.new.id,
-                        staff_id: payload.new.staff_id,
-                        start_time: payload.new.start_time,
+                        staff_id: payload.new.staff_user_id || payload.new.staff_id,
+                        start_time: payload.new.started_at || payload.new.start_time,
                         total_processed: 0,
                         method_breakdown: {},
                         status: 'active'
                     }, ...prev]);
                 } else if (payload.eventType === 'UPDATE') {
-                    if (payload.new.end_time) {
+                    if (payload.new.ends_at) {
                         // closed shift drops off active list in realtime
                         setShiftData(prev => prev.filter(s => s.id !== payload.new.id));
                     }
