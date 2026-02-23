@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
@@ -40,7 +40,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authState, setAuthState] = useState<AuthState>('initializing');
+  const hasInitialized = useRef(false);
 
+  // Task 4: Harden fetchProfile
   const fetchProfile = async (userId: string) => {
     if (!supabase) return;
     console.log("[AUTH] Fetching profile for user:", userId);
@@ -114,6 +116,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     // Mount phase
     console.log("[AUTH] State Machine Starting...");
     initAuth();
@@ -160,7 +165,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      hasInitialized.current = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithPassword = async (email: string, password: string) => {

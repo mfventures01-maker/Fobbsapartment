@@ -1,0 +1,35 @@
+{
+  "tx": {
+    "id": "4d89fd0a-9df0-431c-8e7c-09ba13b7183b",
+    "business_id": "601576d8-9a10-476d-bad1-a1b46f5e830d",
+    "department_id": null,
+    "created_by": "4731e41e-952b-4c20-b5b1-3ca39170d7b6",
+    "amount": 45000,
+    "payment_method": "pos",
+    "created_at": "2026-02-23T02:39:39.180623",
+    "table_id": null,
+    "order_id": "3f86735f-2a9a-4ee2-9891-ad39db96ba49",
+    "payment_intent": null,
+    "pos_receipt_id": null,
+    "payment_intent_id": null,
+    "external_reference": null,
+    "shift_id": "079122b5-4eb3-4d94-9390-5099a3b56864",
+    "shifts": {
+      "id": "079122b5-4eb3-4d94-9390-5099a3b56864",
+      "business_id": "601576d8-9a10-476d-bad1-a1b46f5e830d",
+      "staff_id": "4731e41e-952b-4c20-b5b1-3ca39170d7b6",
+      "start_time": "2026-02-23T02:11:06.573097+00:00",
+      "ends_at": null,
+      "notes": "CEO realtime test shift",
+      "created_at": "2026-02-23T02:11:06.573097+00:00"
+    }
+  },
+  "count": 1,
+  "dashboard_ids": [
+    "4d89fd0a-9df0-431c-8e7c-09ba13b7183b",
+    "13a18636-0103-4ae0-823d-0f2b4ec8c02e",
+    "4634b4b9-3d67-426e-a9e1-906790b50e2c",
+    "db21d18b-1e8b-4f8c-9796-20a991edc3e5",
+    "08cf1143-dbdf-4d7b-9361-9787fc42b927"
+  ]
+}
