@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { Shift, ShiftReconciliation } from '@/types/db';
+import { Shift } from '@/types/db';
 import toast from 'react-hot-toast';
 
 export function useShift() {

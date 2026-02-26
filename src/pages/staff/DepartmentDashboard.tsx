@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 // import { useAuth } from '@/contexts/AuthContext';
-import { Bell, CheckCircle, Circle, MessageCircle, Clock, Send, PlayCircle } from 'lucide-react';
+import { Bell, CheckCircle, MessageCircle, Clock, Send, PlayCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ServiceRequest {
@@ -15,7 +15,8 @@ interface ServiceRequest {
 
 interface Notification {
     id: string;
-    content: string; // or message
+    content?: string;
+    message?: string;
     created_at: string;
 }
 

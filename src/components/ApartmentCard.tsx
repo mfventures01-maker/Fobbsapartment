@@ -26,7 +26,7 @@ const ApartmentCard: React.FC<Props> = ({ apartment }) => {
     <div className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 flex flex-col">
       {/* Interactive Carousel Section */}
       <div className="relative h-72 overflow-hidden bg-gray-200">
-        <div 
+        <div
           className="flex h-full transition-transform duration-700 ease-out"
           style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
         >
@@ -57,14 +57,14 @@ const ApartmentCard: React.FC<Props> = ({ apartment }) => {
         {/* Navigation Buttons (Desktop Hover) */}
         {apartment.images.length > 1 && (
           <>
-            <button 
+            <button
               onClick={prevImage}
               className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-emerald-900 shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-900 hover:text-white z-20"
               aria-label="Previous image"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <button 
+            <button
               onClick={nextImage}
               className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-emerald-900 shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-900 hover:text-white z-20"
               aria-label="Next image"
@@ -75,18 +75,17 @@ const ApartmentCard: React.FC<Props> = ({ apartment }) => {
             {/* Pagination Indicators */}
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-1.5 z-20">
               {apartment.images.map((_, idx) => (
-                <div 
+                <div
                   key={idx}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    idx === currentImageIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'
-                  }`}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'
+                    }`}
                 />
               ))}
             </div>
           </>
         )}
       </div>
-      
+
       {/* Content Section */}
       <div className="p-8 flex flex-col flex-grow">
         <h3 className="text-2xl font-bold mb-3 text-gray-900 group-hover:text-emerald-700 transition-colors font-serif leading-tight">
@@ -95,7 +94,7 @@ const ApartmentCard: React.FC<Props> = ({ apartment }) => {
         <p className="text-sm text-gray-500 mb-8 line-clamp-2 leading-relaxed">
           {apartment.description}
         </p>
-        
+
         {/* Features Grid */}
         <div className="grid grid-cols-3 gap-3 mb-8">
           <div className="flex flex-col items-center p-3 rounded-2xl bg-gray-50 border border-gray-100/50 group/item hover:bg-emerald-50 hover:border-emerald-100 transition-colors">
@@ -115,8 +114,8 @@ const ApartmentCard: React.FC<Props> = ({ apartment }) => {
         {/* Footer Actions */}
         <div className="mt-auto flex items-center justify-between pt-6 border-t border-gray-50">
           <div className="flex space-x-4">
-            <Wifi className="w-5 h-5 text-emerald-600/30" title="High-speed Wi-Fi" />
-            <Wind className="w-5 h-5 text-emerald-600/30" title="Climate Control" />
+            <div title="High-speed Wi-Fi"><Wifi className="w-5 h-5 text-emerald-600/30" /></div>
+            <div title="Climate Control"><Wind className="w-5 h-5 text-emerald-600/30" /></div>
           </div>
           <Link
             to={`/apartments/${apartment.slug}`}

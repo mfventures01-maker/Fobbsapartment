@@ -31,9 +31,6 @@ const BarPublic: React.FC = () => {
         });
     };
 
-    const removeFromCart = (id: string) => {
-        setCart(prev => prev.filter(i => i.id !== id));
-    };
 
     const updateQuantity = (id: string, delta: number) => {
         setCart(prev => prev.map(i => {

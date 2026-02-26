@@ -1,0 +1,82 @@
+import { chromium } from 'playwright';
+
+const BASE_URL = 'http://localhost:4173';
+const TEST_USER = 'ceo@fobbs.com';
+const TEST_PASS = 'Test@1234';
+
+(async () => {
+  const browser = await chromium.launch({ headless: false });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  let requestCounts = {};
+  let consoleErrors = [];
+  let redirects = 0;
+
+  page.on('request', request => {
+    const url = request.url();
+    requestCounts[url] = (requestCounts[url] || 0) + 1;
+  });
+
+  page.on('console', msg => {
+    if (msg.type() === 'error') {
+      consoleErrors.push(msg.text());
+    }
+  });
+
+  page.on('framenavigated', frame => {
+    if (frame.url().includes('login')) redirects++;
+  });
+
+  console.log('Opening app...');
+  await page.goto(BASE_URL);
+
+  console.log('Logging in...');
+  await page.fill('input[type="email"]', TEST_USER);
+  await page.fill('input[type="password"]', TEST_PASS);
+  await page.click('button[type="submit"]');
+
+  await page.waitForLoadState('networkidle');
+
+  console.log('Observing dashboard for 60 seconds...');
+  await page.waitForTimeout(60000);
+
+  const repeatedRequests = Object.entries(requestCounts)
+    .filter(([url, count]) => count > 10);
+
+  console.log('\n===== STABILITY REPORT =====');
+
+  if (repeatedRequests.length > 0) {
+    console.log('❌ Repeated Network Requests Detected:');
+    repeatedRequests.forEach(([url, count]) =>
+      console.log(`${count}x → ${url}`)
+    );
+  } else {
+    console.log('✅ No excessive repeated network calls.');
+  }
+
+  if (consoleErrors.length > 0) {
+    console.log('\n❌ Console Errors:');
+    consoleErrors.forEach(err => console.log(err));
+  } else {
+    console.log('✅ No console errors detected.');
+  }
+
+  if (redirects > 5) {
+    console.log('\n❌ Possible redirect loop detected.');
+  } else {
+    console.log('✅ No redirect loop detected.');
+  }
+
+  if (
+    repeatedRequests.length === 0 &&
+    consoleErrors.length === 0 &&
+    redirects <= 5
+  ) {
+    console.log('\n🎉 FINAL RESULT: PASS — No infinite rolling detected.');
+  } else {
+    console.log('\n🚨 FINAL RESULT: FAIL — Instability detected.');
+  }
+
+  await browser.close();
+})();

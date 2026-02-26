@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, CreditCard, Banknote, Smartphone, Plus, Minus, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Assuming UI library or similar
+import { ShoppingCart, CreditCard, Banknote, Smartphone, Trash2 } from 'lucide-react';
 
 // Mock Items for now since we don't have a guaranteed 'menu' table structure yet
 // In production, fetch from 'products' table
@@ -16,7 +14,6 @@ const MOCK_ITEMS = [
 const POSPage: React.FC = () => {
     const { cartItems, addToCart, removeFromCart, checkout, total, clearCart } = useCart();
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-    const [selectedMethod, setSelectedMethod] = useState<'pos' | 'transfer' | 'cash' | null>(null);
 
     const handleCheckout = () => {
         if (cartItems.length === 0) return;
@@ -24,7 +21,6 @@ const POSPage: React.FC = () => {
     };
 
     const confirmPayment = async (method: 'pos' | 'transfer' | 'cash') => {
-        setSelectedMethod(method);
         await checkout(method); // Trigger order creation and redirect
         setIsCheckoutModalOpen(false);
     };

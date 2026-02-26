@@ -4,7 +4,7 @@ import { HOTEL_CONFIG, Room } from '@/config/cars.config';
 import { getWhatsAppTargetNumber, buildHotelBookingMessage, openWhatsApp, openTelegram, BookingForm, calculateNights } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
 import { generateBookingId } from '@/lib/ids';
-import { Users, Wifi, Wind, MapPin, MessageSquare, X, Send, Calendar, User, Phone, FileText, ChevronLeft, Bell, Star, ArrowRight, Utensils, ShieldCheck, Wine, Lock } from 'lucide-react';
+import { Users, Wifi, Wind, MapPin, X, Send, Calendar, User, Phone, FileText, ChevronLeft, Bell, Star, ArrowRight, Utensils, Wine, Lock } from 'lucide-react';
 
 
 const HotelLanding: React.FC = () => {

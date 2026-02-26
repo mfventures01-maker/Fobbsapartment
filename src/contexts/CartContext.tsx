@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,7 +26,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
-    const { profile } = useAuth();
     const navigate = useNavigate();
 
     const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -74,6 +72,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (orderError) throw orderError;
 
             // 2. Create Order Items (Optional but good practice)
+            /* 
             const orderItems = cartItems.map(item => ({
                 order_id: orderData.id,
                 item_name: item.name,
@@ -81,6 +80,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 quantity: item.quantity,
                 total_price: item.price * item.quantity
             }));
+            */
 
             // If order_items table exists:
             // await supabase.from('order_items').insert(orderItems);

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { HOTEL_CONFIG } from '@/config/cars.config';
-import { Send, Edit2, MessageSquare, AlertCircle } from 'lucide-react';
+import { Send, Edit2, AlertCircle } from 'lucide-react';
 
 interface ConfirmSendPanelProps {
     typeLabel: string;

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'react-hot-toast';
-import { Plus, UserX, Shield, Mail, Users, Filter, Loader2 } from 'lucide-react';
+import { Plus, Shield, Mail, Users, Filter, Loader2 } from 'lucide-react';
 
 interface StaffMember {
     user_id: string;

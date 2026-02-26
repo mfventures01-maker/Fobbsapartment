@@ -5,7 +5,6 @@ import HotelLanding from '@/pages/HotelLanding';
 import PaymentIntent from '@/pages/PaymentIntent';
 import ConfirmPayment from '@/pages/ConfirmPayment';
 import Fulfillment from '@/pages/Fulfillment';
-import CeoDashboard from '@/pages/dashboard/ceo/CeoDashboard';
 import DebugAuth from '@/pages/auth/DebugAuth';
 
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -19,9 +18,9 @@ import StaffLogin from '@/pages/staff/StaffLogin';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AuthGate from '@/auth/AuthGate';
 import DashboardLayout from '@/components/DashboardLayout';
-import OwnerDashboard from '@/pages/dashboard/owner/OwnerDashboard';
 import ManagerDashboard from '@/pages/dashboard/manager/ManagerDashboard';
 import StaffDashboardPage from '@/pages/dashboard/staff/StaffDashboardPage';
+import SuperAdminDashboard from '@/pages/dashboard/super_admin/SuperAdminDashboard';
 
 // POS
 import POSPage from '@/pages/pos/POSPage';
@@ -65,8 +64,6 @@ const AppContent: React.FC = () => {
           <Route path="/payment-intent" element={<PaymentIntent />} />
           <Route path="/confirm-payment" element={<ConfirmPayment />} />
           <Route path="/fulfillment" element={<Fulfillment />} />
-          {/* Public CEO view (as per existing code, maybe for investors?) */}
-          <Route path="/ceo-view" element={<CeoDashboard />} />
           <Route path="/restaurant" element={<RestaurantPublic />} />
           <Route path="/bar" element={<BarPublic />} />
           <Route path="/services" element={<ServicesHubPublic />} />
@@ -79,11 +76,10 @@ const AppContent: React.FC = () => {
           <Route path="/access-denied" element={<AccessDenied />} />
 
           {/* Protected Role Routes */}
-          {/* Super Admin / Owner */}
+          {/* Super Admin */}
           <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
             <Route path="/super-admin" element={<DashboardLayout />}>
-              <Route index element={<OwnerDashboard />} />
-              {/* Add other owner routes here if needed, or map existing */}
+              <Route index element={<SuperAdminDashboard />} />
             </Route>
           </Route>
 

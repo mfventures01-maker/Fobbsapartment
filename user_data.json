@@ -1,0 +1,21 @@
+{
+  "profile": {
+    "user_id": "0ff6df72-2349-4fcf-8c81-3731d84676f4",
+    "full_name": "SUPER_ADMIN",
+    "created_at": "2026-02-21T10:40:49.593763+00:00",
+    "department": null,
+    "email": null,
+    "phone": null,
+    "is_active": true,
+    "branch_id": null,
+    "first_name": null,
+    "last_name": null,
+    "status": "active",
+    "created_by": null,
+    "invitation_sent_at": null,
+    "last_activity_at": null,
+    "id": "b76a31d3-cf5b-4e3c-a9e1-99807a267f20",
+    "is_platform_admin": false
+  },
+  "memberships": []
+}

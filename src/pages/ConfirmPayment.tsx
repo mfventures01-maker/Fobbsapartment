@@ -138,7 +138,7 @@ const ConfirmPayment: React.FC = () => {
             }
 
             // ATOMIC SETTLEMENT via RPC
-            const { data: result, error: rpcError } = await supabase.rpc('confirm_payment_intent', {
+            const { error: rpcError } = await supabase.rpc('confirm_payment_intent', {
                 p_intent_id: finalIntentId,
                 p_external_reference: receiptId || null
             });

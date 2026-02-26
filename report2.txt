@@ -1,0 +1,23 @@
+[dotenv@17.3.1] injecting env (23) from .env.production -- tip: ⚙️  suppress all logs with { quiet: true }
+SUPER ADMIN:
+Businesses Visible: 0
+Business Creation: Failed
+CEO Assignment: Failed
+
+CEO:
+Businesses Visible: 0
+Role Creation Success: Failed
+
+MANAGER:
+Access Scope: Failed
+
+STAFF:
+Access Scope: Failed
+
+URL Tamper Result: Success - Guarded by AuthGate Router
+
+CHALLENGES:
+CEO Creation failed: User not allowed
+
+PERCEIVED ARCHITECTURAL WEAKNESSES:
+SA Business Insert RLS blocked direct client: Could not find the 'address' column of 'businesses' in the schema cache

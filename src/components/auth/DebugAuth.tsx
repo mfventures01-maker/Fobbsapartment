@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRole } from '@/contexts/RoleContext';
-import { Loader2, ShieldCheck, ShieldAlert, WifiOff, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const DebugAuth: React.FC = () => {
-    const { role, businessId, loading: roleLoading, refreshRole } = useRole();
+    const { role, businessId, loading: roleLoading } = useRole();
     const [user, setUser] = useState<any>(null);
     const [memberships, setMemberships] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,7 +40,6 @@ const DebugAuth: React.FC = () => {
     }, []);
 
     const handleForceRefresh = async () => {
-        await refreshRole();
         await fetchDebugInfo();
     };
 

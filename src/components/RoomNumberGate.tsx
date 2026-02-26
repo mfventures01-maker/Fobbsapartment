@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { HOTEL_CONFIG } from '@/config/cars.config';
 import { DoorOpen, ArrowRight, RotateCcw } from 'lucide-react';
 
 interface RoomNumberGateProps {

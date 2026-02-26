@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useShift } from '@/hooks/useShift';
 import { supabase } from '@/lib/supabaseClient';
 import { Clock, Wallet, DollarSign, Power, AlertTriangle, ShieldCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
+
 
 const ShiftMonitor: React.FC = () => {
     const { currentShift, startShift, endShift, loading } = useShift();

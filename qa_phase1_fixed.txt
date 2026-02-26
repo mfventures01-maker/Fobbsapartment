@@ -1,0 +1,7 @@
+[dotenv@17.3.1] injecting env (3) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.3.1] injecting env (20) from .env.production -- tip: ⚙️  enable debug logging with { debug: true }
+=== PHASE 1: Role Resolution Determinism ===
+Login successful. User ID: 0ff6df72-2349-4fcf-8c81-3731d84676f4
+Businesses query successful. Fetched 2 records.
+Business IDs: 601576d8-9a10-476d-bad1-a1b46f5e830d, 00000000-0000-0000-0000-000000000001
+current_user_role() resolved to: super_admin

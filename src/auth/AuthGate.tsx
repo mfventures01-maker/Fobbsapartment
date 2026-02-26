@@ -31,7 +31,6 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
                 '/restaurant',
                 '/bar',
                 '/services',
-                '/ceo-view',
                 '/debug-auth'
             ];
 
