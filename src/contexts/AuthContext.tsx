@@ -1,31 +1,35 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
-import { Profile } from '@/types/db';
-
-// Explicit finite states for auth hydration
 export type AuthState =
-  | 'initializing'      // App just mounted, checking local session
-  | 'unauthenticated'   // Confirmed no session
-  | 'authenticated'     // Session + Profile ready
-  | 'error';            // Network/Hydration failed
+  | 'initializing'
+  | 'unauthenticated'
+  | 'authenticated'
+  | 'error';
+
+export interface Authority {
+  role: string | null;
+  businessId: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  profile: Profile | null;
+  authority: Authority | null;
   authState: AuthState;
-  loading: boolean; // Computed from authState
+  loading: boolean;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
-  signInAsDemo: (role: Profile['role'], department?: string) => Promise<void>;
+  signInAsDemo: (role: string, departmentName?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
-  profile: null,
+  authority: null,
   authState: 'initializing',
   loading: true,
   signOut: async () => { },
@@ -36,13 +40,12 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [authorityState, setAuthorityState] = useState<Authority | null>(null);
   const [authState, setAuthState] = useState<AuthState>('initializing');
 
   const hasInitializedRef = useRef(false);
   const authRef = useRef<{ userId: string | null; state: AuthState }>({ userId: null, state: 'initializing' });
 
-  // Helper to safely transition state without reverting
   const updateAuthState = (newState: AuthState) => {
     setAuthState(prev => {
       if (prev === 'authenticated' && newState !== 'authenticated') {
@@ -53,58 +56,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Phase 1: fetchProfile must not call getSession
-  const fetchProfile = async (currentSession: Session) => {
+  const fetchAuthority = async (currentSession: Session) => {
     if (!supabase) return;
     const userId = currentSession.user.id;
-    console.log("[AUTH] Fetching profile for user:", userId);
+    console.log("[AUTH] Fetching authority for user:", userId);
 
     try {
-      const profileRes = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
+      const { data: memberships, error } = await supabase
+        .from('business_memberships')
+        .select(`
+          role,
+          business_id,
+          department_id,
+          departments(name)
+        `)
+        .eq('user_id', userId);
 
-      if (profileRes.error) {
-        console.error("[AUTH] Profile fetch failed:", profileRes.error);
-        updateAuthState('error');
-        return;
-      }
+      if (error || !memberships || memberships.length === 0) {
+        const profileRes = await supabase
+          .from("profiles")
+          .select("is_platform_admin")
+          .eq("user_id", userId)
+          .maybeSingle();
 
-      const membershipRes = await supabase
-        .from("business_memberships")
-        .select("*")
-        .eq("user_id", userId);
+        if (profileRes.data?.is_platform_admin) {
+          console.log("PLATFORM ADMIN DETECTED");
+          setAuthorityState({
+            role: "super_admin",
+            businessId: null,
+            departmentId: null,
+            departmentName: null
+          });
+          updateAuthState('authenticated');
+          return;
+        }
 
-      if (membershipRes.error) {
-        console.error("[AUTH] Membership fetch failed:", membershipRes.error);
-        updateAuthState('error');
-        return;
-      }
-
-      const memberships = membershipRes.data;
-
-      // Check if platform admin first
-      if (profileRes.data?.is_platform_admin) {
-        console.log("PLATFORM ADMIN DETECTED");
-
-        const mergedProfile = {
-          ...(profileRes.data),
-          role: "super_admin",
-          business_id: null,
-          department: null
-        };
-
-        console.log("[AUTH] Profile loaded for", mergedProfile.full_name, `(${mergedProfile.role})`);
-        setProfile(mergedProfile as Profile);
-        updateAuthState('authenticated');
-        return;
-      }
-
-      // If not platform admin, enforce membership
-      if (!memberships || memberships.length === 0 || !profileRes.data) {
-        console.error("[AUTH] No valid membership/profile found.");
+        console.error("[AUTH] Membership fetch failed or missing.");
         updateAuthState('unauthenticated');
         return;
       }
@@ -121,31 +108,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       const activeMembership = sortedMemberships[0];
-      const resolvedRole = activeMembership.role;
-      const resolvedBusinessId = activeMembership.business_id;
 
-      console.log("MEMBERSHIPS:", memberships);
-      console.log("RESOLVED ROLE:", resolvedRole);
+      setAuthorityState({
+        role: activeMembership.role,
+        businessId: activeMembership.business_id,
+        departmentId: activeMembership.department_id,
+        departmentName: (activeMembership.departments as any)?.name ?? null
+      });
 
-      if (!resolvedRole) {
-        console.error("[AUTH] Unable to resolve user role.");
-        updateAuthState('error');
-        return;
-      }
-
-      const mergedProfile = {
-        ...(profileRes.data),
-        role: resolvedRole,
-        business_id: resolvedBusinessId,
-        department: activeMembership.department || null
-      };
-
-      console.log("[AUTH] Profile loaded for", mergedProfile.full_name, `(${mergedProfile.role})`);
-      setProfile(mergedProfile as Profile);
+      console.log("[AUTH] Authority loaded:", activeMembership.role);
       updateAuthState('authenticated');
 
     } catch (err) {
-      console.error("[AUTH] Profile fetch exception:", err);
+      console.error("[AUTH] Authority fetch exception:", err);
       updateAuthState('error');
     }
   };
@@ -157,7 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Get the single authoritative session payload on startup
       const { data: { session: initialSession }, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -175,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authRef.current.userId = initialSession.user.id;
         setSession(initialSession);
         setUser(initialSession.user);
-        await fetchProfile(initialSession);
+        await fetchAuthority(initialSession);
       } else {
         console.log("[AUTH] No active session on init.");
         updateAuthState('unauthenticated');
@@ -194,34 +168,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (hasInitializedRef.current) return;
     hasInitializedRef.current = true;
 
-    // Mount phase
-    console.log("[AUTH] State Machine Starting...");
     initAuth();
 
     if (!supabase) return;
 
-    // Subscription phase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log(`[AUTH] Event Fired: ${event}`);
 
-      if (event === "INITIAL_SESSION" && currentSession?.user) {
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && currentSession?.user) {
         if (authRef.current.userId === currentSession.user.id && authRef.current.state === 'authenticated') return;
-        console.log("[AUTH] Session hydrated via INITIAL_SESSION.");
         authRef.current.userId = currentSession.user.id;
         setSession(currentSession);
         setUser(currentSession.user);
-        await fetchProfile(currentSession);
-      }
-
-      if (event === "SIGNED_IN" && currentSession?.user) {
-        if (authRef.current.userId === currentSession.user.id && authRef.current.state === 'authenticated') {
-          console.log("[AUTH] Redundant SIGNED_IN ignored.");
-          return;
-        }
-        authRef.current.userId = currentSession.user.id;
-        setSession(currentSession);
-        setUser(currentSession.user);
-        await fetchProfile(currentSession);
+        await fetchAuthority(currentSession);
       }
 
       if (event === "SIGNED_OUT") {
@@ -229,12 +188,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authRef.current.userId = null;
         setSession(null);
         setUser(null);
-        setProfile(null);
+        setAuthorityState(null);
         setAuthState('unauthenticated');
       }
 
       if (event === "TOKEN_REFRESHED") {
-        console.log("[AUTH] Token refreshed.");
         if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
@@ -254,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const signInAsDemo = async (role: Profile['role'], department?: string) => {
+  const signInAsDemo = async (role: string, departmentName?: string) => {
     await new Promise(r => setTimeout(r, 500));
 
     const mockId = 'demo-user-' + Math.random().toString(36).substr(2, 9);
@@ -267,26 +225,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user_metadata: {},
     } as User;
 
-    const mockSession = {
-      access_token: 'demo-token',
-      token_type: 'bearer',
-      user: mockUser,
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-    } as Session;
-
-    const mockProfile: Profile = {
-      user_id: mockId,
-      role: role,
-      business_id: role === 'super_admin' ? '' : '601576d8-9a10-476d-bad1-a1b46f5e830d',
-      department: department,
-      full_name: `Demo ${role.toUpperCase()}`,
-    };
-
     authRef.current.userId = mockId;
-    setSession(mockSession);
+    setSession({ access_token: 'demo', token_type: 'bearer', user: mockUser } as any);
     setUser(mockUser);
-    setProfile(mockProfile);
+    setAuthorityState({
+      role,
+      businessId: role === 'super_admin' ? null : '601576d8-9a10-476d-bad1-a1b46f5e830d',
+      departmentId: departmentName ? 'mock-dept-id' : null,
+      departmentName: departmentName || null
+    });
     updateAuthState('authenticated');
   };
 
@@ -298,11 +245,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loading = authState === 'initializing';
 
+  const authority = useMemo(() => authorityState, [authorityState]);
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
-      profile,
+      authority,
       authState,
       loading,
       signOut,

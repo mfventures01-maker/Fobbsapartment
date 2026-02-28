@@ -17,27 +17,7 @@ import Login from '@/pages/auth/Login';
 import StaffLogin from '@/pages/staff/StaffLogin';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AuthGate from '@/auth/AuthGate';
-import DashboardLayout from '@/components/DashboardLayout';
-import ManagerDashboard from '@/pages/dashboard/manager/ManagerDashboard';
-import StaffDashboardPage from '@/pages/dashboard/staff/StaffDashboardPage';
-import SuperAdminDashboard from '@/pages/dashboard/super_admin/SuperAdminDashboard';
-
-// POS
-import POSPage from '@/pages/pos/POSPage';
-
-// Role-based dashboard pages
-import CeoLayout from '@/pages/dashboard/ceo/CeoLayout';
-import CeoOverview from '@/pages/dashboard/ceo/CeoOverview';
-import CeoBranches from '@/pages/dashboard/ceo/CeoBranches';
-import CeoAuditFeed from '@/pages/dashboard/ceo/CeoAuditFeed';
-import CeoStaffAdmin from '@/pages/dashboard/ceo/CeoStaffAdmin';
-import CeoSettings from '@/pages/dashboard/ceo/CeoSettings';
-
-// Staff sub-pages
-import RestaurantStaff from '@/pages/dashboard/staff/RestaurantStaff';
-import BarStaff from '@/pages/dashboard/staff/BarStaff';
-import ReceptionStaff from '@/pages/dashboard/staff/ReceptionStaff';
-import HousekeepingStaff from '@/pages/dashboard/staff/HousekeepingStaff';
+import DashboardEngine from '@/pages/dashboard/DashboardEngine';
 import AccessDenied from '@/pages/auth/AccessDenied';
 import Unauthorized from '@/pages/auth/Unauthorized';
 
@@ -75,47 +55,9 @@ const AppContent: React.FC = () => {
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/access-denied" element={<AccessDenied />} />
 
-          {/* Protected Role Routes */}
-          {/* Super Admin */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
-            <Route path="/super-admin" element={<DashboardLayout />}>
-              <Route index element={<SuperAdminDashboard />} />
-            </Route>
-          </Route>
-
-          {/* CEO */}
-          <Route element={<ProtectedRoute allowedRoles={['ceo']} />}>
-            <Route path="/ceo" element={<CeoLayout />}>
-              <Route index element={<CeoOverview />} />
-              <Route path="branches" element={<CeoBranches />} />
-              <Route path="audit" element={<CeoAuditFeed />} />
-              <Route path="staff" element={<CeoStaffAdmin />} />
-              <Route path="settings" element={<CeoSettings />} />
-            </Route>
-          </Route>
-
-          {/* Manager */}
-          <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
-            <Route path="/manager" element={<DashboardLayout />}>
-              <Route index element={<ManagerDashboard />} />
-              {/* Add manager sub-routes */}
-            </Route>
-          </Route>
-
-          {/* POS Route - Accessible to staff and admins */}
-          <Route element={<ProtectedRoute allowedRoles={['super_admin', 'ceo', 'manager', 'staff']} />}>
-            <Route path="/pos" element={<POSPage />} />
-          </Route>
-
-          {/* Staff */}
-          <Route element={<ProtectedRoute allowedRoles={['staff']} />}>
-            <Route path="/staff" element={<DashboardLayout />}>
-              <Route index element={<StaffDashboardPage />} />
-              <Route path="restaurant" element={<RestaurantStaff />} />
-              <Route path="bar" element={<BarStaff />} />
-              <Route path="reception" element={<ReceptionStaff />} />
-              <Route path="housekeeping" element={<HousekeepingStaff />} />
-            </Route>
+          {/* Protected Dashboard Engine */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard/*" element={<DashboardEngine />} />
           </Route>
 
           {/* Debug Route */}

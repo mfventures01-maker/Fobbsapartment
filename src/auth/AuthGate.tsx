@@ -7,14 +7,14 @@ interface AuthGateProps {
 }
 
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
-    const { user, profile, loading, authState, signOut } = useAuth();
+    const { user, authority, loading, authState, signOut } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
     useEffect(() => {
         const checkAuth = async () => {
             // Wait for full hydration
-            if (loading || authState === 'initializing' || authState === 'session_loaded') return;
+            if (loading || authState === 'initializing') return;
 
             const path = location.pathname;
 
@@ -38,8 +38,6 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
             // 1. Unauthenticated or Error
             if (!user && !isPublic) {
-                // If we are in 'error' state, maybe we should show the error screen instead of redirecting?
-                // But generally redirect to login is safer for unauthenticated.
                 if (authState === 'unauthenticated') {
                     console.log(`[AuthGate] Redirecting unauthenticated user from ${path} to /login`);
                     navigate('/login', { replace: true });
@@ -49,44 +47,27 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
             // 2. Authenticated user
             if (user) {
-                if (!profile) return;
+                if (!authority) return;
 
                 // Deterministic Routing Sequence
                 if (path === '/login' || path === '/staff-login' || path === '/') {
-                    const role = profile.role;
-                    console.log(`[AuthGate] Deterministic Routing: ${role}`);
-
-                    switch (role) {
-                        case 'super_admin':
-                            navigate('/super-admin', { replace: true });
-                            break;
-                        case 'ceo':
-                            navigate('/ceo', { replace: true });
-                            break;
-                        case 'manager':
-                            navigate('/manager', { replace: true });
-                            break;
-                        case 'staff':
-                            navigate('/staff', { replace: true });
-                            break;
-                        default:
-                            navigate('/unauthorized', { replace: true });
-                    }
+                    console.log(`[AuthGate] Deterministic Routing (Authority): ${authority.role}`);
+                    navigate('/dashboard', { replace: true });
                 }
             }
         };
 
         checkAuth();
-    }, [user, profile, authState, loading, location.pathname, navigate]);
+    }, [user, authority, authState, loading, location.pathname, navigate]);
 
     // Render Logic based on State Machine
 
-    if (authState === 'initializing' || authState === 'session_loaded') {
+    if (authState === 'initializing') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center text-emerald-900 bg-slate-50">
                 <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
                 <div className="font-bold tracking-widest uppercase text-xs">
-                    {authState === 'initializing' ? 'Initializing System...' : 'Loading Profile...'}
+                    {authState === 'initializing' ? 'Initializing System...' : 'Loading Authority...'}
                 </div>
                 <div className="text-[10px] text-gray-400 mt-2">v.2026.02.17</div>
             </div>
@@ -110,13 +91,13 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         );
     }
 
-    if (user && !profile) {
+    if (user && !authority) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900">
                 <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
                     <h2 className="text-xl font-bold text-red-600 mb-2">Account Not Configured</h2>
                     <p className="text-gray-600 mb-6">
-                        We found your login, but your personnel profile is missing.
+                        We found your login, but your personnel profile/membership is missing.
                         Please contact the System Administrator.
                     </p>
                     <div className="text-xs font-mono bg-gray-100 p-2 rounded">
