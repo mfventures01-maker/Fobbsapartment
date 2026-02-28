@@ -9,6 +9,12 @@ if (supabaseAnonKey.includes('<PUBLIC_ANON_KEY_FROM_SUPABASE>')) {
     throw new Error("CRITICAL: .env file has placeholder VITE_SUPABASE_ANON_KEY. Please update it with the real key.");
 }
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+    }
+});
 
 export { supabase };

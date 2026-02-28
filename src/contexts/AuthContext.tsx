@@ -20,6 +20,7 @@ interface AuthContextType {
   session: Session | null;
   authority: Authority | null;
   authState: AuthState;
+  authorityResolved: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   authority: null,
   authState: 'initializing',
+  authorityResolved: false,
   loading: true,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
@@ -42,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [authorityState, setAuthorityState] = useState<Authority | null>(null);
   const [authState, setAuthState] = useState<AuthState>('initializing');
+  const [authorityResolved, setAuthorityResolved] = useState<boolean>(false);
 
   const hasInitializedRef = useRef(false);
   const authRef = useRef<{ userId: string | null; state: AuthState }>({ userId: null, state: 'initializing' });
@@ -88,11 +91,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             departmentName: null
           });
           updateAuthState('authenticated');
+          setAuthorityResolved(true);
           return;
         }
 
         console.error("[AUTH] Membership fetch failed or missing.");
         updateAuthState('unauthenticated');
+        setAuthorityResolved(true);
         return;
       }
 
@@ -118,10 +123,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log("[AUTH] Authority loaded:", activeMembership.role);
       updateAuthState('authenticated');
+      setAuthorityResolved(true);
 
     } catch (err) {
       console.error("[AUTH] Authority fetch exception:", err);
       updateAuthState('error');
+      setAuthorityResolved(true);
     }
   };
 
@@ -142,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           updateAuthState('error');
         }
+        setAuthorityResolved(true);
         return;
       }
 
@@ -153,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         console.log("[AUTH] No active session on init.");
         updateAuthState('unauthenticated');
+        setAuthorityResolved(true);
       }
     } catch (err: any) {
       if (err?.name === "AbortError" || String(err?.message || "").toLowerCase().includes("aborted")) {
@@ -161,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       console.error("Auth Init Critical Failure", err);
       updateAuthState('error');
+      setAuthorityResolved(true);
     }
   };
 
@@ -190,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setAuthorityState(null);
         setAuthState('unauthenticated');
+        setAuthorityResolved(true);
       }
 
       if (event === "TOKEN_REFRESHED") {
@@ -235,6 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       departmentName: departmentName || null
     });
     updateAuthState('authenticated');
+    setAuthorityResolved(true);
   };
 
   const signOut = async () => {
@@ -253,6 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       authority,
       authState,
+      authorityResolved,
       loading,
       signOut,
       signInWithPassword,

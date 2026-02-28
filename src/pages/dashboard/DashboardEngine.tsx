@@ -26,7 +26,12 @@ import ReceptionStaff from '@/pages/dashboard/staff/ReceptionStaff';
 import HousekeepingStaff from '@/pages/dashboard/staff/HousekeepingStaff';
 
 const DashboardEngine: React.FC = () => {
-    const { authority } = useAuth();
+    const { authority, authorityResolved } = useAuth();
+
+    if (!authorityResolved) {
+        // Render nothing or a strict loading state to prevent flash
+        return <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white font-mono">AUTHORITY LOCK HARDENING...</div>;
+    }
 
     if (!authority || !authority.role) {
         return <Unauthorized />;

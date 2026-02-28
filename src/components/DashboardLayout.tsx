@@ -1,10 +1,12 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import ShiftBanner from '@/components/ShiftBanner';
+import WarModeDebugPanel from '@/components/WarModeDebugPanel';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CreditCard, Scale, Send, LogOut, Menu, X, Users } from 'lucide-react';
 
 const DashboardLayout: React.FC = () => {
-    const { profile, signOut } = useAuth();
+    const { authority, signOut } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -15,10 +17,10 @@ const DashboardLayout: React.FC = () => {
     };
 
     // Determine home route
-    const homepath = profile ? (
-        ['owner', 'ceo'].includes(profile.role) ? '/dashboard/owner' :
-            profile.role === 'manager' ? '/dashboard/manager' :
-                profile.role === 'staff' && profile.department ? `/dashboard/staff/${profile.department}` :
+    const homepath = authority ? (
+        ['owner', 'ceo', 'super_admin'].includes(authority.role || '') ? '/dashboard' :
+            authority.role === 'manager' ? '/dashboard/manager' :
+                authority.role === 'staff' && authority.departmentName ? `/dashboard/staff/${authority.departmentName}` :
                     '/dashboard/staff'
     ) : '/dashboard';
 
@@ -27,7 +29,7 @@ const DashboardLayout: React.FC = () => {
     ];
 
     // Add extra items for admins
-    if (['owner', 'ceo', 'manager'].includes(profile?.role || '')) {
+    if (['owner', 'ceo', 'manager'].includes(authority?.role || '')) {
         navItems.push({ name: 'Payments', path: '/dashboard/payments', icon: CreditCard });
         navItems.push({ name: 'Disputes', path: '/dashboard/disputes', icon: Scale });
         navItems.push({ name: 'Admin Outbox', path: '/dashboard/outbox', icon: Send });
@@ -37,7 +39,7 @@ const DashboardLayout: React.FC = () => {
         // Actually, it's safer to just put it at a known location. 
         // With the current App.tsx, it's nested under /dashboard/owner. 
         // Let's assume we want to link validation.
-        const adminPath = profile?.role === 'manager' ? '/dashboard/manager/staff-admin' : '/dashboard/owner/staff-admin';
+        const adminPath = authority?.role === 'manager' ? '/dashboard/manager/staff-admin' : '/dashboard/owner/staff-admin';
         // Note: You need to ensure the route exists for manager too in App.tsx
         navItems.push({ name: 'Staff Creator', path: adminPath, icon: Users });
     } else {
@@ -73,9 +75,9 @@ const DashboardLayout: React.FC = () => {
                         </div>
                         <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
                             <div className="flex flex-col items-end">
-                                <span className="text-sm font-medium text-gray-700 uppercase">{profile?.role}</span>
+                                <span className="text-sm font-medium text-gray-700 uppercase">{authority?.role}</span>
                                 <span className="text-xs text-gray-500">
-                                    {profile?.business_id ? `Business: ${profile.business_id.slice(0, 8)}...` : 'No Business'}
+                                    {authority?.businessId ? `Business: ${authority.businessId.slice(0, 8)}...` : 'No Business'}
                                 </span>
                             </div>
                             <button
@@ -118,8 +120,8 @@ const DashboardLayout: React.FC = () => {
                         <div className="pt-4 pb-4 border-t border-gray-200">
                             <div className="flex items-center px-4">
                                 <div className="ml-3">
-                                    <div className="text-base font-medium text-gray-800 uppercase">{profile?.role}</div>
-                                    <div className="text-sm font-medium text-gray-500">{profile?.user_id}</div>
+                                    <div className="text-base font-medium text-gray-800 uppercase">{authority?.role}</div>
+                                    <div className="text-sm font-medium text-gray-500">{authority?.departmentName || ''}</div>
                                 </div>
                                 <button
                                     onClick={handleSignOut}
@@ -132,6 +134,9 @@ const DashboardLayout: React.FC = () => {
                     </div>
                 )}
             </nav>
+
+            <ShiftBanner />
+            <WarModeDebugPanel />
 
             <main className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
