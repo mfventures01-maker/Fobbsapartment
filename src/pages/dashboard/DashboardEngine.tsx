@@ -1,7 +1,7 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Unauthorized from '@/pages/auth/Unauthorized';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
 
 // Super Admin
@@ -26,72 +26,67 @@ import ReceptionStaff from '@/pages/dashboard/staff/ReceptionStaff';
 import HousekeepingStaff from '@/pages/dashboard/staff/HousekeepingStaff';
 
 const DashboardEngine: React.FC = () => {
-    const { authority, authorityResolved } = useAuth();
+    const { authority } = useAuth();
 
-    if (!authorityResolved) {
-        // Render nothing or a strict loading state to prevent flash
-        return <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white font-mono">AUTHORITY LOCK HARDENING...</div>;
-    }
-
-    if (!authority || !authority.role) {
-        return <Unauthorized />;
-    }
+    if (authority.status === 'loading') return null; // Handled by AuthGate and ProtectedRoute
+    if (authority.status === 'unauthorized') return <Navigate to="/unauthorized" replace />;
 
     const { role, departmentName } = authority;
 
-    switch (role) {
-        case 'super_admin':
-            return (
-                <Routes>
-                    <Route element={<DashboardLayout />}>
-                        <Route index element={<SuperAdminDashboard />} />
-                    </Route>
-                </Routes>
-            );
-        case 'ceo':
-            return (
-                <Routes>
-                    <Route element={<CeoLayout />}>
-                        <Route index element={<CeoOverview />} />
-                        <Route path="branches" element={<CeoBranches />} />
-                        <Route path="audit" element={<CeoAuditFeed />} />
-                        <Route path="staff" element={<CeoStaffAdmin />} />
-                        <Route path="settings" element={<CeoSettings />} />
-                    </Route>
-                </Routes>
-            );
-        case 'manager':
-            return (
-                <Routes>
-                    <Route element={<DashboardLayout />}>
-                        <Route index element={<ManagerDashboard />} />
-                    </Route>
-                </Routes>
-            );
-        case 'staff':
-            // Dynamic rendering based on departmentName
-            let StaffComponent = <StaffDashboardPage />;
+    // Use specific components instead of a switch for cleaner routing
+    return (
+        <Routes>
+            <Route
+                path="super_admin"
+                element={
+                    <ProtectedRoute allowedRoles={['super_admin']}>
+                        <DashboardLayout><SuperAdminDashboard /></DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="ceo/*"
+                element={
+                    <ProtectedRoute allowedRoles={['ceo']}>
+                        <CeoLayout>
+                            <Routes>
+                                <Route index element={<CeoOverview />} />
+                                <Route path="branches" element={<CeoBranches />} />
+                                <Route path="audit" element={<CeoAuditFeed />} />
+                                <Route path="staff" element={<CeoStaffAdmin />} />
+                                <Route path="settings" element={<CeoSettings />} />
+                            </Routes>
+                        </CeoLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="manager"
+                element={
+                    <ProtectedRoute allowedRoles={['manager']}>
+                        <DashboardLayout><ManagerDashboard /></DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="staff"
+                element={
+                    <ProtectedRoute allowedRoles={['staff']}>
+                        <DashboardLayout>
+                            {departmentName === 'Restaurant' ? <RestaurantStaff /> :
+                                departmentName === 'Bar' ? <BarStaff /> :
+                                    departmentName === 'Reception' ? <ReceptionStaff /> :
+                                        departmentName === 'Housekeeping' ? <HousekeepingStaff /> :
+                                            <StaffDashboardPage />}
+                        </DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
 
-            if (departmentName === 'Restaurant') {
-                StaffComponent = <RestaurantStaff />;
-            } else if (departmentName === 'Bar') {
-                StaffComponent = <BarStaff />;
-            } else if (departmentName === 'Reception') {
-                StaffComponent = <ReceptionStaff />;
-            } else if (departmentName === 'Housekeeping') {
-                StaffComponent = <HousekeepingStaff />;
-            }
-
-            return (
-                <Routes>
-                    <Route element={<DashboardLayout />}>
-                        <Route index element={StaffComponent} />
-                    </Route>
-                </Routes>
-            );
-        default:
-            return <Unauthorized />;
-    }
+            {/* Base redirect: find the role and push them throuh */}
+            <Route index element={<Navigate to={`/dashboard/${role}`} replace />} />
+        </Routes>
+    );
 };
 
 export default DashboardEngine;

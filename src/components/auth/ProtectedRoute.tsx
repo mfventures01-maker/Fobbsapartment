@@ -1,28 +1,28 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useRole, UserRole } from '@/contexts/RoleContext';
-import AccessDenied from '@/pages/auth/AccessDenied';
+import { Navigate } from 'react-router-dom';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
+import FullScreenLoader from '@/components/FullScreenLoader';
 
-interface ProtectedRouteProps {
-    allowedRoles?: UserRole[];
+export interface ProtectedRouteProps {
+    allowedRoles: UserRole[];
+    children: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-    const { role, loading } = useRole();
+export default function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) {
+    const { authority } = useAuth();
 
-    if (loading) {
-        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    if (authority.status === 'loading') {
+        return <FullScreenLoader />;
     }
 
-    if (!role) {
+    if (authority.status === 'unauthorized') {
         return <Navigate to="/unauthorized" replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(role)) {
-        return <AccessDenied />;
+    // Safety check for role match
+    if (authority.status === 'authorized' && !allowedRoles.includes(authority.role)) {
+        return <Navigate to="/access-denied" replace />;
     }
 
-    return <Outlet />;
-};
-
-export default ProtectedRoute;
+    return <>{children}</>;
+}

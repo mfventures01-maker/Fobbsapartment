@@ -8,8 +8,6 @@ import Fulfillment from '@/pages/Fulfillment';
 import DebugAuth from '@/pages/auth/DebugAuth';
 
 import { AuthProvider } from '@/contexts/AuthContext';
-import { DemoProvider } from '@/contexts/DemoContext';
-import { RoleProvider } from '@/contexts/RoleContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -56,9 +54,14 @@ const AppContent: React.FC = () => {
           <Route path="/access-denied" element={<AccessDenied />} />
 
           {/* Protected Dashboard Engine */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard/*" element={<DashboardEngine />} />
-          </Route>
+          <Route
+            path="/dashboard/*"
+            element={
+              <ProtectedRoute allowedRoles={['ceo', 'manager', 'staff', 'super_admin']}>
+                <DashboardEngine />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Debug Route */}
           <Route path="/debug-auth" element={<DebugAuth />} />
@@ -74,13 +77,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <RoleProvider>
-        <CartProvider>
-          <DemoProvider>
-            <AppContent />
-          </DemoProvider>
-        </CartProvider>
-      </RoleProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
     </AuthProvider>
   );
 };
