@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import ShiftProtectedRoute from '@/components/auth/ShiftProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
 
 // Super Admin
@@ -73,7 +74,7 @@ const DashboardEngine: React.FC = () => {
             <Route
                 path="staff"
                 element={
-                    <ProtectedRoute allowedRoles={['staff']}>
+                    <ShiftProtectedRoute required={true}>
                         <DashboardLayout>
                             {departmentName === 'Restaurant' ? <RestaurantStaff /> :
                                 departmentName === 'Bar' ? <BarStaff /> :
@@ -81,7 +82,7 @@ const DashboardEngine: React.FC = () => {
                                         departmentName === 'Housekeeping' ? <HousekeepingStaff /> :
                                             <StaffDashboardPage />}
                         </DashboardLayout>
-                    </ProtectedRoute>
+                    </ShiftProtectedRoute>
                 }
             />
 

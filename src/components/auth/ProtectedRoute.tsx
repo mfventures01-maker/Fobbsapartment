@@ -2,16 +2,15 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import FullScreenLoader from '@/components/FullScreenLoader';
+import Unauthorized from '@/pages/auth/Unauthorized';
 
-export interface ProtectedRouteProps {
+function ProtectedRoute({
+    allowedRoles,
+    children
+}: {
     allowedRoles: UserRole[];
     children: React.ReactNode;
-}
-
-const ProtectedRoute: React.FC<{
-    allowedRoles: UserRole[];
-    children: React.ReactNode;
-}> = ({ allowedRoles, children }) => {
+}) {
     const { authority } = useAuth();
     const isGranted = (authority.status === 'authorized' && allowedRoles.includes(authority.role));
 
@@ -26,7 +25,7 @@ const ProtectedRoute: React.FC<{
     }
 
     if (authority.status === 'unauthorized') {
-        return <Navigate to="/unauthorized" replace />;
+        return <Unauthorized />;
     }
 
     if (!isGranted) {
@@ -34,6 +33,6 @@ const ProtectedRoute: React.FC<{
     }
 
     return <>{children}</>;
-};
+}
 
 export default ProtectedRoute;

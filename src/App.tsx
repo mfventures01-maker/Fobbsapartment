@@ -8,6 +8,7 @@ import Fulfillment from '@/pages/Fulfillment';
 import DebugAuth from '@/pages/auth/DebugAuth';
 
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ShiftProvider } from '@/contexts/ShiftContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -77,9 +78,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <CartProvider>
-        <AppContent />
-      </CartProvider>
+      <ShiftProvider>
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
+      </ShiftProvider>
     </AuthProvider>
   );
 };
