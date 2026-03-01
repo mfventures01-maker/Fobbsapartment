@@ -27,8 +27,8 @@ const Login: React.FC = () => {
 
         // Login successful. AuthGate will handle redirection based on RoleContext.
         toast.success('Welcome back!');
-        // Navigate to root, AuthGate will pick up the session and redirect
-        navigate('/', { replace: true });
+        // Navigate to dashboard, AuthGate will pick up the session and redirect based on role
+        navigate('/dashboard', { replace: true });
     };
 
     return (

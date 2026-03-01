@@ -47,7 +47,7 @@ const DashboardEngine: React.FC = () => {
             <Route
                 path="ceo/*"
                 element={
-                    <ProtectedRoute allowedRoles={['ceo']}>
+                    <ProtectedRoute allowedRoles={['ceo', 'owner']}>
                         <CeoLayout>
                             <Routes>
                                 <Route index element={<CeoOverview />} />
@@ -60,6 +60,8 @@ const DashboardEngine: React.FC = () => {
                     </ProtectedRoute>
                 }
             />
+            {/* Alias owner to ceo view */}
+            <Route path="owner/*" element={<Navigate to="/dashboard/ceo" replace />} />
             <Route
                 path="manager"
                 element={

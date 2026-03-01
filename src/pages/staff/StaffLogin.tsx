@@ -36,8 +36,8 @@ const StaffLogin: React.FC = () => {
                 console.log("Auth success. User ID:", data.user.id);
                 toast.success('Welcome back!');
 
-                // Navigate to root, AuthGate will pick up the session and redirect based on role
-                navigate('/', { replace: true });
+                // Navigate to dashboard, AuthGate will pick up the session and redirect based on role
+                navigate('/dashboard', { replace: true });
             }
         } catch (error: any) {
             console.error("Login System Error:", error);

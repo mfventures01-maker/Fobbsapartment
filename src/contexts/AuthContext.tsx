@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
-export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin';
+export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
 
 export type AuthorityState =
   | { status: 'loading' }
@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resolveAuthority = async (currentSession: Session | null) => {
     if (!currentSession?.user) {
+      console.log('[FORENSIC] No session found. Setting status to unauthorized.');
       if (isMounted.current) {
         setAuthority({ status: 'unauthorized' });
         setUser(null);
@@ -40,6 +41,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return;
     }
+
+    console.log('[FORENSIC] Resolving authority for:', currentSession.user.id);
+    console.log('[FORENSIC] Querying business_memberships...');
 
     try {
       const { data: membership, error } = await supabase
@@ -53,10 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', currentSession.user.id)
         .maybeSingle();
 
+      console.log('[FORENSIC] Membership Data:', membership);
+      console.log('[FORENSIC] Membership Error:', error);
+
       if (error) throw error;
 
       if (!membership) {
-        // Fallback to profile check for platform admin
+        console.log('[FORENSIC] No membership found in business_memberships. Checking platform admin status...');
         const { data: profile } = await supabase
           .from('profiles')
           .select('is_platform_admin')
@@ -64,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle();
 
         if (profile?.is_platform_admin) {
+          console.log('[FORENSIC] Platform Admin detected. Authorizing as super_admin.');
           if (isMounted.current) {
             setAuthority({
               status: 'authorized',
@@ -78,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
+        console.log('[FORENSIC] No valid membership or profile admin status. Status -> unauthorized.');
         if (isMounted.current) {
           setAuthority({ status: 'unauthorized' });
           setUser(currentSession.user);
@@ -86,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log('[FORENSIC] Authority Resolved:', membership.role);
       if (isMounted.current) {
         setAuthority({
           status: 'authorized',
@@ -98,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(currentSession);
       }
     } catch (err) {
-      console.error("[AUTH] Authority resolution error:", err);
+      console.error("[FORENSIC] Authority resolution error:", err);
       if (isMounted.current) {
         setAuthority({ status: 'unauthorized' });
       }
@@ -109,13 +119,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isMounted.current = true;
 
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      resolveAuthority(session);
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      console.log('[FORENSIC] Initial Session Load:', initialSession?.user?.id || 'No user');
+      resolveAuthority(initialSession);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log(`[AUTH] State Change: ${event}`);
+      console.log('[FORENSIC] Auth Event:', event);
+      console.log('[FORENSIC] Session User ID:', currentSession?.user?.id);
+      console.log('[FORENSIC] Access Token Exists:', !!currentSession?.access_token);
+      console.log('[FORENSIC] Refresh Token Exists:', !!currentSession?.refresh_token);
+      console.log('[FORENSIC] Token Expiry:', currentSession?.expires_at);
+
       if (event === 'SIGNED_OUT') {
+        console.log('[FORENSIC] Explicit SIGNED_OUT detected.');
         setAuthority({ status: 'unauthorized' });
         setUser(null);
         setSession(null);

@@ -8,8 +8,18 @@ export interface ProtectedRouteProps {
     children: React.ReactNode;
 }
 
-export default function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) {
+const ProtectedRoute: React.FC<{
+    allowedRoles: UserRole[];
+    children: React.ReactNode;
+}> = ({ allowedRoles, children }) => {
     const { authority } = useAuth();
+    const isGranted = (authority.status === 'authorized' && allowedRoles.includes(authority.role));
+
+    console.log('[FORENSIC] Evaluating ProtectedRoute');
+    console.log('[FORENSIC] Allowed Roles:', allowedRoles);
+    console.log('[FORENSIC] Authority Status:', authority.status);
+    console.log('[FORENSIC] Current Role:', authority.status === 'authorized' ? authority.role : 'N/A');
+    console.log('[FORENSIC] Access Granted:', isGranted);
 
     if (authority.status === 'loading') {
         return <FullScreenLoader />;
@@ -19,10 +29,11 @@ export default function ProtectedRoute({ allowedRoles, children }: ProtectedRout
         return <Navigate to="/unauthorized" replace />;
     }
 
-    // Safety check for role match
-    if (authority.status === 'authorized' && !allowedRoles.includes(authority.role)) {
+    if (!isGranted) {
         return <Navigate to="/access-denied" replace />;
     }
 
     return <>{children}</>;
-}
+};
+
+export default ProtectedRoute;

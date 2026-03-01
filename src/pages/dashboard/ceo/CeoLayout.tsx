@@ -10,11 +10,11 @@ const CeoLayoutContent: React.FC = () => {
     const navigate = useNavigate();
 
     const navItems = [
-        { path: '/ceo', label: 'Overview', icon: LayoutDashboard, end: true },
-        { path: '/ceo/branches', label: 'Branches', icon: Building2 },
-        { path: '/ceo/audit', label: 'Audit Feed', icon: Activity },
-        { path: '/ceo/staff', label: 'Staff', icon: Users },
-        { path: '/ceo/settings', label: 'Settings', icon: Settings },
+        { path: '/dashboard/ceo', label: 'Overview', icon: LayoutDashboard, end: true },
+        { path: '/dashboard/ceo/branches', label: 'Branches', icon: Building2 },
+        { path: '/dashboard/ceo/audit', label: 'Audit Feed', icon: Activity },
+        { path: '/dashboard/ceo/staff', label: 'Staff', icon: Users },
+        { path: '/dashboard/ceo/settings', label: 'Settings', icon: Settings },
     ];
 
     const handleLogout = async () => {
