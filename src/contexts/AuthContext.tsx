@@ -6,7 +6,7 @@ export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
 
 export type AuthorityState =
   | { status: 'loading' }
-  | { status: 'authorized'; role: UserRole; businessId: string | null; departmentId: string | null; departmentName: string | null }
+  | { status: 'authorized'; role: UserRole; businessId: string | null; branchId: string | null; departmentId: string | null; departmentName: string | null }
   | { status: 'unauthorized' };
 
 interface AuthContextType {
@@ -43,7 +43,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     console.log('[FORENSIC] Resolving authority for:', currentSession.user.id);
-    console.log('[FORENSIC] Querying business_memberships...');
 
     try {
       const { data: membership, error } = await supabase
@@ -51,19 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select(`
           role,
           business_id,
+          branch_id,
           department_id,
           departments(name)
         `)
         .eq('user_id', currentSession.user.id)
         .maybeSingle();
 
-      console.log('[FORENSIC] Membership Data:', membership);
-      console.log('[FORENSIC] Membership Error:', error);
-
       if (error) throw error;
 
       if (!membership) {
-        console.log('[FORENSIC] No membership found in business_memberships. Checking platform admin status...');
         const { data: profile } = await supabase
           .from('profiles')
           .select('is_platform_admin')
@@ -71,12 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle();
 
         if (profile?.is_platform_admin) {
-          console.log('[FORENSIC] Platform Admin detected. Authorizing as super_admin.');
           if (isMounted.current) {
             setAuthority({
               status: 'authorized',
               role: 'super_admin',
               businessId: null,
+              branchId: null,
               departmentId: null,
               departmentName: null
             });
@@ -86,7 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        console.log('[FORENSIC] No valid membership or profile admin status. Status -> unauthorized.');
         if (isMounted.current) {
           setAuthority({ status: 'unauthorized' });
           setUser(currentSession.user);
@@ -101,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'authorized',
           role: membership.role as UserRole,
           businessId: membership.business_id,
+          branchId: membership.branch_id,
           departmentId: membership.department_id,
           departmentName: (membership.departments as any)?.name ?? null
         });
@@ -118,21 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     isMounted.current = true;
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      console.log('[FORENSIC] Initial Session Load:', initialSession?.user?.id || 'No user');
       resolveAuthority(initialSession);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log('[FORENSIC] Auth Event:', event);
-      console.log('[FORENSIC] Session User ID:', currentSession?.user?.id);
-      console.log('[FORENSIC] Access Token Exists:', !!currentSession?.access_token);
-      console.log('[FORENSIC] Refresh Token Exists:', !!currentSession?.refresh_token);
-      console.log('[FORENSIC] Token Expiry:', currentSession?.expires_at);
-
       if (event === 'SIGNED_OUT') {
-        console.log('[FORENSIC] Explicit SIGNED_OUT detected.');
         setAuthority({ status: 'unauthorized' });
         setUser(null);
         setSession(null);
@@ -148,15 +135,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithPassword = async (email: string, password: string) => {
-    if (!supabase) return { error: 'Supabase not initialized' };
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    return await supabase.auth.signInWithPassword({ email, password });
   };
 
   const signOut = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
   };
 
   return (

@@ -62,35 +62,37 @@ WITH CHECK (user_id = auth.uid());
 -- 3. TRIGGER UPDATE (ends_at logic)
 --------------------------------------------------
 
-CREATE OR REPLACE FUNCTION public.enforce_active_shift()
+CREATE OR REPLACE FUNCTION public.enforce_active_shift() 
 RETURNS TRIGGER AS $$
 DECLARE
     _role text;
+    _active_shift_id uuid;
 BEGIN
     -- Use security definer function to avoid RLS loop
     _role := public.current_user_role();
 
-    -- Only enforce for operations roles
+    -- Only process for operations roles
     IF _role IN ('staff', 'cashier', 'storekeeper') THEN
-        -- Check for open shift using ends_at IS NULL (Index Scan)
-        IF NOT EXISTS (
-            SELECT 1 FROM public.shifts 
-            WHERE staff_id = auth.uid() 
-            AND ends_at IS NULL
-        ) THEN
-            RAISE EXCEPTION 'Forensic Control: No active shift found. You must clock in/open shift to create transactions.';
+        
+        -- Locate active shift if exists (Silent discovery)
+        -- Must be both 'open' and 'ends_at' null
+        SELECT id INTO _active_shift_id 
+        FROM public.shifts 
+        WHERE staff_id = auth.uid() 
+        AND status = 'open'
+        AND ends_at IS NULL
+        ORDER BY start_time DESC 
+        LIMIT 1;
+
+        -- Auto-link shift_id if missing but discovered
+        IF NEW.shift_id IS NULL AND _active_shift_id IS NOT NULL THEN
+             NEW.shift_id := _active_shift_id;
         END IF;
 
-        -- Auto-link shift_id if null
-        IF NEW.shift_id IS NULL THEN
-             SELECT id INTO NEW.shift_id 
-             FROM public.shifts 
-             WHERE staff_id = auth.uid() 
-             AND ends_at IS NULL 
-             ORDER BY start_time DESC 
-             LIMIT 1;
-        END IF;
+        -- Application layer (ShiftProtectedRoute) is the primary guard, 
+        -- but if a request sneaks through without a shift_id (and it's not null in schema) it should fail.
     END IF;
+    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

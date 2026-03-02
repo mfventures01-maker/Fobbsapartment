@@ -1,13 +1,13 @@
 
 export type PaymentStatus = 'pending' | 'confirmed' | 'voided';
-export type ShiftStatus = 'open' | 'closed';
+export type ShiftStatus = 'open' | 'pending_declaration' | 'awaiting_manager_approval' | 'closed' | 'rejected';
 
 export interface Profile {
     user_id: string;
-    role: 'super_admin' | 'ceo' | 'manager' | 'staff';
+    role: 'super_admin' | 'ceo' | 'manager' | 'staff' | 'owner';
     business_id: string;
     department?: string;
-    full_name: string; // Now required
+    full_name: string;
 }
 
 export interface PaymentIntent {
@@ -28,16 +28,26 @@ export interface Shift {
     id: string;
     staff_id: string;
     business_id: string;
-    branch_id?: string;
+    branch_id: string;
+    department_id: string;
     start_time: string;
     ends_at?: string;
+    status: ShiftStatus;
     created_at?: string;
-    // Forensic Fields
-    physical_cash_total?: number;
-    pos_machine_total?: number;
-    transfer_total?: number;
+
+    // Declaration Fields
+    declared_cash: number;
+    declared_pos: number;
+    declared_transfer: number;
+    declared_total?: number; // Generated in DB
+
+    // Reconciliation Fields
+    expected_revenue?: number;
+    total_revenue?: number;
     variance?: number;
+    final_declaration_id?: string;
     manager_approval_id?: string;
+    closed_at?: string;
 }
 
 export interface ShiftReconciliation {
@@ -66,6 +76,7 @@ export interface Transaction {
     order_id?: string;
     payment_intent_id?: string;
     shift_id?: string;
+    department_id: string;
     amount: number;
     payment_type: string;
     payment_reference?: string;

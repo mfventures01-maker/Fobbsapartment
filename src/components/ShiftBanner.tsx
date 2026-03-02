@@ -1,64 +1,91 @@
-import React, { useEffect } from 'react';
-import { useShiftEngine } from '@/engine/shiftEngine';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { RefreshCw, Play, Lock } from 'lucide-react';
+import { useShiftState } from '@/contexts/ShiftContext';
+import { RefreshCw, Play, Lock, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const ShiftBanner: React.FC = () => {
-    const { authority, user } = useAuth();
-    const { isShiftOpen, activeShift, loading, initShift, openShift, closeShift } = useShiftEngine();
+    const { authority } = useAuth();
+    const { shiftState, startShift, endShift } = useShiftState();
 
-    const isOperational = authority?.role === 'staff' || authority?.role === 'manager';
-
-    useEffect(() => {
-        if (user?.id && isOperational) {
-            initShift(user.id);
-        }
-    }, [user, isOperational, initShift]);
+    const isOperational = authority?.status === 'authorized' && (authority.role === 'staff' || authority.role === 'manager');
 
     if (!isOperational) return null;
 
+    const handleStartShift = async () => {
+        const { error } = await startShift();
+        if (error) {
+            toast.error(error.message || 'Failed to start shift');
+        } else {
+            toast.success('Shift started');
+        }
+    };
+
+    const handleEndShift = async () => {
+        if (window.confirm('Are you sure you want to end your shift and prepare for declaration?')) {
+            const { error } = await endShift();
+            if (error) {
+                toast.error(error.message || 'Failed to end shift');
+            } else {
+                toast.success('Shift ended. Please submit your declaration.');
+            }
+        }
+    };
+
+    const isLoading = shiftState.status === 'loading';
+    const isOpen = shiftState.status === 'active';
+
     return (
-        <div className={`w-full text-white px-6 py-3 flex items-center justify-between shadow-md z-40 sticky top-0 transition-colors ${isShiftOpen ? 'bg-emerald-600' : 'bg-red-600'}`}>
-            <div className="flex flex-col">
-                <div className="flex items-center space-x-2 font-black text-sm tracking-widest uppercase">
-                    {isShiftOpen ? (
-                        <>
-                            <span className="w-2.5 h-2.5 rounded-full bg-green-300 animate-pulse shadow-[0_0_8px_rgba(134,239,172,0.8)]" />
-                            <span>SHIFT OPEN</span>
-                        </>
-                    ) : (
-                        <>
-                            <Lock className="w-4 h-4" />
-                            <span>SHIFT CLOSED</span>
-                        </>
+        <div className={`w-full text-white px-6 py-2.5 flex items-center justify-between shadow-sm z-40 sticky top-0 transition-all duration-300 ${isOpen ? 'bg-emerald-600' : 'bg-amber-600'}`}>
+            <div className="flex items-center gap-4">
+                <div className="flex flex-col">
+                    <div className="flex items-center space-x-2 font-black text-[10px] tracking-widest uppercase">
+                        {isOpen ? (
+                            <>
+                                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                                <span>ACTIVE SHIFT</span>
+                            </>
+                        ) : (
+                            <>
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>NO ACTIVE SHIFT</span>
+                            </>
+                        )}
+                        {isLoading && <RefreshCw className="w-3 h-3 animate-spin ml-2" />}
+                    </div>
+                    {isOpen && shiftState.shift.start_time && (
+                        <span className="text-[10px] text-white text-opacity-90 font-mono mt-0.5">
+                            Started: {new Date(shiftState.shift.start_time).toLocaleTimeString()}
+                        </span>
                     )}
-                    {loading && <RefreshCw className="w-3 h-3 animate-spin ml-2" />}
                 </div>
-                {isShiftOpen && activeShift?.start_time && (
-                    <span className="text-xs text-white text-opacity-80 font-mono mt-0.5 ml-4">
-                        Started: {new Date(activeShift.start_time).toLocaleTimeString()}
-                    </span>
-                )}
+
+                <div className="h-4 w-px bg-white/20 hidden sm:block" />
+
+                <div className="hidden sm:flex flex-col">
+                    <span className="text-[10px] font-bold opacity-70 uppercase tracking-tighter leading-none">Terminal</span>
+                    <span className="text-xs font-bold leading-none">{authority.departmentName || 'General Operations'}</span>
+                </div>
             </div>
 
             <div>
-                {!isShiftOpen ? (
+                {!isOpen ? (
                     <button
-                        disabled={loading}
-                        onClick={() => openShift(user!.id, { opening_balance: 0 })}
-                        className="bg-white text-red-700 text-xs font-bold px-4 py-2 rounded-md hover:bg-red-50 disabled:opacity-50 transition-colors flex items-center"
+                        disabled={isLoading}
+                        onClick={handleStartShift}
+                        className="bg-white text-amber-700 text-[10px] font-black tracking-wider px-4 py-1.5 rounded-lg hover:bg-amber-50 active:scale-95 disabled:opacity-50 transition-all flex items-center shadow-lg"
                     >
                         <Play className="w-3 h-3 mr-1.5 fill-current" />
-                        OPEN SHIFT
+                        START SHIFT
                     </button>
                 ) : (
                     <button
-                        disabled={loading}
-                        onClick={() => closeShift(activeShift!.id, { variance: 0 })}
-                        className="bg-white text-emerald-700 text-xs font-bold px-4 py-2 rounded-md hover:bg-emerald-50 disabled:opacity-50 transition-colors flex items-center shadow-sm border border-emerald-500"
+                        disabled={isLoading}
+                        onClick={handleEndShift}
+                        className="bg-emerald-800 text-white text-[10px] font-black tracking-wider px-4 py-1.5 rounded-lg hover:bg-emerald-900 active:scale-95 disabled:opacity-50 transition-all flex items-center shadow-lg border border-emerald-400/30"
                     >
                         <Lock className="w-3 h-3 mr-1.5" />
-                        CLOSE SHIFT
+                        END SHIFT
                     </button>
                 )}
             </div>

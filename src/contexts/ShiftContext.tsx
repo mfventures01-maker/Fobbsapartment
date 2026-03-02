@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/db';
@@ -7,13 +7,18 @@ export type ShiftState =
     | { status: 'loading' }
     | { status: 'no_shift' }
     | { status: 'active'; shift: Shift }
+    | { status: 'pending_declaration'; shift: Shift }
+    | { status: 'awaiting_approval'; shift: Shift }
     | { status: 'error'; error: string };
 
 interface ShiftContextType {
     shiftState: ShiftState;
     refreshShift: () => Promise<void>;
     startShift: () => Promise<{ error: any }>;
-    endShift: (reconciliationData: any) => Promise<{ error: any }>;
+    endShift: () => Promise<{ error: any }>;
+    submitDeclaration: (declaration: { cash: number; pos: number; transfer: number }) => Promise<{ error: any; data?: any }>;
+    approveShift: (shiftId: string) => Promise<{ error: any }>;
+    rejectShift: (shiftId: string, reason: string) => Promise<{ error: any }>;
 }
 
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
@@ -21,91 +26,167 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { authority, user } = useAuth();
     const [shiftState, setShiftState] = useState<ShiftState>({ status: 'loading' });
+    const isMounted = useRef(true);
 
     const resolveShift = useCallback(async () => {
         if (authority.status !== 'authorized' || !user) {
-            setShiftState({ status: 'loading' });
+            if (isMounted.current) setShiftState({ status: 'loading' });
             return;
         }
 
         const { role } = authority;
 
-        // Phase 1 Rules: Shift not required for CEO/SuperAdmin
+        // CEO/SuperAdmin/Owner do not require active shifts for terminal access
         if (role === 'super_admin' || role === 'ceo' || role === 'owner') {
-            setShiftState({ status: 'no_shift' });
+            if (isMounted.current) setShiftState({ status: 'no_shift' });
             return;
         }
 
-        console.log('[SHIFT] Resolving shift for:', user.id);
-
         try {
-            const { data, error } = await supabase
+            // Priority 1: Open Shift (Active)
+            const { data: openShift, error: openError } = await supabase
                 .from('shifts')
                 .select('*')
                 .eq('staff_id', user.id)
+                .eq('status', 'open')
                 .is('ends_at', null)
+                .maybeSingle();
+
+            if (openError) throw openError;
+            if (openShift) {
+                if (isMounted.current) setShiftState({ status: 'active', shift: openShift });
+                return;
+            }
+
+            // Priority 2: Pending Declaration
+            const { data: pendingShift, error: pendingError } = await supabase
+                .from('shifts')
+                .select('*')
+                .eq('staff_id', user.id)
+                .eq('status', 'pending_declaration')
                 .order('start_time', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-            if (error) {
-                console.error('[SHIFT] Resolve Error:', error);
-                setShiftState({ status: 'error', error: error.message });
+            if (pendingError) throw pendingError;
+            if (pendingShift) {
+                if (isMounted.current) setShiftState({ status: 'pending_declaration', shift: pendingShift });
                 return;
             }
 
-            if (data) {
-                console.log('[SHIFT] Active shift found:', data.id);
-                setShiftState({ status: 'active', shift: data });
-            } else {
-                console.log('[SHIFT] No active shift found.');
-                setShiftState({ status: 'no_shift' });
+            // Priority 3: Awaiting Manager Approval
+            const { data: awaitingShift, error: awaitingError } = await supabase
+                .from('shifts')
+                .select('*')
+                .eq('staff_id', user.id)
+                .eq('status', 'awaiting_manager_approval')
+                .order('start_time', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (awaitingError) throw awaitingError;
+            if (awaitingShift) {
+                if (isMounted.current) setShiftState({ status: 'awaiting_approval', shift: awaitingShift });
+                return;
             }
+
+            if (isMounted.current) setShiftState({ status: 'no_shift' });
         } catch (err: any) {
-            setShiftState({ status: 'error', error: err.message });
+            console.error('[SHIFT] Resolve error:', err);
+            if (isMounted.current) setShiftState({ status: 'error', error: err.message });
         }
     }, [authority, user]);
 
     useEffect(() => {
+        isMounted.current = true;
         resolveShift();
+        return () => { isMounted.current = false; };
     }, [resolveShift]);
 
     const startShift = async () => {
         if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
+        const { businessId, branchId, departmentId } = authority;
 
-        const { businessId, departmentId } = authority;
-
-        const { error } = await supabase
-            .from('shifts')
-            .insert({
-                staff_id: user.id,
-                business_id: businessId,
-                department_id: departmentId,
-                start_time: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (!error) {
-            await resolveShift();
+        if (!businessId || !branchId || !departmentId) {
+            return { error: { message: 'Membership context incomplete' } };
         }
+
+        // Proactive block
+        if (shiftState.status === 'active' || shiftState.status === 'pending_declaration') {
+            return { error: { message: 'You have a pending shift operation.' } };
+        }
+
+        const { error } = await supabase.from('shifts').insert({
+            staff_id: user.id,
+            business_id: businessId,
+            branch_id: branchId,
+            department_id: departmentId,
+            status: 'open',
+            start_time: new Date().toISOString(),
+            declared_cash: 0,
+            declared_pos: 0,
+            declared_transfer: 0
+        });
+
+        if (!error) await resolveShift();
         return { error };
     };
 
-    const endShift = async (_reconciliationData: any) => {
+    const endShift = async () => {
         if (shiftState.status !== 'active') return { error: { message: 'No active shift' } };
 
         const { error } = await supabase
             .from('shifts')
             .update({
-                ends_at: new Date().toISOString()
+                ends_at: new Date().toISOString(),
+                status: 'pending_declaration'
             })
             .eq('id', shiftState.shift.id);
 
-        if (!error) {
-            await resolveShift();
-        }
+        if (!error) await resolveShift();
         return { error };
+    };
+
+    const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
+        if (shiftState.status !== 'pending_declaration') return { error: { message: 'No shift pending declaration' } };
+
+        const { data, error } = await (supabase as any).rpc('submit_shift_declaration', {
+            p_shift_id: shiftState.shift.id,
+            p_cash: cash,
+            p_pos: pos,
+            p_transfer: transfer
+        });
+
+        if (!error && data?.success) {
+            await resolveShift();
+            return { error: null, data };
+        }
+        return { error: error || (data?.error ? { message: data.error } : { message: 'Submission failed' }) };
+    };
+
+    const approveShift = async (shiftId: string) => {
+        const { data, error } = await (supabase as any).rpc('approve_shift', {
+            p_shift_id: shiftId
+        });
+
+        if (!error && data?.success) {
+            await resolveShift();
+            return { error: null };
+        }
+        return { error: error || (data?.error ? { message: data.error } : null) };
+    };
+
+    const rejectShift = async (shiftId: string, reason: string) => {
+        const { data, error } = await (supabase as any).rpc('reject_shift', {
+            p_shift_id: shiftId,
+            p_reason: reason
+        });
+
+        if (!error && data?.success) {
+            await resolveShift();
+            return { error: null };
+        }
+        return { error: error || (data?.error ? { message: data.error } : null) };
     };
 
     return (
@@ -113,7 +194,10 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             shiftState,
             refreshShift: resolveShift,
             startShift,
-            endShift
+            endShift,
+            submitDeclaration,
+            approveShift,
+            rejectShift
         }}>
             {children}
         </ShiftContext.Provider>
@@ -122,8 +206,6 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useShiftState = () => {
     const context = useContext(ShiftContext);
-    if (context === undefined) {
-        throw new Error('useShiftState must be used within a ShiftProvider');
-    }
+    if (context === undefined) throw new Error('useShiftState must be used within a ShiftProvider');
     return context;
 };
