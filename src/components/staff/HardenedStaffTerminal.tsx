@@ -40,7 +40,15 @@ const AwaitingApprovalScreen = () => (
  */
 export function HardenedStaffTerminal() {
     const { shiftState } = useShiftState();
-    const { authority } = useAuth();
+    const { authority, user } = useAuth();
+
+    React.useEffect(() => {
+        if (user) {
+            console.log('[SHIFT CONTEXT]', {
+                authUser: user.id,
+            });
+        }
+    }, [user]);
 
     // 1. Handle Loading State
     if (shiftState.status === 'loading') {

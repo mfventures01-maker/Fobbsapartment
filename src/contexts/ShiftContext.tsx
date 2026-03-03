@@ -43,54 +43,35 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         try {
-            // Priority 1: Open Shift (Active)
-            const { data: openShift, error: openError } = await supabase
+            console.log('[SHIFT CONTEXT] Resolving for user:', user.id);
+
+            const { data: shift, error } = await supabase
                 .from('shifts')
                 .select('*')
                 .eq('staff_id', user.id)
-                .eq('status', 'open')
-                .is('ends_at', null)
-                .maybeSingle();
-
-            if (openError) throw openError;
-            if (openShift) {
-                if (isMounted.current) setShiftState({ status: 'active', shift: openShift });
-                return;
-            }
-
-            // Priority 2: Pending Declaration
-            const { data: pendingShift, error: pendingError } = await supabase
-                .from('shifts')
-                .select('*')
-                .eq('staff_id', user.id)
-                .eq('status', 'pending_declaration')
+                .in('status', ['open', 'pending_declaration', 'awaiting_manager_approval'])
                 .order('start_time', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-            if (pendingError) throw pendingError;
-            if (pendingShift) {
-                if (isMounted.current) setShiftState({ status: 'pending_declaration', shift: pendingShift });
+            if (error) throw error;
+
+            if (!shift) {
+                if (isMounted.current) setShiftState({ status: 'no_shift' });
                 return;
             }
 
-            // Priority 3: Awaiting Manager Approval
-            const { data: awaitingShift, error: awaitingError } = await supabase
-                .from('shifts')
-                .select('*')
-                .eq('staff_id', user.id)
-                .eq('status', 'awaiting_manager_approval')
-                .order('start_time', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (awaitingError) throw awaitingError;
-            if (awaitingShift) {
-                if (isMounted.current) setShiftState({ status: 'awaiting_approval', shift: awaitingShift });
-                return;
+            if (isMounted.current) {
+                if (shift.status === 'open') {
+                    setShiftState({ status: 'active', shift });
+                } else if (shift.status === 'pending_declaration') {
+                    setShiftState({ status: 'pending_declaration', shift });
+                } else if (shift.status === 'awaiting_manager_approval') {
+                    setShiftState({ status: 'awaiting_approval', shift });
+                } else {
+                    setShiftState({ status: 'no_shift' });
+                }
             }
-
-            if (isMounted.current) setShiftState({ status: 'no_shift' });
         } catch (err: any) {
             console.error('[SHIFT] Resolve error:', err);
             if (isMounted.current) setShiftState({ status: 'error', error: err.message });
@@ -99,9 +80,14 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     useEffect(() => {
         isMounted.current = true;
+        if (user) {
+            console.log('[SHIFT CONTEXT]', {
+                authUser: user.id,
+            });
+        }
         resolveShift();
         return () => { isMounted.current = false; };
-    }, [resolveShift]);
+    }, [resolveShift, user]);
 
     const startShift = async () => {
         if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
@@ -133,7 +119,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const endShift = async () => {
-        if (shiftState.status !== 'active') return { error: { message: 'No active shift' } };
+        if (!user || shiftState.status !== 'active') return { error: { message: 'No active shift or user session' } };
 
         const { error } = await supabase
             .from('shifts')
@@ -148,7 +134,16 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
-        if (shiftState.status !== 'pending_declaration') return { error: { message: 'No shift pending declaration' } };
+        if (!user || shiftState.status !== 'pending_declaration') return { error: { message: 'No shift pending declaration or user session' } };
+
+        // PHASE 3 — DECLARATION SUBMISSION LOCK
+        if (shiftState.shift.staff_id !== user.id) {
+            console.error('[SHIFT] Ownership mismatch detected!', {
+                activeStaff: shiftState.shift.staff_id,
+                authUser: user.id
+            });
+            throw new Error('Shift ownership mismatch');
+        }
 
         const { data, error } = await (supabase as any).rpc('submit_shift_declaration', {
             p_shift_id: shiftState.shift.id,

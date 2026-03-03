@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useShiftEngine } from '@/engine/shiftEngine';
+import { useShiftState } from '@/contexts/ShiftContext';
 import { usePaymentEngine } from '@/engine/paymentEngine';
 import { useInventoryEngine } from '@/engine/inventoryEngine';
 import { Bug, X } from 'lucide-react';
@@ -11,7 +11,7 @@ const WarModeDebugPanel: React.FC = () => {
     const [minimized, setMinimized] = useState(false);
 
     const { authority } = useAuth();
-    const { activeShift } = useShiftEngine();
+    const { shiftState } = useShiftState();
     const { currentIntent } = usePaymentEngine();
     const { items: inventoryItems } = useInventoryEngine();
 
@@ -58,13 +58,13 @@ const WarModeDebugPanel: React.FC = () => {
 
                     <div>
                         <h3 className="text-red-400 border-b border-red-800 pb-1 mb-2">SHIFT CONTEXT</h3>
-                        {activeShift ? (
+                        {shiftState.status !== 'loading' && shiftState.status !== 'no_shift' && (shiftState as any).shift ? (
                             <ul className="space-y-1">
-                                <li><span className="text-gray-500">shift_id:</span> {activeShift.id}</li>
-                                <li><span className="text-gray-500">status:</span> {activeShift.ends_at ? 'CLOSED' : 'OPEN'}</li>
+                                <li><span className="text-gray-500">shift_id:</span> {(shiftState as any).shift.id}</li>
+                                <li><span className="text-gray-500">status:</span> {shiftState.status}</li>
                             </ul>
                         ) : (
-                            <span className="text-gray-500 italic">No Active Shift</span>
+                            <span className="text-gray-500 italic">No Active Shift ({shiftState.status})</span>
                         )}
                     </div>
 

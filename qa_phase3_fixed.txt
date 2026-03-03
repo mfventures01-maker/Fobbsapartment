@@ -1,9 +1,0 @@
-[dotenv@17.3.1] injecting env (3) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
-[dotenv@17.3.1] injecting env (20) from .env.production -- tip: ⚙️  suppress all logs with { quiet: true }
-=== PHASE 3: RLS Isolation Test ===
-CEO Login successful. User ID: 4731e41e-952b-4c20-b5b1-3ca39170d7b6
-CEO Businesses: 1 OK
-CEO Visible IDs: 601576d8-9a10-476d-bad1-a1b46f5e830d
-Manager Login successful. User ID: 2d3e27ce-4ed1-4d63-99ad-78ca5d7f0cc6
-Manager Businesses: 1 OK
-Manager Visible IDs: 601576d8-9a10-476d-bad1-a1b46f5e830d

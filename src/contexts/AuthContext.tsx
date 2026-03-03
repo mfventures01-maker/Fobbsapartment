@@ -115,6 +115,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('[AUTH] Authority Resolved:', membership.role);
+      console.log('[IDENTITY]', {
+        role: membership.role,
+        userId: currentSession.user.id,
+      });
       if (isMounted.current) {
         setAuthorityStatus('authorized');
         setCurrentRole(membership.role as UserRole);
@@ -137,19 +141,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isMounted.current = true;
 
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      console.log('[AUTH] Initial Session Check');
       resolveAuthority(initialSession);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       console.log(`[AUTH] Event: ${event}`);
       if (event === 'SIGNED_OUT') {
-        setAuthorityStatus('unauthorized');
-        setCurrentRole(null);
-        setOrgId(null);
-        setLocationId(null);
-        setUser(null);
-        setSession(null);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (isMounted.current) {
+          setAuthorityStatus('unauthorized');
+          setCurrentRole(null);
+          setOrgId(null);
+          setLocationId(null);
+          setDepartmentId(null);
+          setDepartmentName(null);
+          setUser(null);
+          setSession(null);
+        }
+      } else if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
         resolveAuthority(currentSession);
       }
     });

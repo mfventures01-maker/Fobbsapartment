@@ -6,7 +6,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CreditCard, Scale, Send, LogOut, Menu, X, Users } from 'lucide-react';
 
 const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-    const { authority, signOut } = useAuth();
+    const { authority, signOut, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -66,7 +66,9 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
                         </div>
                         <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
                             <div className="flex flex-col items-end">
-                                <span className="text-sm font-medium text-gray-700 uppercase">{authority?.role}</span>
+                                <div className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md mb-1 border border-emerald-200">
+                                    {(authority?.role || 'user').toUpperCase()} — {user?.id?.slice(0, 8) || '00000000'}
+                                </div>
                                 <span className="text-xs text-gray-500">
                                     {authority?.businessId ? `Business: ${authority.businessId.slice(0, 8)}...` : 'No Business'}
                                 </span>
@@ -111,7 +113,9 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
                         <div className="pt-4 pb-4 border-t border-gray-200">
                             <div className="flex items-center px-4">
                                 <div className="ml-3">
-                                    <div className="text-base font-medium text-gray-800 uppercase">{authority?.role}</div>
+                                    <div className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md mb-1">
+                                        {(authority?.role || 'user').toUpperCase()} — {user?.id?.slice(0, 8) || '00000000'}
+                                    </div>
                                     <div className="text-sm font-medium text-gray-500">{authority?.departmentName || ''}</div>
                                 </div>
                                 <button
