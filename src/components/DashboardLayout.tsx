@@ -5,7 +5,7 @@ import WarModeDebugPanel from '@/components/WarModeDebugPanel';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CreditCard, Scale, Send, LogOut, Menu, X, Users } from 'lucide-react';
 
-const DashboardLayout: React.FC = () => {
+const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     const { authority, signOut } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -34,17 +34,8 @@ const DashboardLayout: React.FC = () => {
         navItems.push({ name: 'Disputes', path: '/dashboard/disputes', icon: Scale });
         navItems.push({ name: 'Admin Outbox', path: '/dashboard/outbox', icon: Send });
 
-        // Staff Admin Link - adjust based on base path if needed, but absolute path is safest
-        // In App.tsx, staff-admin is under /dashboard/owner/staff-admin but let's check where it is relative
-        // Actually, it's safer to just put it at a known location. 
-        // With the current App.tsx, it's nested under /dashboard/owner. 
-        // Let's assume we want to link validation.
         const adminPath = authority?.role === 'manager' ? '/dashboard/manager/staff-admin' : '/dashboard/owner/staff-admin';
-        // Note: You need to ensure the route exists for manager too in App.tsx
         navItems.push({ name: 'Staff Creator', path: adminPath, icon: Users });
-    } else {
-        // Staff items (if any specific ones needed)
-        // navItems.push({ name: 'My Tasks', path: '/dashboard/tasks', icon: List });
     }
 
     return (
@@ -140,7 +131,7 @@ const DashboardLayout: React.FC = () => {
 
             <main className="py-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <Outlet />
+                    {children || <Outlet />}
                 </div>
             </main>
         </div>

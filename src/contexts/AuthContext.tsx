@@ -6,11 +6,21 @@ export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
 
 export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 
+export interface Authority {
+  status: AuthorityStatus;
+  role: UserRole | null;
+  businessId: string | null;
+  branchId: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   authorityStatus: AuthorityStatus;
   currentRole: UserRole | null;
+  authority: Authority;
   isOrgAdmin: boolean;
   orgId: string | null;
   locationId: string | null;
@@ -25,6 +35,14 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   authorityStatus: 'loading',
   currentRole: null,
+  authority: {
+    status: 'loading',
+    role: null,
+    businessId: null,
+    branchId: null,
+    departmentId: null,
+    departmentName: null,
+  },
   isOrgAdmin: false,
   orgId: null,
   locationId: null,
@@ -150,10 +168,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  const authority: Authority = {
+    status: authorityStatus,
+    role: currentRole,
+    businessId: orgId,
+    branchId: locationId,
+    departmentId,
+    departmentName,
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
+      authority,
       authorityStatus,
       currentRole,
       isOrgAdmin,

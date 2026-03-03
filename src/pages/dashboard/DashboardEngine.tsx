@@ -2,8 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import ShiftProtectedRoute from '@/components/auth/ShiftProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
+import FullScreenLoader from '@/components/FullScreenLoader';
 
 // Super Admin
 import SuperAdminDashboard from '@/pages/dashboard/super_admin/SuperAdminDashboard';
@@ -19,20 +19,15 @@ import CeoSettings from '@/pages/dashboard/ceo/CeoSettings';
 // Manager
 import ManagerDashboard from '@/pages/dashboard/manager/ManagerDashboard';
 
-// Staff
-import StaffDashboardPage from '@/pages/dashboard/staff/StaffDashboardPage';
-import RestaurantStaff from '@/pages/dashboard/staff/RestaurantStaff';
-import BarStaff from '@/pages/dashboard/staff/BarStaff';
-import ReceptionStaff from '@/pages/dashboard/staff/ReceptionStaff';
-import HousekeepingStaff from '@/pages/dashboard/staff/HousekeepingStaff';
+import { HardenedStaffTerminal } from '@/components/staff/HardenedStaffTerminal';
 
 const DashboardEngine: React.FC = () => {
     const { authority } = useAuth();
 
-    if (authority.status === 'loading') return null; // Handled by AuthGate and ProtectedRoute
+    if (authority.status === 'loading') return <FullScreenLoader />;
     if (authority.status === 'unauthorized') return <Navigate to="/unauthorized" replace />;
 
-    const { role, departmentName } = authority;
+    const { role } = authority;
 
     // Use specific components instead of a switch for cleaner routing
     return (
@@ -72,21 +67,15 @@ const DashboardEngine: React.FC = () => {
                 }
             />
             <Route
-                path="staff"
+                path="staff/*"
                 element={
-                    <ShiftProtectedRoute required={true}>
-                        <DashboardLayout>
-                            {departmentName === 'Restaurant' ? <RestaurantStaff /> :
-                                departmentName === 'Bar' ? <BarStaff /> :
-                                    departmentName === 'Reception' ? <ReceptionStaff /> :
-                                        departmentName === 'Housekeeping' ? <HousekeepingStaff /> :
-                                            <StaffDashboardPage />}
-                        </DashboardLayout>
-                    </ShiftProtectedRoute>
+                    <DashboardLayout>
+                        <HardenedStaffTerminal />
+                    </DashboardLayout>
                 }
             />
 
-            {/* Base redirect: find the role and push them throuh */}
+            {/* Base redirect: find the role and push them through */}
             <Route index element={<Navigate to={`/dashboard/${role}`} replace />} />
         </Routes>
     );
