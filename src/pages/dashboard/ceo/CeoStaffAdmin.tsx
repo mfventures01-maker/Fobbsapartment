@@ -15,10 +15,11 @@ interface StaffMember {
 }
 
 const CeoStaffAdmin: React.FC = () => {
-    const { profile } = useAuth();
+    const { orgId, authorityStatus } = useAuth();
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [showModal, setShowModal] = useState(false);
 
     // Form State
@@ -30,24 +31,26 @@ const CeoStaffAdmin: React.FC = () => {
     });
 
     useEffect(() => {
-        if (profile?.business_id) {
+        if (authorityStatus === 'authorized' && orgId) {
             fetchStaff();
         }
-    }, [profile?.business_id]);
+    }, [authorityStatus, orgId]);
 
     const fetchStaff = async () => {
+        if (!orgId) return;
         try {
+            console.log('[DASHBOARD] Fetching staff list...');
             setLoading(true);
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('business_id', profile!.business_id)
+                .eq('business_id', orgId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
             setStaff(data as StaffMember[]);
         } catch (err) {
-            console.error('Error fetching staff:', err);
+            console.error('[DASHBOARD] Fetch staff error:', err);
             toast.error('Failed to load staff list');
         } finally {
             setLoading(false);
@@ -56,13 +59,16 @@ const CeoStaffAdmin: React.FC = () => {
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isCreating || !orgId) return;
+
         try {
+            console.log('[MUTATION] Start: Invite Staff', newUser.email);
             setIsCreating(true);
             const { data, error } = await supabase.functions.invoke('create-staff-user', {
                 body: {
                     ...newUser,
-                    business_id: profile!.business_id,
-                    branch_id: profile!.business_id // defaulting to business_id as branch assumption for simplified single-branch/HQ setup, or fetch actual branch
+                    business_id: orgId,
+                    branch_id: orgId
                 }
             });
 
@@ -73,9 +79,10 @@ const CeoStaffAdmin: React.FC = () => {
             setShowModal(false);
             setNewUser({ email: '', full_name: '', role: 'staff', department: '' });
             fetchStaff();
+            console.log('[MUTATION] End: Invite Staff Success');
 
         } catch (err: any) {
-            console.error('Invite error:', err);
+            console.error('[MUTATION] Invite error:', err);
             toast.error(err.message || 'Failed to invite staff');
         } finally {
             setIsCreating(false);
@@ -83,9 +90,12 @@ const CeoStaffAdmin: React.FC = () => {
     };
 
     const handleDeactivate = async (userId: string) => {
+        if (isUpdating) return;
         if (!confirm('Are you sure you want to deactivate this user? They will lose access immediately.')) return;
 
         try {
+            console.log('[MUTATION] Start: Deactivate User', userId);
+            setIsUpdating(true);
             const { error } = await supabase.functions.invoke('deactivate-user', {
                 body: { user_id: userId }
             });
@@ -93,24 +103,33 @@ const CeoStaffAdmin: React.FC = () => {
             if (error) throw error;
 
             toast.success('User deactivated');
-            fetchStaff(); // Refresh list
+            fetchStaff();
+            console.log('[MUTATION] End: Deactivate Success');
         } catch (err) {
-            console.error('Deactivate error:', err);
+            console.error('[MUTATION] Deactivate error:', err);
             toast.error('Failed to deactivate user');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
     const handleRoleUpdate = async (userId: string, newRole: string) => {
+        if (isUpdating) return;
         try {
+            console.log('[MUTATION] Start: Update Role', userId, newRole);
+            setIsUpdating(true);
             const { error } = await supabase.functions.invoke('update-user-role', {
                 body: { user_id: userId, role: newRole }
             });
             if (error) throw error;
             toast.success('Role updated');
             fetchStaff();
+            console.log('[MUTATION] End: Update Role Success');
         } catch (err) {
-            console.error('Role update error:', err);
+            console.error('[MUTATION] Role update error:', err);
             toast.error('Failed to update role');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -210,9 +229,9 @@ const CeoStaffAdmin: React.FC = () => {
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDeactivate(user.user_id)}
-                                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded text-xs font-medium"
+                                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded text-xs font-medium disabled:opacity-50"
                                                 title="Deactivate User"
-                                                disabled={user.status === 'suspended'}
+                                                disabled={user.status === 'suspended' || isUpdating}
                                             >
                                                 {user.status === 'suspended' ? 'Suspended' : 'Deactivate'}
                                             </button>

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
-
-// Removed strict Auth/Shift hooks for Guest/Public Flow
-import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle } from 'lucide-react';
+import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
 
 const PaymentIntent: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const orderId = searchParams.get('order_id') || searchParams.get('orderId'); // Handle both params
+    const orderId = searchParams.get('order_id') || searchParams.get('orderId');
     const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -16,10 +14,9 @@ const PaymentIntent: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const paymentOptions = [
-        { id: 'pos', label: 'POS Terminal', icon: <CreditCard className="w-6 h-6" />, color: 'bg-blue-600' },
-        { id: 'cash', label: 'Cash Payment', icon: <Banknote className="w-6 h-6" />, color: 'bg-emerald-600' },
-        { id: 'transfer', label: 'Bank Transfer', icon: <Smartphone className="w-6 h-6" />, color: 'bg-purple-600' },
-        // removed 'bill to room' if no guest profile, but keeping it simple for now
+        { id: 'pos', label: 'POS Terminal', icon: <CreditCard className="w-6 h-6" />, color: 'bg-blue-600', description: 'Pay via debit card' },
+        { id: 'cash', label: 'Cash Payment', icon: <Banknote className="w-6 h-6" />, color: 'bg-emerald-600', description: 'Pay with physical cash' },
+        { id: 'transfer', label: 'Bank Transfer', icon: <Smartphone className="w-6 h-6" />, color: 'bg-purple-600', description: 'Direct bank transfer' },
     ];
 
     useEffect(() => {
@@ -32,7 +29,6 @@ const PaymentIntent: React.FC = () => {
         const fetchOrder = async () => {
             if (!supabase) return;
             try {
-                // Fetch all columns to check formetadata or table info
                 const { data, error } = await supabase
                     .from("orders")
                     .select("*")
@@ -42,18 +38,17 @@ const PaymentIntent: React.FC = () => {
                 if (error) throw error;
                 if (!data) throw new Error("Order not found");
 
-                // Validate Order
-                if (data.status !== 'open' && data.status !== 'pending') {
-                    throw new Error("Order is not open for payment");
+                if (data.status === 'paid') {
+                    setSuccess(true);
+                    setOrder(data);
+                    return;
+                }
+
+                if (data.status !== 'open') {
+                    throw new Error("Order already processed");
                 }
 
                 setOrder(data);
-
-                // Pre-select payment method if set during checkout
-                if (data.payment_method) {
-                    setPaymentMethod(data.payment_method);
-                }
-
             } catch (err: any) {
                 console.error("Error fetching order:", err);
                 setError(err.message || "Failed to load order details");
@@ -63,6 +58,20 @@ const PaymentIntent: React.FC = () => {
         };
 
         fetchOrder();
+
+        // Subscribe to order updates (Realtime)
+        const channel = supabase
+            .channel(`order-${orderId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, (payload) => {
+                if (payload.new.status === 'paid') {
+                    setSuccess(true);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [orderId]);
 
     const handleSelect = (id: string) => {
@@ -72,52 +81,29 @@ const PaymentIntent: React.FC = () => {
     };
 
     const handleConfirm = async () => {
-        // Validation: Check inputs
-        if (!paymentMethod) {
-            setError('Please select a payment method');
-            return;
-        }
-
-        if (!orderId || !order) {
-            setError('Invalid Order');
-            return;
-        }
-
-        if (order.status !== 'open' && order.status !== 'pending') {
-            setError("Order already processed");
-            return;
-        }
-
-        // Prevent race conditions
-        if (loading) return;
+        if (!paymentMethod || !orderId || !order || loading) return;
 
         setLoading(true);
         setError(null);
 
         try {
-            if (!supabase) throw new Error('Supabase client not initialized');
+            if (!supabase) throw new Error('System offline');
 
-            // Insert Payment Intent
-            // Note: staff_id and shift_id are now optional/null for guest flow
             const { error: intentError } = await supabase
                 .from('payment_intents')
                 .insert({
                     order_id: orderId,
                     org_id: order.org_id,
                     branch_id: order.location_id,
-                    // staff_id: null, // Public flow
-                    // shift_id: null, // Public flow
-                    expected_amount: order.total_amount || order.total,
+                    expected_amount: order.total,
                     payment_type: paymentMethod,
-                    status: 'pending' // Pending confirmation/webhook
+                    status: 'pending'
                 });
 
             if (intentError) throw intentError;
 
-            // Updated Order Status -> 'processing' or stick to 'open'? 
-            // Usually Payment Intent pending means we wait.
-            // But let's set metadata.
-            await supabase.from('orders').update({ payment_intent: paymentMethod }).eq('id', orderId);
+            // Optional: Update order with chosen method for staff visibility
+            await supabase.from('orders').update({ payment_method: paymentMethod }).eq('id', orderId);
 
             setSuccess(true);
         } catch (err: any) {
@@ -129,19 +115,24 @@ const PaymentIntent: React.FC = () => {
     };
 
     if (initialLoading) {
-        return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading order...</div>;
+        return (
+            <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center text-white space-y-4">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-400 font-medium">Securing connection...</p>
+            </div>
+        );
     }
 
     if (error || !order) {
         return (
-            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4">
-                <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-xl text-center max-w-sm animate-in zoom-in duration-300">
-                    <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-red-500 mb-2">Access Denied</h2>
-                    <p className="text-gray-300 mb-6">{error || "The requested order could not be validated."}</p>
+            <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-3xl max-w-sm w-full">
+                    <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-white mb-2">Order Error</h2>
+                    <p className="text-slate-400 mb-8">{error || "This order could not be validated."}</p>
                     <button
-                        onClick={() => window.location.href = '/'} // Redirect to home/landing instead of POS
-                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-medium transition-colors"
+                        onClick={() => window.location.href = '/'}
+                        className="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl text-white font-bold transition-all"
                     >
                         Return Home
                     </button>
@@ -150,115 +141,132 @@ const PaymentIntent: React.FC = () => {
         );
     }
 
-    // Determine Table Number display
-    const tableNumber = order.metadata?.table_number ||
-        (order.customer_name?.toLowerCase().includes('table') ? order.customer_name : null) ||
-        "N/A";
-
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
+    const tableNumber = order.metadata?.table_number || "N/A";
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-emerald-500/30">
-            <div className="max-w-md mx-auto min-h-screen bg-slate-900 sm:bg-slate-800/50 sm:shadow-2xl flex flex-col">
+        <div className="min-h-screen bg-[#0f172a] text-white selection:bg-blue-500/30 font-inter">
+            <div className="max-w-md mx-auto min-h-screen flex flex-col relative px-6 py-12">
 
-                {/* Header Section */}
-                <div className="p-6 text-center space-y-4 pt-12">
-                    <div className="inline-block px-4 py-1.5 bg-slate-700/50 rounded-full border border-slate-600 text-sm font-medium text-slate-300">
-                        Order #{orderId?.slice(0, 8)}
-                    </div>
-
-                    <h1 className="text-3xl font-bold text-white tracking-tight">
-                        Table {tableNumber !== "N/A" ? tableNumber.replace(/table/i, '').trim() : "--"}
-                    </h1>
-
-                    <div className="bg-white p-4 rounded-2xl inline-block shadow-xl mx-auto">
-                        <img
-                            src={qrUrl}
-                            alt="Order QR Code"
-                            className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
-                        />
-                    </div>
-
-                    <p className="text-slate-400 text-sm">Scan to view order details</p>
+                <div className="inline-block px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Secure Checkout (Ref: {(orderId || 'N/A').slice(0, 8)})</span>
                 </div>
 
-                {/* Content Section */}
-                <div className="flex-1 px-6 pb-8">
-                    <div className="space-y-6">
-                        {success ? (
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center animate-in fade-in zoom-in duration-300">
-                                <div className="bg-emerald-500 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20">
-                                    <CheckCircle className="w-8 h-8" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-white mb-2">Payment Recorded</h2>
-                                <p className="text-emerald-200/80 mb-6">Proceed with {paymentMethod ? paymentMethod.toUpperCase() : 'payment'} collection.</p>
-                                {/* Removed 'New Transaction' button as it's not a POS kiosk per se */}
-                            </div>
-                        ) : (
-                            <>
-                                <div className="space-y-4">
-                                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">
-                                        Payment Method {order.payment_method ? '(Pre-selected)' : ''}
-                                    </h3>
+                {/* Header */}
+                <div className="text-center space-y-2 mb-10">
+                    <h1 className="text-4xl font-black tracking-tight">
+                        ₦{order.total.toLocaleString()}
+                    </h1>
+                    <p className="text-slate-400 font-medium tracking-wide uppercase text-xs">
+                        {tableNumber !== "N/A" ? `Table ${tableNumber}` : `Order #${(orderId || 'N/A').slice(0, 8)}`}
+                    </p>
+                </div>
 
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {paymentOptions.map((option) => (
-                                            <button
-                                                key={option.id}
-                                                // Only allow change if not already set, or distinct override needed?
-                                                // Let's allow change for flexibility, BUT highlight current selection.
-                                                onClick={() => handleSelect(option.id)}
-                                                disabled={loading}
-                                                className={`
-                                                    relative group p-4 rounded-xl border flex items-center space-x-4 transition-all duration-200
-                                                    ${paymentMethod === option.id
-                                                        ? `${option.color} border-transparent shadow-lg scale-[1.02] ring-2 ring-white/20`
-                                                        : 'bg-slate-800 border-slate-700 hover:bg-slate-750 hover:border-slate-600'}
-                                                `}
-                                            >
+                {/* Content */}
+                <div className="flex-1">
+                    {success ? (
+                        <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-10 text-center relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <CheckCircle className="w-24 h-24 text-emerald-500" />
+                                </div>
+                                <div className="bg-emerald-500 text-white w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-emerald-500/40 rotate-12">
+                                    <CheckCircle className="w-10 h-10" />
+                                </div>
+                                <h2 className="text-3xl font-black mb-3">Intent Locked</h2>
+                                <p className="text-emerald-100/70 font-medium mb-8">Please inform the staff that you are ready to pay via <span className="text-white font-bold">{paymentMethod?.toUpperCase()}</span>.</p>
+
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-4 text-left">
+                                    <Clock className="w-6 h-6 text-emerald-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-bold text-emerald-400 uppercase">Status</p>
+                                        <p className="text-sm font-medium">Awaiting Staff Verification</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-center text-slate-500 text-sm italic py-4">
+                                This page will automatically update once payment is confirmed.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Select Payment Method</label>
+                                <div className="grid gap-3">
+                                    {paymentOptions.map((option) => (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => handleSelect(option.id)}
+                                            disabled={loading}
+                                            className={`
+                                                relative w-full p-5 rounded-2xl border-2 text-left transition-all duration-300 group
+                                                ${paymentMethod === option.id
+                                                    ? `border-blue-500 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]`
+                                                    : 'border-slate-800 bg-slate-800/40 hover:border-slate-700 hover:bg-slate-800/60'}
+                                            `}
+                                        >
+                                            <div className="flex items-center gap-4">
                                                 <div className={`
-                                                    p-3 rounded-lg transition-colors
-                                                    ${paymentMethod === option.id ? 'bg-white/20' : 'bg-slate-700 group-hover:bg-slate-600'}
+                                                    p-3 rounded-xl transition-all duration-300
+                                                    ${paymentMethod === option.id ? 'bg-blue-500 text-white shadow-lg' : 'bg-slate-800 text-slate-400 group-hover:text-slate-200'}
                                                 `}>
                                                     {option.icon}
                                                 </div>
-                                                <span className="font-semibold text-lg">{option.label}</span>
-                                                {paymentMethod === option.id && (
-                                                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                        <div className="w-3 h-3 bg-white rounded-full shadow-lg animate-pulse" />
-                                                    </div>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
+                                                <div>
+                                                    <p className={`font-bold text-lg ${paymentMethod === option.id ? 'text-white' : 'text-slate-300'}`}>
+                                                        {option.label}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 font-medium">{option.description}</p>
+                                                </div>
+                                            </div>
+                                            {paymentMethod === option.id && (
+                                                <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))}
                                 </div>
+                            </div>
 
-                                {error && (
-                                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start space-x-3 text-left">
-                                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                                        <p className="text-red-400 text-sm font-medium">{error}</p>
+                            <button
+                                onClick={handleConfirm}
+                                disabled={!paymentMethod || loading}
+                                className={`
+                                    w-full py-5 rounded-2xl font-black text-lg tracking-wider transition-all duration-300 shadow-2xl active:scale-[0.98]
+                                    ${!paymentMethod || loading
+                                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-white/5'
+                                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40'}
+                                `}
+                            >
+                                {loading ? (
+                                    <div className="flex items-center justify-center gap-3">
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span>INITIATING...</span>
                                     </div>
+                                ) : (
+                                    'CONFIRM INTENT'
                                 )}
+                            </button>
+                        </div>
+                    )}
+                </div>
 
-                                <button
-                                    onClick={handleConfirm}
-                                    disabled={!paymentMethod || loading}
-                                    className={`
-                                        w-full py-4 rounded-xl font-bold text-lg shadow-xl shadow-blue-900/20 transition-all active:scale-95
-                                        ${!paymentMethod || loading
-                                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                            : 'bg-blue-600 hover:bg-blue-500 text-white'}
-                                    `}
-                                >
-                                    {loading ? 'Processing...' : 'Confirm Intent'}
-                                </button>
-                            </>
-                        )}
-                    </div>
+                {/* Footer Decor */}
+                <div className="mt-auto pt-12 text-center">
+                    <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.3em]">
+                        Powered by CARSS Fintech
+                    </p>
                 </div>
             </div>
         </div>
     );
 };
+
+// Simple Loader component for internal use
+const Loader2 = ({ className }: { className?: string }) => (
+    <div className={`w-5 h-5 border-2 border-white/30 border-t-white rounded-full ${className}`}></div>
+);
 
 export default PaymentIntent;

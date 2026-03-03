@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -29,9 +29,11 @@ interface ShiftReport {
     variance: number;
 }
 
+type ViewStatus = "loading" | "ready" | "error";
+
 const CeoDashboard: React.FC = () => {
-    const { authority } = useAuth();
-    const [loading, setLoading] = useState(true);
+    const { authorityStatus, orgId } = useAuth();
+    const [viewStatus, setViewStatus] = useState<ViewStatus>("loading");
     const [refreshing, setRefreshing] = useState(false);
     const [metrics, setMetrics] = useState<SystemMetrics>({
         transactionsToday: 0,
@@ -43,7 +45,12 @@ const CeoDashboard: React.FC = () => {
     const [staffPerformance, setStaffPerformance] = useState<any[]>([]);
 
     const hydrate = useCallback(async () => {
-        if (authority.status !== 'authorized') return;
+        if (authorityStatus !== 'authorized' || !orgId) {
+            console.log('[DASHBOARD] Fetch deferred: Not authorized or missing orgId');
+            return;
+        }
+
+        console.log('[DASHBOARD] Starting Data Fetch...');
         setRefreshing(true);
 
         try {
@@ -55,14 +62,14 @@ const CeoDashboard: React.FC = () => {
             const { data: txs } = await supabase
                 .from('transactions')
                 .select('amount, staff_id')
-                .eq('business_id', authority.businessId)
+                .eq('business_id', orgId)
                 .gte('created_at', todayISO);
 
             // 2. Fetch Shift Reports (Recent 50)
             const { data: shiftData } = await supabase
                 .from('shifts')
                 .select('*')
-                .eq('business_id', authority.businessId)
+                .eq('business_id', orgId)
                 .order('start_time', { ascending: false })
                 .limit(50);
 
@@ -90,23 +97,61 @@ const CeoDashboard: React.FC = () => {
             });
             setStaffPerformance(Object.entries(performanceMap).map(([id, total]) => ({ id, total })));
 
+            console.log('[DASHBOARD] Fetch Complete.');
+            setViewStatus("ready");
         } catch (err) {
-            console.error('[CEO] Hydrate Error:', err);
+            console.error('[DASHBOARD] Hydrate Error:', err);
             toast.error('Failed to update dashboard');
+            setViewStatus("error");
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
-    }, [authority]);
+    }, [authorityStatus, orgId]);
 
     useEffect(() => {
-        hydrate();
-    }, [hydrate]);
+        if (authorityStatus !== 'authorized' || !orgId) return;
 
-    if (loading) return (
+        // Subscribing to REALTIME changes for live reporting
+        const channel = supabase
+            .channel('ceo-oversight')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `business_id=eq.${orgId}` }, () => {
+                console.log('[DASHBOARD] Realtime TX change detected. Hydrating...');
+                hydrate();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts', filter: `business_id=eq.${orgId}` }, () => {
+                console.log('[DASHBOARD] Realtime Shift change detected. Hydrating...');
+                hydrate();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [authorityStatus, orgId, hydrate]);
+
+    useEffect(() => {
+        if (authorityStatus === 'authorized') {
+            hydrate();
+        }
+    }, [authorityStatus, hydrate]);
+
+    if (viewStatus === "loading") return (
         <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-emerald-500">
             <Loader2 className="w-16 h-16 animate-spin mb-4" />
             <h2 className="text-xl font-black tracking-widest uppercase">Syncing CEO Oversight...</h2>
+        </div>
+    );
+
+    if (viewStatus === "error") return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-red-500 p-8">
+            <AlertTriangle className="w-20 h-20 mb-6 opacity-20" />
+            <h2 className="text-2xl font-black uppercase tracking-widest mb-4">Integrity Sync Failed</h2>
+            <button
+                onClick={hydrate}
+                className="bg-red-900/20 border border-red-500/50 text-red-500 px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-red-900/40 transition-all"
+            >
+                Retry Matrix Sync
+            </button>
         </div>
     );
 
@@ -252,18 +297,26 @@ const CeoDashboard: React.FC = () => {
     );
 };
 
-const KPICard = ({ label, value, icon, color }: any) => (
-    <div className={`bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 hover:scale-[1.02] transition-all cursor-default group`}>
-        <div className="flex justify-between items-start mb-4">
-            <div className={`p-3 rounded-2xl bg-${color}-50 group-hover:bg-${color}-100 transition-colors`}>
-                {icon}
+const KPICard = ({ label, value, icon, color }: any) => {
+    const colorMap: any = {
+        emerald: 'bg-emerald-50 group-hover:bg-emerald-100',
+        blue: 'bg-blue-50 group-hover:bg-blue-100',
+        purple: 'bg-purple-50 group-hover:bg-purple-100',
+        amber: 'bg-amber-50 group-hover:bg-amber-100'
+    };
+    return (
+        <div className={`bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 hover:scale-[1.02] transition-all cursor-default group`}>
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-3 rounded-2xl transition-colors ${colorMap[color] || 'bg-slate-50'}`}>
+                    {icon}
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">{label}</p>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h3>
         </div>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">{label}</p>
-        <h3 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h3>
-    </div>
-);
+    );
+};
 
 const StatusBadge = ({ status }: { status: string }) => {
     const config: any = {

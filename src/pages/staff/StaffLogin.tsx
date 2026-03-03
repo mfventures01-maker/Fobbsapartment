@@ -12,38 +12,33 @@ const StaffLogin: React.FC = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
+
+        console.log("[MUTATION] Start: Staff Login", email);
         setLoading(true);
 
-        if (!supabase) {
-            toast.error('System offline: DB connection missing');
-            setLoading(false);
-            return;
-        }
-
         try {
-            console.log("Attempting login for:", email);
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) {
-                console.error("Auth Error:", error);
+                console.error("[MUTATION] Auth Failed:", error.message);
                 throw error;
             }
 
             if (data.user) {
-                console.log("Auth success. User ID:", data.user.id);
+                console.log("[MUTATION] Auth Success. User ID:", data.user.id);
                 toast.success('Welcome back!');
-
-                // Navigate to dashboard, AuthGate will pick up the session and redirect based on role
                 navigate('/dashboard', { replace: true });
             }
         } catch (error: any) {
-            console.error("Login System Error:", error);
+            console.error("[MUTATION] Login System Exception:", error);
             toast.error(error.message || 'Error executing login');
         } finally {
             setLoading(false);
+            console.log("[MUTATION] End: Staff Login Process");
         }
     };
 

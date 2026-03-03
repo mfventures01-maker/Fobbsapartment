@@ -7,10 +7,11 @@ import ConfirmPayment from '@/pages/ConfirmPayment';
 import Fulfillment from '@/pages/Fulfillment';
 import DebugAuth from '@/pages/auth/DebugAuth';
 
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ShiftProvider } from '@/contexts/ShiftContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from 'react-hot-toast';
+import FullScreenLoader from '@/components/FullScreenLoader';
 
 import Login from '@/pages/auth/Login';
 import StaffLogin from '@/pages/staff/StaffLogin';
@@ -27,6 +28,12 @@ import ServicesHubPublic from '@/pages/public/ServicesHubPublic';
 import ServiceRequestPublic from '@/pages/public/ServiceRequestPublic';
 
 const AppContent: React.FC = () => {
+  const { authorityStatus } = useAuth();
+
+  if (authorityStatus === 'loading') {
+    return <FullScreenLoader />;
+  }
+
   return (
     <React.Fragment>
       <Toaster position="top-right" />

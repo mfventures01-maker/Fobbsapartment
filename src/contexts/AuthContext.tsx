@@ -4,15 +4,18 @@ import { supabase } from '../lib/supabaseClient';
 
 export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
 
-export type AuthorityState =
-  | { status: 'loading' }
-  | { status: 'authorized'; role: UserRole; businessId: string | null; branchId: string | null; departmentId: string | null; departmentName: string | null }
-  | { status: 'unauthorized' };
+export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  authority: AuthorityState;
+  authorityStatus: AuthorityStatus;
+  currentRole: UserRole | null;
+  isOrgAdmin: boolean;
+  orgId: string | null;
+  locationId: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
 }
@@ -20,7 +23,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
-  authority: { status: 'loading' },
+  authorityStatus: 'loading',
+  currentRole: null,
+  isOrgAdmin: false,
+  orgId: null,
+  locationId: null,
+  departmentId: null,
+  departmentName: null,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
 });
@@ -28,21 +37,34 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [authority, setAuthority] = useState<AuthorityState>({ status: 'loading' });
+  const [authorityStatus, setAuthorityStatus] = useState<AuthorityStatus>('loading');
+  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [departmentId, setDepartmentId] = useState<string | null>(null);
+  const [departmentName, setDepartmentName] = useState<string | null>(null);
   const isMounted = useRef(true);
+
+  const isOrgAdmin = currentRole === 'ceo' || currentRole === 'owner' || currentRole === 'super_admin';
 
   const resolveAuthority = async (currentSession: Session | null) => {
     if (!currentSession?.user) {
-      console.log('[FORENSIC] No session found. Setting status to unauthorized.');
+      console.log('[AUTH] No session found. Setting status = unauthorized');
       if (isMounted.current) {
-        setAuthority({ status: 'unauthorized' });
+        setAuthorityStatus('unauthorized');
+        setCurrentRole(null);
+        setOrgId(null);
+        setLocationId(null);
+        setDepartmentId(null);
+        setDepartmentName(null);
         setUser(null);
         setSession(null);
       }
       return;
     }
 
-    console.log('[FORENSIC] Resolving authority for:', currentSession.user.id);
+    console.log('[AUTH] Initializing Authority Resolution for:', currentSession.user.id);
+    setAuthorityStatus('loading');
 
     try {
       const { data: membership, error } = await supabase
@@ -60,53 +82,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
 
       if (!membership) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_platform_admin')
-          .eq('user_id', currentSession.user.id)
-          .maybeSingle();
-
-        if (profile?.is_platform_admin) {
-          if (isMounted.current) {
-            setAuthority({
-              status: 'authorized',
-              role: 'super_admin',
-              businessId: null,
-              branchId: null,
-              departmentId: null,
-              departmentName: null
-            });
-            setUser(currentSession.user);
-            setSession(currentSession);
-          }
-          return;
-        }
-
+        console.log('[AUTH] No membership found. Setting status = unauthorized');
         if (isMounted.current) {
-          setAuthority({ status: 'unauthorized' });
+          setAuthorityStatus('unauthorized');
+          setCurrentRole(null);
+          setOrgId(null);
+          setLocationId(null);
+          setDepartmentId(null);
+          setDepartmentName(null);
           setUser(currentSession.user);
           setSession(currentSession);
         }
         return;
       }
 
-      console.log('[FORENSIC] Authority Resolved:', membership.role);
+      console.log('[AUTH] Authority Resolved:', membership.role);
       if (isMounted.current) {
-        setAuthority({
-          status: 'authorized',
-          role: membership.role as UserRole,
-          businessId: membership.business_id,
-          branchId: membership.branch_id,
-          departmentId: membership.department_id,
-          departmentName: (membership.departments as any)?.name ?? null
-        });
+        setAuthorityStatus('authorized');
+        setCurrentRole(membership.role as UserRole);
+        setOrgId(membership.business_id);
+        setLocationId(membership.branch_id);
+        setDepartmentId(membership.department_id);
+        setDepartmentName((membership.departments as any)?.name ?? null);
         setUser(currentSession.user);
         setSession(currentSession);
       }
     } catch (err) {
-      console.error("[FORENSIC] Authority resolution error:", err);
+      console.error("[AUTH] Forensic resolution failure:", err);
       if (isMounted.current) {
-        setAuthority({ status: 'unauthorized' });
+        setAuthorityStatus('unauthorized');
       }
     }
   };
@@ -119,8 +123,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log(`[AUTH] Event: ${event}`);
       if (event === 'SIGNED_OUT') {
-        setAuthority({ status: 'unauthorized' });
+        setAuthorityStatus('unauthorized');
+        setCurrentRole(null);
+        setOrgId(null);
+        setLocationId(null);
         setUser(null);
         setSession(null);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
@@ -146,7 +154,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user,
       session,
-      authority,
+      authorityStatus,
+      currentRole,
+      isOrgAdmin,
+      orgId,
+      locationId,
+      departmentId,
+      departmentName,
       signOut,
       signInWithPassword
     }}>

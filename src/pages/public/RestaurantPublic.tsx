@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildRoomServiceMessage } from '@/lib/channelRouting';
-import { logLeadOrBooking } from '@/lib/logging';
-import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
+import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Loader2, Globe } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const RestaurantPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
+    const navigate = useNavigate();
 
     // Form State
     const [name, setName] = useState('');
@@ -20,6 +21,7 @@ const RestaurantPublic: React.FC = () => {
     const [delivery, setDelivery] = useState('Room Delivery');
     const [paymentMethod, setPaymentMethod] = useState('POS on Delivery');
     const [tableNumber, setTableNumber] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     const addToCart = (item: any) => {
         setCart(prev => {
@@ -44,7 +46,7 @@ const RestaurantPublic: React.FC = () => {
 
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-    const handleSubmit = (channel: 'whatsapp' | 'telegram') => {
+    const handleSubmit = async (channel: 'whatsapp' | 'telegram' | 'web') => {
         if (cart.length === 0) return;
         if (!name || !phone) {
             alert("Please provide your name and phone number");
@@ -56,38 +58,76 @@ const RestaurantPublic: React.FC = () => {
             return;
         }
 
-        // Log to Supabase for Dashboard visibility
-        logLeadOrBooking({
-            customer_name: name,
-            customer_phone: phone,
-            item_name: "Restaurant Order",
-            total_value: subtotal,
-            business_type: 'restaurant',
-            metadata: {
-                cart_items: cart,
-                payment_method: paymentMethod,
-                delivery_method: delivery,
-                room_number: room || 'N/A',
-                table_number: tableNumber || 'N/A',
-                notes: notes,
-                channel: channel
-            }
-        });
+        setSubmitting(true);
 
-        sendRequest(
-            'Restaurant Order',
-            buildRoomServiceMessage,
-            {
-                items: cart,
-                subtotal: subtotal,
-                payment_method: paymentMethod,
-                notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
-                room_number: room || "N/A",
-                summary: `${cart.length} items (₦${subtotal.toLocaleString()})`
-            },
-            channel,
-            'kitchen'
-        );
+        try {
+            if (!supabase) throw new Error("Database client not available");
+
+            // 1. Create Order
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                    org_id: HOTEL_CONFIG.org_id,
+                    location_id: HOTEL_CONFIG.location_id,
+                    customer_name: name,
+                    customer_phone: phone,
+                    status: 'open',
+                    total: subtotal,
+                    metadata: {
+                        room_number: room || 'N/A',
+                        table_number: tableNumber || 'N/A',
+                        delivery_method: delivery,
+                        notes: notes
+                    }
+                })
+                .select()
+                .single();
+
+            if (orderError) throw orderError;
+
+            // 2. Create Order Items
+            const itemsToInsert = cart.map(item => ({
+                org_id: HOTEL_CONFIG.org_id,
+                order_id: order.id,
+                name: item.name,
+                qty: item.quantity,
+                unit_price: item.price,
+                line_total: item.price * item.quantity
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('order_items')
+                .insert(itemsToInsert);
+
+            if (itemsError) throw itemsError;
+
+            // 3. Optional: WhatsApp Notification (Background)
+            if (channel !== 'web') {
+                sendRequest(
+                    'Restaurant Order',
+                    buildRoomServiceMessage,
+                    {
+                        items: cart,
+                        subtotal: subtotal,
+                        payment_method: paymentMethod,
+                        notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
+                        room_number: room || "N/A",
+                        summary: `${cart.length} items (₦${subtotal.toLocaleString()})`
+                    },
+                    channel,
+                    'kitchen'
+                );
+            }
+
+            // 4. Redirect to Payment Intent
+            navigate(`/payment-intent?order_id=${order.id}`);
+
+        } catch (err: any) {
+            console.error("Submission failed:", err);
+            alert("Failed to submit order: " + (err.message || "Unknown error"));
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const groupedItems = HOTEL_CONFIG.hotel.room_service.menu.reduce((acc, item) => {
@@ -116,7 +156,7 @@ const RestaurantPublic: React.FC = () => {
                             <div key={category}>
                                 <h2 className="text-xl font-bold text-gray-800 mb-4 sticky top-0 bg-gray-50 py-2 z-10">{category}</h2>
                                 <div className="grid gap-4">
-                                    {items.map(item => (
+                                    {items.map((item: any) => (
                                         <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
                                             <div>
                                                 <div className="font-bold text-gray-900">{item.name}</div>
@@ -207,7 +247,7 @@ const RestaurantPublic: React.FC = () => {
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                                        {cart.map(item => (
+                                        {cart.map((item: any) => (
                                             <div key={item.id} className="flex items-center justify-between text-sm">
                                                 <div className="flex-1">
                                                     <div className="font-medium text-gray-900">{item.name}</div>
@@ -271,21 +311,21 @@ const RestaurantPublic: React.FC = () => {
 
                                     <div className="space-y-2 pt-2">
                                         <button
+                                            onClick={() => handleSubmit('web')}
+                                            disabled={submitting}
+                                            className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 flex items-center justify-center space-x-2 shadow-lg shadow-emerald-100 disabled:opacity-50"
+                                        >
+                                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                                            <span>Order on Web</span>
+                                        </button>
+                                        <button
                                             onClick={() => handleSubmit('whatsapp')}
-                                            className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20bd5a] flex items-center justify-center space-x-2 shadow-lg shadow-green-100"
+                                            disabled={submitting}
+                                            className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20bd5a] flex items-center justify-center space-x-2 shadow-lg shadow-green-100 disabled:opacity-50"
                                         >
                                             <Send className="w-4 h-4" />
                                             <span>Order on WhatsApp</span>
                                         </button>
-                                        {HOTEL_CONFIG.channels.telegram_handle && (
-                                            <button
-                                                onClick={() => handleSubmit('telegram')}
-                                                className="w-full py-3 bg-[#0088cc] text-white rounded-xl font-bold hover:bg-[#0077b5] flex items-center justify-center space-x-2 shadow-lg shadow-blue-100"
-                                            >
-                                                <Send className="w-4 h-4" />
-                                                <span>Order on Telegram</span>
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
                             )}

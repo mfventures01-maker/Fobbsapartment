@@ -1,6 +1,6 @@
 import React from 'react';
 import { useShiftState } from '../../contexts/ShiftContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import OpenShiftScreen from '../../pages/dashboard/staff/OpenShiftScreen';
 import ShiftDeclarationScreen from '../../pages/dashboard/staff/ShiftDeclarationScreen';
 import { Clock, ShieldCheck, RefreshCw } from 'lucide-react';
@@ -29,10 +29,10 @@ const AwaitingApprovalScreen = () => (
 
 const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: boolean }> = ({ children }) => {
     const { shiftState } = useShiftState();
-    const { authority } = useAuth();
+    const { authorityStatus, currentRole } = useAuth();
 
     // No shift enforcement needed for specialized roles
-    if (authority.status === 'authorized' && ['super_admin', 'ceo', 'owner'].includes(authority.role)) {
+    if (authorityStatus === 'authorized' && currentRole && ['super_admin', 'ceo', 'owner'].includes(currentRole)) {
         return <>{children}</>;
     }
 

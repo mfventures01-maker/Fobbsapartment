@@ -2,7 +2,6 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import FullScreenLoader from '@/components/FullScreenLoader';
-import Unauthorized from '@/pages/auth/Unauthorized';
 
 function ProtectedRoute({
     allowedRoles,
@@ -11,25 +10,24 @@ function ProtectedRoute({
     allowedRoles: UserRole[];
     children: React.ReactNode;
 }) {
-    const { authority } = useAuth();
-    const isGranted = (authority.status === 'authorized' && allowedRoles.includes(authority.role));
+    const { authorityStatus, currentRole } = useAuth();
 
-    console.log('[FORENSIC] Evaluating ProtectedRoute');
-    console.log('[FORENSIC] Allowed Roles:', allowedRoles);
-    console.log('[FORENSIC] Authority Status:', authority.status);
-    console.log('[FORENSIC] Current Role:', authority.status === 'authorized' ? authority.role : 'N/A');
-    console.log('[FORENSIC] Access Granted:', isGranted);
+    console.log('[ROUTE] Evaluating ProtectedRoute');
+    console.log('[ROUTE] Allowed Roles:', allowedRoles);
+    console.log('[ROUTE] Status:', authorityStatus);
+    console.log('[ROUTE] Role:', currentRole);
 
-    if (authority.status === 'loading') {
+    if (authorityStatus === 'loading') {
         return <FullScreenLoader />;
     }
 
-    if (authority.status === 'unauthorized') {
-        return <Unauthorized />;
+    if (authorityStatus === 'unauthorized') {
+        return <Navigate to="/login" replace />;
     }
 
-    if (!isGranted) {
-        return <Navigate to="/access-denied" replace />;
+    if (!currentRole || !allowedRoles.includes(currentRole)) {
+        console.warn(`[ROUTE] Access Denied: Role '${currentRole}' not in [${allowedRoles.join(',')}]`);
+        return <Navigate to="/unauthorized" replace />;
     }
 
     return <>{children}</>;

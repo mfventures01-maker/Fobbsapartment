@@ -8,16 +8,16 @@ interface AuthGateProps {
 }
 
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
-    const { authority } = useAuth();
+    const { authorityStatus } = useAuth();
     const location = useLocation();
 
     // 1. Loading State
-    if (authority.status === 'loading') {
+    if (authorityStatus === 'loading') {
         return <FullScreenLoader />;
     }
 
     // 2. Unauthorized State (No Session or broken membership)
-    if (authority.status === 'unauthorized') {
+    if (authorityStatus === 'unauthorized') {
         const publicPaths = [
             '/', '/hotel', '/fobbs', '/login', '/staff-login', '/payment-intent', '/confirm-payment',
             '/fulfillment', '/restaurant', '/bar', '/services', '/debug-auth', '/unauthorized', '/access-denied'
@@ -32,10 +32,11 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     }
 
     // 3. Authorized State
-    if (authority.status === 'authorized') {
+    if (authorityStatus === 'authorized') {
         // Deterministic redirect from login paths to dashboard
         const authPaths = ['/login', '/staff-login'];
         if (authPaths.includes(location.pathname)) {
+            console.log('[GATED] Authorized user on login page, redirecting to /dashboard');
             return <Navigate to="/dashboard" replace />;
         }
     }

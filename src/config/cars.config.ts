@@ -54,6 +54,8 @@ export interface DeploymentConfig {
     business_name: string;
     business_id: string;
     business_code: string;
+    org_id: string;
+    location_id: string;
     business_type: "hotel" | "restaurant" | "lounge";
     location: string;
     hero_image: string;
@@ -122,6 +124,8 @@ export const HOTEL_CONFIG: DeploymentConfig = {
     business_name: "Fobbs Apartments",
     business_id: "fobbs-asaba-001",
     business_code: "FOBBS",
+    org_id: "00000000-0000-0000-0000-000000000001",
+    location_id: "00000000-0000-0000-0000-000000000002",
     business_type: "hotel",
     location: "Asaba Central District, Delta State",
     hero_image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80",
