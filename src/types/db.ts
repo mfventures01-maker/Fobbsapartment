@@ -83,3 +83,45 @@ export interface Transaction {
     status: 'created' | 'verified' | 'reversed' | 'disputed';
     created_at: string;
 }
+
+export interface Order {
+    id: string;
+    org_id: string;
+    location_id: string;
+    staff_id?: string;
+    customer_id?: string;
+    total_amount: number;
+    status: 'open' | 'paid' | 'served' | 'void' | 'cancelled';
+    created_at: string;
+    updated_at: string;
+    notes?: string;
+    table_reference?: string;
+    customer_name?: string;
+}
+
+export interface OrderItem {
+    id: string;
+    order_id: string;
+    org_id: string;
+    name: string;
+    qty: number;
+    price: number;
+    subtotal: number;
+    created_at: string;
+}
+
+export interface InventoryItem {
+    id: string;
+    business_id: string;
+    branch_id: string;
+    department_id: string;
+    name: string;
+    sku?: string;
+    unit: string;
+    current_stock: number;
+    min_stock: number;
+    cost_price: number;
+    sale_price: number;
+    last_restocked_at?: string;
+}
+

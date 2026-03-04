@@ -1,364 +1,429 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-    Loader2, RefreshCw, Activity, AlertTriangle,
-    CheckCircle, Clock, DollarSign, Users,
-    Database, BarChart3, ShieldCheck, ArrowUpRight, ArrowDownRight
+    Activity, ShieldCheck, CreditCard, Package, Users,
+    Clock, RefreshCw, AlertTriangle, ArrowUpRight,
+    TrendingUp, ShoppingBag, Landmark, Power,
+    ChevronRight, MapPin, Building2, Briefcase,
+    Zap, Target, ShieldAlert, BarChart3, PieChart,
+    Plus, Lock, Unlock, Search, Filter, Layers
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { subscribeToShiftTelemetry } from '@/lib/realtimeTelemetry';
 
-// --- TYPES ---
-interface SystemMetrics {
-    transactionsToday: number;
-    revenueToday: number;
-    activeShifts: number;
-    pendingApprovals: number;
-}
+// --- SUB-COMPONENTS ---
 
-interface ShiftReport {
-    id: string;
-    staff_id: string;
-    staff_name?: string;
-    department_id: string;
-    start_time: string;
-    ends_at?: string;
-    status: string;
-    expected_revenue: number;
-    declared_total: number;
-    variance: number;
-}
+const StatCard = ({ title, value, icon: Icon, color, trend, subtitle }: any) => (
+    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-lg transition-all group">
+        <div className="flex justify-between items-start mb-4">
+            <div className={`p-4 rounded-2xl ${color.bg} ${color.text} shadow-inner`}>
+                <Icon className="w-6 h-6" />
+            </div>
+            {trend && (
+                <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-tighter">
+                    <TrendingUp className="w-3 h-3" /> {trend}
+                </span>
+            )}
+        </div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{title}</p>
+        <h3 className="text-3xl font-black text-slate-800 tracking-tighter mb-1">{value}</h3>
+        {subtitle && <p className="text-[10px] text-slate-400 font-bold">{subtitle}</p>}
+    </div>
+);
 
-type ViewStatus = "loading" | "ready" | "error";
+const BranchRow = ({ branch }: { branch: any }) => (
+    <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-emerald-200 transition-all group">
+        <div className="flex items-center gap-4">
+            <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 group-hover:text-emerald-500 transition-colors">
+                <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+                <p className="text-sm font-black text-slate-800">{branch.name}</p>
+                <div className="flex gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>{branch.staff_count || 0} Staff</span>
+                    <span>•</span>
+                    <span>{branch.order_count || 0} Orders</span>
+                </div>
+            </div>
+        </div>
+        <div className="text-right">
+            <p className="text-sm font-black text-slate-900">₦{(branch.revenue || 0).toLocaleString()}</p>
+            <p className="text-[9px] font-black text-emerald-500 uppercase">Live Performance</p>
+        </div>
+    </div>
+);
 
 const CeoDashboard: React.FC = () => {
-    const { authorityStatus, orgId } = useAuth();
-    const [viewStatus, setViewStatus] = useState<ViewStatus>("loading");
-    const [refreshing, setRefreshing] = useState(false);
-    const [metrics, setMetrics] = useState<SystemMetrics>({
-        transactionsToday: 0,
-        revenueToday: 0,
+    const { user, authority } = useAuth();
+
+    // --- STATE ---
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        activeBranches: 0,
+        activeStaff: 0,
         activeShifts: 0,
-        pendingApprovals: 0
+        totalDepartments: 0,
+        revenueToday: 0,
+        revenueHour: 0,
+        pendingIntents: 0,
+        openOrders: 0
     });
-    const [shifts, setShifts] = useState<ShiftReport[]>([]);
-    const [staffPerformance, setStaffPerformance] = useState<any[]>([]);
 
+    const [branchesPerformance, setBranchesPerformance] = useState<any[]>([]);
+    const [liveStream, setLiveStream] = useState<any[]>([]);
+    const [staffList, setStaffList] = useState<any[]>([]);
+    const [inventoryAlerts, setInventoryAlerts] = useState<any[]>([]);
+    const [riskAlerts, setRiskAlerts] = useState<any[]>([]);
+
+    // --- HYDRATION ENGINE ---
     const hydrate = useCallback(async () => {
-        if (authorityStatus !== 'authorized' || !orgId) {
-            console.log('[DASHBOARD] Fetch deferred: Not authorized or missing orgId');
-            return;
-        }
-
-        console.log('[DASHBOARD] Starting Data Fetch...');
-        setRefreshing(true);
+        if (!authority.businessId) return;
+        setLoading(true);
 
         try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayISO = today.toISOString();
+            const today = new Date().toISOString().split('T')[0];
+            const lastHour = new Date(Date.now() - 3600000).toISOString();
 
-            // 1. Fetch Today's Transactions
-            const { data: txs } = await supabase
-                .from('transactions')
-                .select('amount, staff_id')
-                .eq('business_id', orgId)
-                .gte('created_at', todayISO);
+            // 1. GLOBAL COMMAND STATS
+            const { data: bCount } = await supabase.from('branches').select('id').eq('business_id', authority.businessId).eq('is_active', true);
+            const { data: sCount } = await supabase.from('business_memberships').select('user_id').eq('business_id', authority.businessId).eq('status', 'active');
+            const { data: openShifts } = await supabase.from('shifts').select('id').eq('business_id', authority.businessId).eq('status', 'open');
+            const { data: dCount } = await supabase.from('departments').select('id').eq('business_id', authority.businessId);
 
-            // 2. Fetch Shift Reports (Recent 50)
-            const { data: shiftData } = await supabase
-                .from('shifts')
-                .select('*')
-                .eq('business_id', orgId)
-                .order('start_time', { ascending: false })
-                .limit(50);
+            // 2. FINANCIAL INTELLIGENCE
+            const { data: txToday } = await supabase.from('transactions').select('amount, created_at').eq('business_id', authority.businessId).gte('created_at', today);
+            const { data: txHour } = await supabase.from('transactions').select('amount').eq('business_id', authority.businessId).gte('created_at', lastHour);
+            const { data: pendingIntents } = await supabase.from('payment_intents').select('id').eq('org_id', authority.businessId).eq('status', 'pending');
+            const { data: openOrders } = await supabase.from('orders').select('id').eq('org_id', authority.businessId).eq('status', 'open');
 
-            if (shiftData) {
-                // STEP 7 — CEO dashboard should only display finalized shifts
-                setShifts((shiftData as ShiftReport[]).filter(s => s.status === 'closed'));
-            }
+            const revToday = txToday?.reduce((acc, t) => acc + Number(t.amount), 0) || 0;
+            const revHour = txHour?.reduce((acc, t) => acc + Number(t.amount), 0) || 0;
 
-            // 3. Fetch CEO Variance Analytics (Risk Profiles)
-            const { data: analytics } = await supabase
-                .from('ceo_variance_analytics')
-                .select('*');
-
-            if (analytics) {
-                setStaffPerformance(analytics);
-            }
-
-            // 4. Calculate Metrics
-            const rev = (txs || []).reduce((acc, t) => acc + Number(t.amount), 0);
-            const pending = (shiftData || []).filter(s => s.status === 'awaiting_manager_approval').length;
-            const active = (shiftData || []).filter(s => s.status === 'open').length;
-
-            setMetrics({
-                transactionsToday: txs?.length || 0,
-                revenueToday: rev,
-                activeShifts: active,
-                pendingApprovals: pending
+            setStats({
+                activeBranches: bCount?.length || 0,
+                activeStaff: sCount?.length || 0,
+                activeShifts: openShifts?.length || 0,
+                totalDepartments: dCount?.length || 0,
+                revenueToday: revToday,
+                revenueHour: revHour,
+                pendingIntents: pendingIntents?.length || 0,
+                openOrders: openOrders?.length || 0
             });
 
-            console.log('[DASHBOARD] Fetch Complete.');
-            setViewStatus("ready");
+            // 3. BRANCH PERFORMANCE GRID
+            // Using a join-like map for real data
+            const { data: branchData } = await supabase.from('branches').select('id, name').eq('business_id', authority.businessId);
+            const branchPerf = await Promise.all((branchData || []).map(async b => {
+                const { data: bTx } = await supabase.from('transactions').select('amount').eq('branch_id', b.id).gte('created_at', today);
+                const { data: bOrd } = await supabase.from('orders').select('id').eq('branch_id', b.id).gte('created_at', today);
+                const { data: bStaff } = await supabase.from('business_memberships').select('user_id').eq('branch_id', b.id).eq('status', 'active');
+                return {
+                    id: b.id,
+                    name: b.name,
+                    revenue: bTx?.reduce((acc, t) => acc + Number(t.amount), 0) || 0,
+                    order_count: bOrd?.length || 0,
+                    staff_count: bStaff?.length || 0
+                };
+            }));
+            setBranchesPerformance(branchPerf);
+
+            // 4. LIVE TRANSACTION STREAM
+            const { data: stream } = await supabase.from('transactions').select('*, branch:branches(name)').eq('business_id', authority.businessId).order('created_at', { ascending: false }).limit(6);
+            setLiveStream(stream || []);
+
+            // 5. STAFF GOVERNANCE
+            const { data: staffs } = await supabase.from('business_memberships').select('*, profiles(full_name, status)').eq('business_id', authority.businessId).limit(5);
+            setStaffList(staffs || []);
+
+            // 6. RISK & EXCEPTION MONITORING
+            const { data: highVal } = await supabase.from('transactions').select('id, amount, created_at, business_id').eq('business_id', authority.businessId).gt('amount', 100000).order('created_at', { ascending: false }).limit(3);
+            const { data: variances } = await supabase.from('shifts').select('id, variance, staff_id').eq('business_id', authority.businessId).neq('variance', 0).order('created_at', { ascending: false }).limit(3);
+            const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
+
+            const risks = [];
+            highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${v.amount.toLocaleString()})` }));
+            variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${v.variance.toLocaleString()} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
+            setRiskAlerts(risks);
+            setInventoryAlerts(lowStock || []);
+
         } catch (err) {
-            console.error('[DASHBOARD] Hydrate Error:', err);
-            toast.error('Failed to update dashboard');
-            setViewStatus("error");
+            console.error('[CEO DASHBOARD] Hydrate error:', err);
         } finally {
-            setRefreshing(false);
+            setLoading(false);
         }
-    }, [authorityStatus, orgId]);
+    }, [authority.businessId]);
 
     useEffect(() => {
-        if (authorityStatus !== 'authorized' || !orgId) return;
+        hydrate();
 
-        // STEP 7 — CEO TELEMETRY
-        const unsubscribe = subscribeToShiftTelemetry(() => {
-            console.log('[TELEMETRY] Shift event detected by CEO oversight. Hydrating...');
-            hydrate();
-        });
-
-        // Still listen to transactions directly for immediate revenue updates
-        const txChannel = supabase
-            .channel('ceo-tx-oversight')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `business_id=eq.${orgId}` }, () => {
-                hydrate();
-            })
+        const channel = supabase.channel('ceo-control-tower')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => hydrate())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => hydrate())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => hydrate())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_intents' }, () => hydrate())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => hydrate())
             .subscribe();
 
-        return () => {
-            unsubscribe();
-            supabase.removeChannel(txChannel);
-        };
-    }, [authorityStatus, orgId, hydrate]);
+        return () => { supabase.removeChannel(channel); };
+    }, [hydrate]);
 
-    useEffect(() => {
-        if (authorityStatus === 'authorized') {
+    // --- CEO CONTROLS ---
+    const handleDisableStaff = async (userId: string) => {
+        if (!window.confirm('CRITICAL: Disable this staff account across the entire organization?')) return;
+        const loading = toast.loading('Revoking Authority...');
+        try {
+            const { data, error } = await (supabase as any).rpc('disable_staff', { p_user_id: userId });
+            if (error || !data?.success) throw new Error(error?.message || data?.error);
+            toast.success('Staff Access Terminated', { id: loading });
             hydrate();
+        } catch (err: any) {
+            toast.error(err.message, { id: loading });
         }
-    }, [authorityStatus, hydrate]);
-
-    if (viewStatus === "loading") return (
-        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-emerald-500">
-            <Loader2 className="w-16 h-16 animate-spin mb-4" />
-            <h2 className="text-xl font-black tracking-widest uppercase">Syncing CEO Oversight...</h2>
-        </div>
-    );
-
-    if (viewStatus === "error") return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-red-500 p-8">
-            <AlertTriangle className="w-20 h-20 mb-6 opacity-20" />
-            <h2 className="text-2xl font-black uppercase tracking-widest mb-4">Integrity Sync Failed</h2>
-            <button
-                onClick={hydrate}
-                className="bg-red-900/20 border border-red-500/50 text-red-500 px-8 py-3 rounded-2xl font-black uppercase tracking-widest hover:bg-red-900/40 transition-all"
-            >
-                Retry Matrix Sync
-            </button>
-        </div>
-    );
+    };
 
     return (
-        <div className="min-h-[90vh] space-y-8">
-            {/* Header Area */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        <Database className="w-8 h-8 text-emerald-600" />
-                        CARSS CEO Oversight
-                    </h1>
-                    <p className="text-slate-500 font-medium">Deterministic revenue and shift integrity tracking.</p>
-                </div>
-                <button
-                    onClick={hydrate}
-                    disabled={refreshing}
-                    className="flex items-center gap-2 bg-emerald-900 text-white px-6 py-2.5 rounded-2xl font-bold shadow-lg hover:bg-emerald-800 transition-all active:scale-95 disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                    Refresh Matrix
-                </button>
-            </div>
+        <div className="min-h-screen bg-slate-50/50 pb-20 space-y-8">
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <KPICard label="Revenue Today" value={`₦${metrics.revenueToday.toLocaleString()}`} icon={<DollarSign className="text-emerald-600" />} color="emerald" />
-                <KPICard label="Daily Transactions" value={metrics.transactionsToday} icon={<Activity className="text-blue-600" />} color="blue" />
-                <KPICard label="Active Shifts" value={metrics.activeShifts} icon={<Users className="text-purple-600" />} color="purple" />
-                <KPICard label="Pending Approvals" value={metrics.pendingApprovals} icon={<Clock className="text-amber-600" />} color="amber" />
-            </div>
+            {/* 1. GLOBAL COMMAND BAR */}
+            <header className="bg-white border-b border-slate-100 p-6 sticky top-0 z-50 shadow-sm backdrop-blur-2xl bg-white/80">
+                <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-4 bg-slate-900 rounded-[1.75rem] shadow-2xl shadow-slate-900/20">
+                            <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <Building2 className="w-3 h-3 text-slate-400" />
+                                <h1 className="text-xl font-black text-slate-900 tracking-tight">CEO Control Tower</h1>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-amber-500" /> High Authority Active</span>
+                                <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                <span className="flex items-center gap-1.5 text-emerald-600">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                    Global Telemetry Live
+                                </span>
+                            </div>
+                        </div>
+                    </div>
 
-            {/* Shift Integrity Heatmap / List */}
-            <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
-                <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <BarChart3 className="w-6 h-6 text-emerald-600" />
-                            Shift Integrity Matrix
-                        </h2>
-                        <p className="text-slate-500 text-xs mt-1">Real-time variance detection per shift.</p>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-6 px-8 py-3 rounded-[1.75rem] bg-slate-900 text-white shadow-xl shadow-slate-900/10 border border-white/5">
+                            <div className="text-center">
+                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Active Branches</p>
+                                <p className="text-xs font-black text-emerald-400">{stats.activeBranches}</p>
+                            </div>
+                            <div className="w-px h-8 bg-white/10" />
+                            <div className="text-center">
+                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Global Staff</p>
+                                <p className="text-xs font-black text-white">{stats.activeStaff}</p>
+                            </div>
+                            <div className="w-px h-8 bg-white/10" />
+                            <div className="text-center">
+                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Open Shifts</p>
+                                <p className="text-xs font-black text-amber-400">{stats.activeShifts}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button className="bg-emerald-600 text-white p-3.5 rounded-2xl hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+                                <Plus className="w-5 h-5" />
+                            </button>
+                            <button onClick={hydrate} className="p-3.5 hover:bg-slate-100 rounded-2xl border border-slate-100 transition-all bg-white shadow-sm">
+                                <RefreshCw className={`w-5 h-5 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-100/50 text-[10px] uppercase tracking-widest font-black text-slate-400">
-                                <th className="px-8 py-4">Shift ID</th>
-                                <th className="px-8 py-4">Staff</th>
-                                <th className="px-8 py-4">Department</th>
-                                <th className="px-8 py-4">Status</th>
-                                <th className="px-8 py-4 text-right">Expected</th>
-                                <th className="px-8 py-4 text-right">Declared</th>
-                                <th className="px-8 py-4 text-right">Variance</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {shifts.map(shift => (
-                                <tr key={shift.id} className="hover:bg-slate-50/80 transition-colors group">
-                                    <td className="px-8 py-5 font-mono text-[10px] text-slate-400 font-bold">
-                                        {shift.id.slice(0, 8)}...
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 text-[10px]">
-                                                {shift.staff_id.slice(0, 2).toUpperCase()}
-                                            </div>
-                                            <span className="font-bold text-slate-700 text-sm truncate w-24">{shift.staff_id.slice(0, 8)}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <span className="text-xs font-bold text-slate-500 uppercase">{shift.department_id}</span>
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <StatusBadge status={shift.status} />
-                                    </td>
-                                    <td className="px-8 py-5 text-right font-mono font-bold text-slate-600 text-sm">
-                                        ₦{Number(shift.expected_revenue || 0).toLocaleString()}
-                                    </td>
-                                    <td className="px-8 py-5 text-right font-mono font-black text-slate-900 text-sm">
-                                        ₦{Number(shift.declared_total || 0).toLocaleString()}
-                                    </td>
-                                    <td className="px-8 py-5 text-right">
-                                        <VarianceBadge value={shift.variance || 0} />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            </header>
 
-            {/* Performance Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
-                {/* Staff Performance */}
-                <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-indigo-600" />
-                        Forensic Staff Risk Profiles
-                    </h3>
-                    <div className="space-y-4">
-                        {staffPerformance.map(staff => (
-                            <div key={staff.staff_id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all">
+            <main className="max-w-[1600px] mx-auto px-6 space-y-10">
+
+                {/* 2. FINANCIAL INTELLIGENCE PANEL */}
+                <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard
+                        title="Revenue Today"
+                        value={`₦${stats.revenueToday.toLocaleString()}`}
+                        icon={Landmark}
+                        color={{ bg: 'bg-emerald-50', text: 'text-emerald-600' }}
+                        trend="+18.2%"
+                        subtitle="Across all branches"
+                    />
+                    <StatCard
+                        title="Revenue: Last Hour"
+                        value={`₦${stats.revenueHour.toLocaleString()}`}
+                        icon={Zap}
+                        color={{ bg: 'bg-amber-50', text: 'text-amber-600' }}
+                        subtitle="Real-time intake velocity"
+                    />
+                    <StatCard
+                        title="Pending Verification"
+                        value={stats.pendingIntents}
+                        icon={Clock}
+                        color={{ bg: 'bg-rose-50', text: 'text-rose-600' }}
+                        subtitle="Unresolved payment intents"
+                    />
+                    <StatCard
+                        title="Target Performance"
+                        value="94%"
+                        icon={Target}
+                        color={{ bg: 'bg-blue-50', text: 'text-blue-600' }}
+                        trend="+2.1%"
+                        subtitle="Operational efficiency"
+                    />
+                </section>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                    {/* LEFT COLUMN: Branch Performance & Radar (8/12) */}
+                    <div className="lg:col-span-8 space-y-10">
+
+                        {/* 3. BRANCH PERFORMANCE GRID */}
+                        <section className="bg-white rounded-[3rem] shadow-xl border border-slate-100 p-10 space-y-8">
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-lg ${staff.risk_profile === 'green' ? 'bg-emerald-500' :
-                                            staff.risk_profile === 'yellow' ? 'bg-amber-500' : 'bg-rose-500'
-                                        }`}>
-                                        {staff.risk_profile === 'green' ? 'G' : staff.risk_profile === 'yellow' ? 'Y' : 'R'}
-                                    </div>
+                                    <div className="p-3 bg-slate-900 rounded-2xl"><Layers className="w-5 h-5 text-white" /></div>
                                     <div>
-                                        <p className="font-bold text-slate-900 text-sm leading-none mb-1">{staff.staff_name || 'Staff Member'}</p>
-                                        <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-slate-400">
-                                            <span>{staff.total_shifts} Shifts</span>
-                                            <span>•</span>
-                                            <span className={staff.shortages_count > 0 ? 'text-rose-500' : ''}>{staff.shortages_count} Shortages</span>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Branch Performance Matrix</h2>
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Multi-unit operational data</p>
+                                    </div>
+                                </div>
+                                <button className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl">Expand Branch Analytics</button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {branchesPerformance.map(branch => (
+                                    <BranchRow key={branch.id} branch={branch} />
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* 4. LIVE OPERATIONS RADAR (TRANSACTION STREAM) */}
+                        <section className="bg-white rounded-[3rem] shadow-xl border border-slate-100 overflow-hidden">
+                            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-blue-50 rounded-2xl"><Activity className="w-5 h-5 text-blue-600" /></div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Operational Radar Feed</h2>
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Live Activity across Org</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {stats.openOrders}</span>
+                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {stats.activeShifts}</span>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            <th className="px-10 py-5">Time</th>
+                                            <th className="px-10 py-5">Branch</th>
+                                            <th className="px-10 py-5 text-right">Method</th>
+                                            <th className="px-10 py-5 text-right">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50 font-medium">
+                                        {liveStream.map(tx => (
+                                            <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-10 py-6">
+                                                    <p className="text-xs font-bold text-slate-800">{new Date(tx.created_at).toLocaleTimeString()}</p>
+                                                    <p className="text-[10px] text-slate-400 font-mono uppercase tracking-tighter">ID: {tx.id.slice(0, 8)}</p>
+                                                </td>
+                                                <td className="px-10 py-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="w-3 h-3 text-slate-300" />
+                                                        <span className="text-sm font-bold text-slate-700">{tx.branch?.name || 'Main'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-6 text-right">
+                                                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${tx.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                                                        }`}>{tx.payment_type}</span>
+                                                </td>
+                                                <td className="px-10 py-6 text-right font-black text-slate-900 text-sm">
+                                                    ₦{Number(tx.amount).toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                    </div>
+
+                    {/* RIGHT COLUMN: Governance & Risk (4/12) */}
+                    <div className="lg:col-span-4 space-y-10">
+
+                        {/* 6. RISK & EXCEPTION MONITOR */}
+                        <section className="bg-slate-900 rounded-[3rem] shadow-2xl p-10 space-y-8 border border-white/5">
+                            <div className="flex items-center gap-4 text-emerald-400">
+                                <ShieldAlert className="w-6 h-6" />
+                                <h3 className="text-lg font-black uppercase tracking-widest">Integrity Radar</h3>
+                            </div>
+                            <div className="space-y-4">
+                                {riskAlerts.map((alert, i) => (
+                                    <div key={i} className="p-5 bg-white/5 rounded-2xl border border-white/5 flex items-start gap-4">
+                                        <div className={`p-2 rounded-lg ${alert.type === 'variance' ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
+                                            <AlertTriangle className="w-4 h-4" />
                                         </div>
+                                        <p className="text-[11px] text-slate-300 font-bold leading-relaxed">{alert.message}</p>
                                     </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className={`font-black text-sm leading-none mb-1 ${staff.avg_variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                        {staff.avg_variance < 0 ? `-₦${Math.abs(staff.avg_variance).toLocaleString()}` : `₦${staff.avg_variance.toLocaleString()}`}
-                                    </p>
-                                    <p className="text-[10px] uppercase font-bold text-slate-300">Avg Variance</p>
-                                </div>
+                                ))}
+                                {riskAlerts.length === 0 && <p className="text-center py-6 text-slate-600 text-[10px] font-black uppercase">Monitoring Security Channels...</p>}
                             </div>
-                        ))}
-                        {staffPerformance.length === 0 && <p className="text-center text-slate-400 text-sm py-8 font-medium italic">No performance data yet. Historical data will appear here.</p>}
+
+                            <div className="pt-8 border-t border-white/5 space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Inventory Health Alerts</h4>
+                                {inventoryAlerts.map((inv, i) => (
+                                    <div key={i} className="flex justify-between items-center text-[11px]">
+                                        <span className="text-slate-200 font-bold">{inv.name} ({inv.branch?.name})</span>
+                                        <span className="text-rose-500 font-black">{inv.current_stock} Left</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* 5. STAFF GOVERNANCE CONSOLE */}
+                        <section className="bg-white rounded-[3rem] shadow-xl border border-slate-100 p-10 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-emerald-50 rounded-2xl"><Users className="w-5 h-5 text-emerald-600" /></div>
+                                    <h2 className="text-lg font-bold text-slate-900 tracking-tight">Staff Governance</h2>
+                                </div>
+                                <ShieldCheck className="w-5 h-5 text-slate-200" />
+                            </div>
+                            <div className="space-y-4">
+                                {staffList.map(staff => (
+                                    <div key={staff.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center justify-between group hover:border-emerald-200 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-xs font-black text-slate-400">
+                                                {staff.profiles?.full_name?.slice(0, 2).toUpperCase() || 'ST'}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-800">{staff.profiles?.full_name}</p>
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{staff.role}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDisableStaff(staff.user_id)}
+                                            className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                                            title="Revoke Access"
+                                        >
+                                            <Lock className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button className="w-full py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-t border-slate-100 flex items-center justify-center gap-2 hover:text-emerald-600 transition-all">
+                                    Manage Directory Assets <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </section>
+
                     </div>
                 </div>
-
-                {/* System Alerts */}
-                <div className="bg-slate-900 rounded-[2rem] p-8 shadow-xl border border-slate-800 text-white">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                        Forensic Integrity Alerts
-                    </h3>
-                    <div className="space-y-4">
-                        {shifts.filter(s => Math.abs(s.variance) > 1000).map(s => (
-                            <div key={s.id} className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <AlertTriangle className="w-5 h-5 text-red-500" />
-                                    <div>
-                                        <p className="text-xs font-bold text-red-200 uppercase tracking-wider">High Variance Detected</p>
-                                        <p className="text-[10px] text-red-500/80 font-mono">Shift: {s.id.slice(0, 8)}</p>
-                                    </div>
-                                </div>
-                                <span className="text-lg font-black text-red-500">₦{s.variance.toLocaleString()}</span>
-                            </div>
-                        ))}
-                        {shifts.filter(s => Math.abs(s.variance) > 1000).length === 0 && (
-                            <div className="text-center py-12 opacity-30 select-none">
-                                <CheckCircle className="w-12 h-12 mx-auto mb-4" />
-                                <p className="text-xs font-black uppercase tracking-[0.2em]">Zero Critical Variance Alerts</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+            </main>
         </div>
     );
-};
-
-const KPICard = ({ label, value, icon, color }: any) => {
-    const colorMap: any = {
-        emerald: 'bg-emerald-50 group-hover:bg-emerald-100',
-        blue: 'bg-blue-50 group-hover:bg-blue-100',
-        purple: 'bg-purple-50 group-hover:bg-purple-100',
-        amber: 'bg-amber-50 group-hover:bg-amber-100'
-    };
-    return (
-        <div className={`bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 hover:scale-[1.02] transition-all cursor-default group`}>
-            <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-2xl transition-colors ${colorMap[color] || 'bg-slate-50'}`}>
-                    {icon}
-                </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">{label}</p>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h3>
-        </div>
-    );
-};
-
-const StatusBadge = ({ status }: { status: string }) => {
-    const config: any = {
-        open: 'bg-emerald-100 text-emerald-700',
-        pending_declaration: 'bg-amber-100 text-amber-700',
-        awaiting_manager_approval: 'bg-blue-100 text-blue-700',
-        closed: 'bg-slate-100 text-slate-600',
-        rejected: 'bg-red-100 text-red-700'
-    };
-    return (
-        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${config[status] || 'bg-gray-100 text-gray-600'}`}>
-            {status.replace(/_/g, ' ')}
-        </span>
-    );
-};
-
-const VarianceBadge = ({ value }: { value: number }) => {
-    if (value === 0) return <span className="text-emerald-500 font-bold text-xs flex items-center gap-1 justify-end"><CheckCircle className="w-3 h-3" /> Balanced</span>;
-    if (value > 0) return <span className="text-emerald-600 font-bold text-xs flex items-center gap-1 justify-end"><ArrowUpRight className="w-3 h-3" /> +₦{value.toLocaleString()}</span>;
-    return <span className="text-red-600 font-bold text-xs flex items-center gap-1 justify-end"><ArrowDownRight className="w-3 h-3" /> -₦{Math.abs(value).toLocaleString()}</span>;
 };
 
 export default CeoDashboard;
