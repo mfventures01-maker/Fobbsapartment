@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import OpenShiftScreen from '../../pages/dashboard/staff/OpenShiftScreen';
 import ShiftDeclarationScreen from '../../pages/dashboard/staff/ShiftDeclarationScreen';
 import { Clock, ShieldCheck, RefreshCw } from 'lucide-react';
+import { subscribeToShiftTelemetry } from '@/lib/realtimeTelemetry';
 
 const AwaitingApprovalScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -27,9 +28,43 @@ const AwaitingApprovalScreen = () => (
     </div>
 );
 
+const AwaitingOpeningScreen = () => (
+    <div className="min-h-screen bg-emerald-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100 text-center space-y-6">
+            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto">
+                <Clock className="w-10 h-10 text-emerald-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 font-serif">Shift Request Sent</h1>
+            <p className="text-gray-500 text-sm">Your request to start a shift has been transmitted. Please ask a manager or supervisor to authorize your terminal access.</p>
+            <div className="bg-emerald-50 rounded-xl p-4 flex items-center justify-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest leading-none">Security Lock Active</span>
+            </div>
+            <button
+                onClick={() => window.location.reload()}
+                className="text-xs text-emerald-700 font-bold hover:underline flex items-center justify-center gap-2 mx-auto"
+            >
+                <RefreshCw className="w-3 h-3" /> Check for manager approval
+            </button>
+        </div>
+    </div>
+);
+
 const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: boolean }> = ({ children }) => {
-    const { shiftState } = useShiftState();
+    const { shiftState, refreshShift } = useShiftState();
     const { authorityStatus, currentRole } = useAuth();
+
+    React.useEffect(() => {
+        if (authorityStatus !== 'authorized') return;
+
+        // Auto-refresh shift state on any DB change
+        const unsubscribe = subscribeToShiftTelemetry(() => {
+            console.log('[TELEMETRY] Shift change detected in Protected Route. Refreshing...');
+            refreshShift();
+        });
+
+        return unsubscribe;
+    }, [authorityStatus, refreshShift]);
 
     // No shift enforcement needed for specialized roles
     if (authorityStatus === 'authorized' && currentRole && ['super_admin', 'ceo', 'owner'].includes(currentRole)) {
@@ -46,6 +81,10 @@ const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: bool
 
     if (shiftState.status === 'no_shift') {
         return <OpenShiftScreen />;
+    }
+
+    if (shiftState.status === 'awaiting_opening') {
+        return <AwaitingOpeningScreen />;
     }
 
     if (shiftState.status === 'pending_declaration') {

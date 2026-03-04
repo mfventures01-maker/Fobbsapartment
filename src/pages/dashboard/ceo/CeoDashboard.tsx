@@ -7,6 +7,7 @@ import {
     Database, BarChart3, ShieldCheck, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { subscribeToShiftTelemetry } from '@/lib/realtimeTelemetry';
 
 // --- TYPES ---
 interface SystemMetrics {
@@ -112,21 +113,23 @@ const CeoDashboard: React.FC = () => {
     useEffect(() => {
         if (authorityStatus !== 'authorized' || !orgId) return;
 
-        // Subscribing to REALTIME changes for live reporting
-        const channel = supabase
-            .channel('ceo-oversight')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `business_id=eq.${orgId}` }, () => {
-                console.log('[DASHBOARD] Realtime TX change detected. Hydrating...');
-                hydrate();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts', filter: `business_id=eq.${orgId}` }, () => {
-                console.log('[DASHBOARD] Realtime Shift change detected. Hydrating...');
+        // STEP 7 — CEO TELEMETRY
+        const unsubscribe = subscribeToShiftTelemetry(() => {
+            console.log('[TELEMETRY] Shift event detected by CEO oversight. Hydrating...');
+            hydrate();
+        });
+
+        // Still listen to transactions directly for immediate revenue updates
+        const txChannel = supabase
+            .channel('ceo-tx-oversight')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `business_id=eq.${orgId}` }, () => {
                 hydrate();
             })
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            unsubscribe();
+            supabase.removeChannel(txChannel);
         };
     }, [authorityStatus, orgId, hydrate]);
 

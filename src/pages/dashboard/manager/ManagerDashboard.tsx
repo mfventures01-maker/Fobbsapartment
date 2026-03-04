@@ -8,6 +8,7 @@ import {
     Clock, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { subscribeToShiftTelemetry } from '@/lib/realtimeTelemetry';
 
 const ManagerDashboard: React.FC = () => {
     const { authority } = useAuth();
@@ -23,7 +24,7 @@ const ManagerDashboard: React.FC = () => {
             .from('shifts')
             .select('*')
             .eq('business_id', authority.businessId)
-            .in('status', ['pending_declaration', 'awaiting_manager_approval']);
+            .in('status', ['awaiting_manager_open', 'pending_declaration', 'awaiting_manager_approval']);
 
         if (error) {
             toast.error('Failed to load pending shifts');
@@ -35,7 +36,26 @@ const ManagerDashboard: React.FC = () => {
 
     useEffect(() => {
         fetchPending();
+
+        // STEP 2 — MANAGER DASHBOARD TELEMETRY
+        const unsubscribe = subscribeToShiftTelemetry(() => {
+            console.log('[TELEMETRY] Shift change detected, refetching...');
+            fetchPending();
+        });
+
+        return unsubscribe;
     }, [fetchPending]);
+
+    const handleOpenApprove = async (id: string) => {
+        if (!window.confirm('Approve this staff to start their shift?')) return;
+        const { error } = await supabase.rpc('manager_open_shift', { p_shift: id });
+        if (error) {
+            toast.error(error.message || 'Opening failed');
+        } else {
+            toast.success('Shift opened successfully');
+            fetchPending();
+        }
+    };
 
     const handleApprove = async (id: string) => {
         if (!window.confirm('Approve and close this shift?')) return;
@@ -96,44 +116,66 @@ const ManagerDashboard: React.FC = () => {
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] font-black uppercase text-slate-400 font-mono">Shift ID: {shift.id.slice(0, 8)}</span>
                                             <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-black rounded uppercase">{shift.department_id}</span>
+                                            {shift.status === 'awaiting_manager_open' && (
+                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-black rounded uppercase flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" /> Awaiting Opening
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <span className="text-xl font-black text-slate-900">₦{Number(shift.declared_total || 0).toLocaleString()}</span>
                                             <span className="text-xs font-bold text-slate-400 text-opacity-80">
-                                                {shift.status === 'pending_declaration' ? 'Awaiting Staff Declaration' : 'Declared Total'}
+                                                {shift.status === 'awaiting_manager_open' ? 'Starting Float' :
+                                                    shift.status === 'pending_declaration' ? 'Awaiting Staff Declaration' : 'Declared Total'}
                                             </span>
                                         </div>
                                         <p className="text-xs text-slate-500 font-medium tracking-tight">
                                             Staff ID: {shift.staff_id.slice(0, 16)}... |
-                                            Started: {new Date(shift.start_time).toLocaleTimeString()}
+                                            Requested: {new Date(shift.start_time).toLocaleTimeString()}
                                         </p>
                                     </div>
 
                                     <div className="mt-4 md:mt-0 flex items-center gap-6">
                                         <div className="text-right">
                                             <div className={`text-sm font-black flex items-center gap-1 justify-end ${shift.variance === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {shift.variance === 0 ? 'Balanced' : `Variance: ₦${shift.variance.toLocaleString()}`}
-                                                {shift.variance !== 0 && <AlertTriangle className="w-4 h-4" />}
-                                                {shift.variance === 0 && <CheckCircle className="w-4 h-4" />}
+                                                {shift.status === 'awaiting_manager_open' ? 'Fresh Session' : (shift.variance === 0 ? 'Balanced' : `Variance: ₦${shift.variance.toLocaleString()}`)}
+                                                {shift.status !== 'awaiting_manager_open' && (
+                                                    <>
+                                                        {shift.variance !== 0 && <AlertTriangle className="w-4 h-4" />}
+                                                        {shift.variance === 0 && <CheckCircle className="w-4 h-4" />}
+                                                    </>
+                                                )}
                                             </div>
                                             <p className="text-[10px] uppercase font-black text-slate-300 tracking-[0.1em]">Verification Result</p>
                                         </div>
 
                                         <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleReject(shift.id)}
-                                                className="p-3 bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-50 transition-all"
-                                                title="Reject Shift"
-                                            >
-                                                <XCircle className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleApprove(shift.id)}
-                                                className="bg-emerald-950 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-900 transition-all shadow-lg active:scale-95"
-                                            >
-                                                <CheckCircle className="w-5 h-5" />
-                                                Approve
-                                            </button>
+                                            {shift.status === 'awaiting_manager_open' ? (
+                                                <button
+                                                    onClick={() => handleOpenApprove(shift.id)}
+                                                    className="bg-amber-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-amber-700 transition-all shadow-lg active:scale-95"
+                                                >
+                                                    <CheckCircle className="w-5 h-5" />
+                                                    Approve Opening
+                                                </button>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleReject(shift.id)}
+                                                        className="p-3 bg-white border border-rose-100 text-rose-500 rounded-xl hover:bg-rose-50 transition-all"
+                                                        title="Reject Shift"
+                                                    >
+                                                        <XCircle className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleApprove(shift.id)}
+                                                        className="bg-emerald-950 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-900 transition-all shadow-lg active:scale-95"
+                                                    >
+                                                        <CheckCircle className="w-5 h-5" />
+                                                        Approve
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -7,6 +7,7 @@ import { getActiveShift, submitShiftDeclaration as apiSubmitDeclaration } from '
 export type ShiftState =
     | { status: 'loading' }
     | { status: 'no_shift' }
+    | { status: 'awaiting_opening'; shift: Shift }
     | { status: 'active'; shift: Shift }
     | { status: 'pending_declaration'; shift: Shift }
     | { status: 'awaiting_approval'; shift: Shift }
@@ -57,6 +58,9 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
                 switch (shift.status) {
+                    case 'awaiting_manager_open':
+                        setShiftState({ status: 'awaiting_opening', shift });
+                        break;
                     case 'open':
                         setShiftState({ status: 'active', shift });
                         break;
@@ -108,7 +112,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             business_id: businessId,
             branch_id: branchId,
             department_id: departmentId,
-            status: 'open',
+            status: 'awaiting_manager_open', // Shift starts pending manager approval
             start_time: new Date().toISOString(),
             declared_cash: 0,
             declared_pos: 0,

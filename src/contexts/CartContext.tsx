@@ -90,6 +90,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (orderError) throw orderError;
 
+            // STEP 4 — PAYMENT INTENT PIPELINE
+            const { error: intentError } = await supabase
+                .from('payment_intents')
+                .insert({
+                    order_id: orderData.id,
+                    business_id: activeShift.business_id,
+                    branch_id: activeShift.branch_id,
+                    staff_id: activeShift.staff_id,
+                    shift_id: activeShift.id,
+                    expected_amount: total,
+                    payment_type: paymentMethod,
+                    status: 'pending'
+                });
+
+            if (intentError) throw intentError;
+
             // 2. Create Order Items (Optional but good practice)
             /* 
             const orderItems = cartItems.map(item => ({
