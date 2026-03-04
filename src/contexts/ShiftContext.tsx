@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/db';
+import { getActiveShift, submitShiftDeclaration as apiSubmitDeclaration } from '../lib/shiftService';
 
 export type ShiftState =
     | { status: 'loading' }
@@ -43,33 +44,33 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         try {
-            console.log('[SHIFT CONTEXT] Resolving for user:', user.id);
+            console.log('[SHIFT CONTEXT] Resolving via ANTI-GRAVITY engine...');
 
-            const { data: shift, error } = await supabase
-                .from('shifts')
-                .select('*')
-                .eq('staff_id', user.id)
-                .in('status', ['open', 'pending_declaration', 'awaiting_manager_approval'])
-                .order('start_time', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (error) throw error;
+            // STEP 1 — Database is the only authority
+            const shift = await getActiveShift(user.id);
 
             if (!shift) {
                 if (isMounted.current) setShiftState({ status: 'no_shift' });
                 return;
             }
 
+            // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
-                if (shift.status === 'open') {
-                    setShiftState({ status: 'active', shift });
-                } else if (shift.status === 'pending_declaration') {
-                    setShiftState({ status: 'pending_declaration', shift });
-                } else if (shift.status === 'awaiting_manager_approval') {
-                    setShiftState({ status: 'awaiting_approval', shift });
-                } else {
-                    setShiftState({ status: 'no_shift' });
+                switch (shift.status) {
+                    case 'open':
+                        setShiftState({ status: 'active', shift });
+                        break;
+                    case 'pending_declaration':
+                        setShiftState({ status: 'pending_declaration', shift });
+                        break;
+                    case 'awaiting_manager_approval':
+                        setShiftState({ status: 'awaiting_approval', shift });
+                        break;
+                    case 'closed':
+                        setShiftState({ status: 'no_shift' });
+                        break;
+                    default:
+                        setShiftState({ status: 'no_shift' });
                 }
             }
         } catch (err: any) {
@@ -134,29 +135,31 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
-        if (!user || shiftState.status !== 'pending_declaration') return { error: { message: 'No shift pending declaration or user session' } };
+        // STEP 5 — DECLARATION GUARD
+        const activeShift = await getActiveShift(user!.id);
+        if (!activeShift || activeShift.status !== 'pending_declaration') {
+            return { error: { message: 'No shift pending declaration or session desync' } };
+        }
 
         // PHASE 3 — DECLARATION SUBMISSION LOCK
-        if (shiftState.shift.staff_id !== user.id) {
+        if (activeShift.staff_id !== user!.id) {
             console.error('[SHIFT] Ownership mismatch detected!', {
-                activeStaff: shiftState.shift.staff_id,
-                authUser: user.id
+                activeStaff: activeShift.staff_id,
+                authUser: user!.id
             });
             throw new Error('Shift ownership mismatch');
         }
 
-        const { data, error } = await (supabase as any).rpc('submit_shift_declaration', {
-            p_shift_id: shiftState.shift.id,
-            p_cash: cash,
-            p_pos: pos,
-            p_transfer: transfer
-        });
-
-        if (!error && data?.success) {
-            await resolveShift();
-            return { error: null, data };
+        try {
+            const data = await apiSubmitDeclaration(activeShift.id, { cash, pos, transfer });
+            if (data?.success) {
+                await resolveShift();
+                return { error: null, data };
+            }
+            return { error: (data?.error ? { message: data.error } : { message: 'Submission failed' }) };
+        } catch (error: any) {
+            return { error };
         }
-        return { error: error || (data?.error ? { message: data.error } : { message: 'Submission failed' }) };
     };
 
     const approveShift = async (shiftId: string) => {

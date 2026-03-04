@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
 import {
-    TrendingUp, ClipboardList, Wallet,
+    ClipboardList,
     ShieldCheck, CheckCircle, XCircle,
     Clock, AlertTriangle, RefreshCw
 } from 'lucide-react';
@@ -23,7 +23,7 @@ const ManagerDashboard: React.FC = () => {
             .from('shifts')
             .select('*')
             .eq('business_id', authority.businessId)
-            .eq('status', 'awaiting_manager_approval');
+            .in('status', ['pending_declaration', 'awaiting_manager_approval']);
 
         if (error) {
             toast.error('Failed to load pending shifts');
@@ -98,8 +98,10 @@ const ManagerDashboard: React.FC = () => {
                                             <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-black rounded uppercase">{shift.department_id}</span>
                                         </div>
                                         <div className="flex items-baseline gap-2">
-                                            <span className="text-xl font-black text-slate-900">₦{Number(shift.declared_total).toLocaleString()}</span>
-                                            <span className="text-xs font-bold text-slate-400 text-opacity-80">Declared Total</span>
+                                            <span className="text-xl font-black text-slate-900">₦{Number(shift.declared_total || 0).toLocaleString()}</span>
+                                            <span className="text-xs font-bold text-slate-400 text-opacity-80">
+                                                {shift.status === 'pending_declaration' ? 'Awaiting Staff Declaration' : 'Declared Total'}
+                                            </span>
                                         </div>
                                         <p className="text-xs text-slate-500 font-medium tracking-tight">
                                             Staff ID: {shift.staff_id.slice(0, 16)}... |

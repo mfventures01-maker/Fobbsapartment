@@ -1,12 +1,25 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Clock } from 'lucide-react';
 
 import ShiftMonitor from '@/components/ShiftMonitor';
 
+import { getActiveShift } from '@/lib/shiftService';
+import { Shift } from '@/types/db';
+
 const StaffDashboard: React.FC = () => {
     const { user } = useAuth();
+    const [shift, setShift] = React.useState<Shift | null>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        if (user) {
+            getActiveShift(user.id).then(data => {
+                setShift(data);
+                setLoading(false);
+            });
+        }
+    }, [user]);
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -16,34 +29,46 @@ const StaffDashboard: React.FC = () => {
                     <p className="text-gray-500">Welcome, {user?.email || 'Staff'}.</p>
                 </div>
 
-                <ShiftMonitor />
+                {loading ? (
+                    <div className="animate-pulse bg-gray-200 h-32 rounded-2xl" />
+                ) : (
+                    <div className="space-y-6">
+                        {/* STEP 3 — DETERMINE UI STATE FROM SHIFT */}
+                        {!shift && (
+                            <ShiftMonitor /> // Falling back to existing component for start shift
+                        )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Link to="/dashboard" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
-                                <LayoutDashboard className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">Main Dashboard</h3>
-                                <p className="text-sm text-gray-500">Access full notifications and admin tools.</p>
-                            </div>
-                        </div>
-                    </Link>
+                        {shift && (
+                            <div className="space-y-6">
+                                {shift.status === 'open' && (
+                                    <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <h3 className="font-bold text-emerald-900">Shift Active</h3>
+                                            <p className="text-emerald-700 text-sm">Terminal Unlocked for transactions.</p>
+                                        </div>
+                                        <div className="p-3 bg-emerald-500 text-white rounded-xl">
+                                            <LayoutDashboard className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                )}
 
-                    <a href="https://web.whatsapp.com" target="_blank" rel="noreferrer" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-green-50 text-green-700 rounded-xl">
-                                <MessageSquare className="w-6 h-6" />
+                                {shift.status === 'pending_declaration' && (
+                                    <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center justify-between">
+                                        <div>
+                                            <h3 className="font-bold text-amber-900">Closing Shift</h3>
+                                            <p className="text-amber-700 text-sm">Waiting for declaration completion.</p>
+                                        </div>
+                                        <div className="p-3 bg-amber-500 text-white rounded-xl">
+                                            <Clock className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <ShiftMonitor />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">Open WhatsApp Web</h3>
-                                <p className="text-sm text-gray-500">Monitor incoming orders.</p>
-                            </div>
-                            <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
-                        </div>
-                    </a>
-                </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

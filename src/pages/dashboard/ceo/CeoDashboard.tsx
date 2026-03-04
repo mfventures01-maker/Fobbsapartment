@@ -74,7 +74,8 @@ const CeoDashboard: React.FC = () => {
                 .limit(50);
 
             if (shiftData) {
-                setShifts(shiftData as ShiftReport[]);
+                // STEP 7 — CEO dashboard should only display finalized shifts
+                setShifts((shiftData as ShiftReport[]).filter(s => s.status === 'closed'));
             }
 
             // 3. Calculate Metrics
