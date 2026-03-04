@@ -5,11 +5,9 @@ import OpenShiftScreen from "@/pages/dashboard/staff/OpenShiftScreen";
 import ShiftDeclarationScreen from "@/pages/dashboard/staff/ShiftDeclarationScreen";
 import { ShieldCheck, Clock, RefreshCw } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import RestaurantStaff from "@/pages/dashboard/staff/RestaurantStaff";
-import BarStaff from "@/pages/dashboard/staff/BarStaff";
-import ReceptionStaff from "@/pages/dashboard/staff/ReceptionStaff";
 import HousekeepingStaff from "@/pages/dashboard/staff/HousekeepingStaff";
 import StaffDashboardPage from "@/pages/dashboard/staff/StaffDashboardPage";
+import POSTerminal from "@/components/pos/POSTerminal";
 
 const AwaitingApprovalScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -88,9 +86,9 @@ export function HardenedStaffTerminal() {
             // Resolve component based on department
             const departmentName = authority.departmentName;
 
-            if (departmentName === 'Restaurant') return <RestaurantStaff />;
-            if (departmentName === 'Bar') return <BarStaff />;
-            if (departmentName === 'Reception') return <ReceptionStaff />;
+            if (departmentName === 'Restaurant') return <POSTerminal department="Restaurant" />;
+            if (departmentName === 'Bar') return <POSTerminal department="Bar" />;
+            if (departmentName === 'Reception') return <POSTerminal department="Generic" />;
             if (departmentName === 'Housekeeping') return <HousekeepingStaff />;
 
             return <StaffDashboardPage />;

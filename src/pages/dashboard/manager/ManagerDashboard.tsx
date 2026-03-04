@@ -5,7 +5,7 @@ import { useShiftState } from '@/contexts/ShiftContext';
 import {
     ClipboardList,
     ShieldCheck, CheckCircle, XCircle,
-    Clock, RefreshCw
+    Clock, RefreshCw, CreditCard
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToShiftTelemetry } from '@/lib/realtimeTelemetry';
@@ -28,22 +28,32 @@ const ManagerDashboard: React.FC = () => {
     const { authority } = useAuth();
     const { approveShift, rejectShift } = useShiftState();
     const [pendingShifts, setPendingShifts] = useState<any[]>([]);
+    const [pendingPayments, setPendingPayments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchPending = useCallback(async () => {
         if (authority.status !== 'authorized') return;
         setLoading(true);
 
-        const { data, error } = await supabase
+        // Fetch Shifts
+        const { data: shifts, error: shiftErr } = await supabase
             .from('shifts')
             .select('*')
             .eq('business_id', authority.businessId)
             .in('status', ['awaiting_manager_open', 'pending_declaration', 'awaiting_manager_approval']);
 
-        if (error) {
-            toast.error('Failed to load pending shifts');
+        // Fetch Pending Payments (Transfers/Cards that need verification)
+        const { data: payments, error: payErr } = await supabase
+            .from('payment_intents')
+            .select('*, order:orders(*)')
+            .eq('org_id', authority.businessId)
+            .eq('status', 'pending');
+
+        if (shiftErr || payErr) {
+            toast.error('Failed to load pending items');
         } else {
-            setPendingShifts(data || []);
+            setPendingShifts(shifts || []);
+            setPendingPayments(payments || []);
         }
         setLoading(false);
     }, [authority]);
@@ -51,13 +61,22 @@ const ManagerDashboard: React.FC = () => {
     useEffect(() => {
         fetchPending();
 
-        // STEP 2 — MANAGER DASHBOARD TELEMETRY
         const unsubscribe = subscribeToShiftTelemetry(() => {
-            console.log('[TELEMETRY] Shift change detected, refetching...');
             fetchPending();
         });
 
-        return unsubscribe;
+        // Also subscribe to payment intents
+        const paymentSub = supabase
+            .channel('manager-payments')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_intents' }, () => {
+                fetchPending();
+            })
+            .subscribe();
+
+        return () => {
+            unsubscribe();
+            supabase.removeChannel(paymentSub);
+        };
     }, [fetchPending]);
 
     const handleOpenApprove = async (id: string) => {
@@ -95,6 +114,40 @@ const ManagerDashboard: React.FC = () => {
         }
     };
 
+    const handlePaymentApprove = async (id: string) => {
+        if (!window.confirm('Verify and approve this payment?')) return;
+        const ref = window.prompt('Enter Reference (Optional):');
+
+        const { data, error } = await (supabase as any).rpc('confirm_payment_intent', {
+            p_intent_id: id,
+            p_external_reference: ref
+        });
+
+        if (error || !data?.success) {
+            toast.error(error?.message || data?.error || 'Approval failed');
+        } else {
+            toast.success('Payment approved and transaction recorded');
+            fetchPending();
+        }
+    };
+
+    const handlePaymentReject = async (id: string) => {
+        const reason = window.prompt('Enter rejection reason:');
+        if (!reason) return;
+
+        const { data, error } = await (supabase as any).rpc('reject_payment_intent', {
+            p_intent_id: id,
+            p_reason: reason
+        });
+
+        if (error || !data?.success) {
+            toast.error(error?.message || data?.error || 'Rejection failed');
+        } else {
+            toast.success('Payment rejected');
+            fetchPending();
+        }
+    };
+
     return (
         <div className="space-y-8 pb-20">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -105,6 +158,61 @@ const ManagerDashboard: React.FC = () => {
                 <button onClick={fetchPending} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <RefreshCw className={`w-5 h-5 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
                 </button>
+            </div>
+
+            {/* NEW: Payment Settlement Queue */}
+            <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
+                <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <CreditCard className="w-6 h-6 text-blue-600" />
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800">Settlement Queue</h2>
+                            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Verifying Transfers & Card Payments</p>
+                        </div>
+                    </div>
+                    {pendingPayments.length > 0 && (
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black">
+                            {pendingPayments.length} PENDING
+                        </span>
+                    )}
+                </div>
+
+                <div className="p-8">
+                    {loading ? (
+                        <div className="py-12 flex justify-center"><Clock className="animate-spin text-slate-200 w-12 h-12" /></div>
+                    ) : pendingPayments.length === 0 ? (
+                        <div className="py-12 text-center text-slate-400 italic">No payments currently awaiting settlement.</div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {pendingPayments.map(pay => (
+                                <div key={pay.id} className="p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100 flex flex-col justify-between gap-4 hover:border-blue-200 transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase text-slate-400 font-mono">ID: {pay.id.slice(0, 8)}</span>
+                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded uppercase">{pay.payment_type}</span>
+                                            </div>
+                                            <h4 className="font-bold text-slate-800">₦{pay.expected_amount.toLocaleString()}</h4>
+                                            <p className="text-[10px] text-slate-500 line-clamp-1">Order: {pay.order?.customer_name || 'Walk-in'}</p>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <button onClick={() => handlePaymentReject(pay.id)} className="p-2 text-rose-300 hover:text-rose-600 transition-colors">
+                                                <XCircle className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => handlePaymentApprove(pay.id)} className="p-2 text-blue-300 hover:text-blue-600 transition-colors">
+                                                <CheckCircle className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
+                                        <span>{new Date(pay.created_at).toLocaleTimeString()}</span>
+                                        <span>STAFF: {pay.staff_id.slice(0, 8)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Shift Approvals Section */}
