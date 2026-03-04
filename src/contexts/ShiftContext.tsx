@@ -96,46 +96,30 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const startShift = async () => {
         if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
-        const { businessId, branchId, departmentId } = authority;
 
-        if (!businessId || !branchId || !departmentId) {
-            return { error: { message: 'Membership context incomplete' } };
+        console.log('[SHIFT] Initiating start_shift RPC...');
+        const { data, error } = await (supabase as any).rpc('start_shift');
+
+        if (error || !data?.success) {
+            return { error: error || (data?.error ? { message: data.error } : { message: 'Failed to start shift' }) };
         }
 
-        // Proactive block
-        if (shiftState.status === 'active' || shiftState.status === 'pending_declaration') {
-            return { error: { message: 'You have a pending shift operation.' } };
-        }
-
-        const { error } = await supabase.from('shifts').insert({
-            staff_id: user.id,
-            business_id: businessId,
-            branch_id: branchId,
-            department_id: departmentId,
-            status: 'awaiting_manager_open', // Shift starts pending manager approval
-            start_time: new Date().toISOString(),
-            declared_cash: 0,
-            declared_pos: 0,
-            declared_transfer: 0
-        });
-
-        if (!error) await resolveShift();
-        return { error };
+        await resolveShift();
+        return { error: null };
     };
 
     const endShift = async () => {
-        if (!user || shiftState.status !== 'active') return { error: { message: 'No active shift or user session' } };
+        if (!user || shiftState.status !== 'active') return { error: { message: 'No active shift to end' } };
 
-        const { error } = await supabase
-            .from('shifts')
-            .update({
-                ends_at: new Date().toISOString(),
-                status: 'pending_declaration'
-            })
-            .eq('id', shiftState.shift.id);
+        console.log('[SHIFT] Initiating end_shift RPC...');
+        const { data, error } = await (supabase as any).rpc('end_shift');
 
-        if (!error) await resolveShift();
-        return { error };
+        if (error || !data?.success) {
+            return { error: error || (data?.error ? { message: data.error } : { message: 'Failed to end shift' }) };
+        }
+
+        await resolveShift();
+        return { error: null };
     };
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
