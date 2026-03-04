@@ -79,7 +79,16 @@ const CeoDashboard: React.FC = () => {
                 setShifts((shiftData as ShiftReport[]).filter(s => s.status === 'closed'));
             }
 
-            // 3. Calculate Metrics
+            // 3. Fetch CEO Variance Analytics (Risk Profiles)
+            const { data: analytics } = await supabase
+                .from('ceo_variance_analytics')
+                .select('*');
+
+            if (analytics) {
+                setStaffPerformance(analytics);
+            }
+
+            // 4. Calculate Metrics
             const rev = (txs || []).reduce((acc, t) => acc + Number(t.amount), 0);
             const pending = (shiftData || []).filter(s => s.status === 'awaiting_manager_approval').length;
             const active = (shiftData || []).filter(s => s.status === 'open').length;
@@ -90,14 +99,6 @@ const CeoDashboard: React.FC = () => {
                 activeShifts: active,
                 pendingApprovals: pending
             });
-
-            // 4. Staff Performance Mapping
-            const performanceMap: any = {};
-            (txs || []).forEach(t => {
-                if (!performanceMap[t.staff_id]) performanceMap[t.staff_id] = 0;
-                performanceMap[t.staff_id] += Number(t.amount);
-            });
-            setStaffPerformance(Object.entries(performanceMap).map(([id, total]) => ({ id, total })));
 
             console.log('[DASHBOARD] Fetch Complete.');
             setViewStatus("ready");
@@ -254,18 +255,35 @@ const CeoDashboard: React.FC = () => {
                 <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-slate-100">
                     <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                         <Users className="w-5 h-5 text-indigo-600" />
-                        Today's Staff Performance
+                        Forensic Staff Risk Profiles
                     </h3>
                     <div className="space-y-4">
                         {staffPerformance.map(staff => (
-                            <div key={staff.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <div className="flex items-center gap-3">
-                                    <span className="font-mono text-xs font-bold text-slate-400">{staff.id.slice(0, 8)}</span>
+                            <div key={staff.staff_id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-lg ${staff.risk_profile === 'green' ? 'bg-emerald-500' :
+                                            staff.risk_profile === 'yellow' ? 'bg-amber-500' : 'bg-rose-500'
+                                        }`}>
+                                        {staff.risk_profile === 'green' ? 'G' : staff.risk_profile === 'yellow' ? 'Y' : 'R'}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-slate-900 text-sm leading-none mb-1">{staff.staff_name || 'Staff Member'}</p>
+                                        <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-slate-400">
+                                            <span>{staff.total_shifts} Shifts</span>
+                                            <span>•</span>
+                                            <span className={staff.shortages_count > 0 ? 'text-rose-500' : ''}>{staff.shortages_count} Shortages</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="font-black text-slate-900">₦{staff.total.toLocaleString()}</span>
+                                <div className="text-right">
+                                    <p className={`font-black text-sm leading-none mb-1 ${staff.avg_variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                        {staff.avg_variance < 0 ? `-₦${Math.abs(staff.avg_variance).toLocaleString()}` : `₦${staff.avg_variance.toLocaleString()}`}
+                                    </p>
+                                    <p className="text-[10px] uppercase font-bold text-slate-300">Avg Variance</p>
+                                </div>
                             </div>
                         ))}
-                        {staffPerformance.length === 0 && <p className="text-center text-slate-400 text-sm py-8 font-medium italic">No performance data yet today.</p>}
+                        {staffPerformance.length === 0 && <p className="text-center text-slate-400 text-sm py-8 font-medium italic">No performance data yet. Historical data will appear here.</p>}
                     </div>
                 </div>
 

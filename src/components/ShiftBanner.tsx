@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
-import { RefreshCw, Play, Lock, Clock } from 'lucide-react';
+import { RefreshCw, Play, Lock, Clock, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ShiftBanner: React.FC = () => {
@@ -33,27 +33,49 @@ const ShiftBanner: React.FC = () => {
     };
 
     const isLoading = shiftState.status === 'loading';
-    const isOpen = shiftState.status === 'active';
+    const hasShift = 'shift' in shiftState;
+    const isActive = shiftState.status === 'active';
+    const isAwaiting = shiftState.status === 'awaiting_opening' || shiftState.status === 'awaiting_approval';
+    const isPending = shiftState.status === 'pending_declaration';
+
+    const bgColor = isActive ? 'bg-emerald-600' :
+        (isAwaiting || isPending) ? 'bg-amber-600' :
+            'bg-slate-700';
 
     return (
-        <div className={`w-full text-white px-6 py-2.5 flex items-center justify-between shadow-sm z-40 sticky top-0 transition-all duration-300 ${isOpen ? 'bg-emerald-600' : 'bg-amber-600'}`}>
+        <div className={`w-full text-white px-6 py-2.5 flex items-center justify-between shadow-sm z-40 sticky top-0 transition-all duration-300 ${bgColor}`}>
             <div className="flex items-center gap-4">
                 <div className="flex flex-col">
                     <div className="flex items-center space-x-2 font-black text-[10px] tracking-widest uppercase">
-                        {isOpen ? (
+                        {shiftState.status === 'active' ? (
                             <>
                                 <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-                                <span>ACTIVE SHIFT</span>
+                                <span>Shift Active</span>
+                            </>
+                        ) : shiftState.status === 'awaiting_opening' ? (
+                            <>
+                                <Clock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                                <span>Waiting for manager approval</span>
+                            </>
+                        ) : shiftState.status === 'pending_declaration' ? (
+                            <>
+                                <Lock className="w-3.5 h-3.5 text-amber-200" />
+                                <span>Shift Ended — Enter Declaration</span>
+                            </>
+                        ) : shiftState.status === 'awaiting_approval' ? (
+                            <>
+                                <ShieldCheck className="w-3.5 h-3.5 text-blue-200 animate-pulse" />
+                                <span>Waiting for Manager Review</span>
                             </>
                         ) : (
                             <>
                                 <Clock className="w-3.5 h-3.5" />
-                                <span>NO ACTIVE SHIFT</span>
+                                <span>No Active Shift</span>
                             </>
                         )}
                         {isLoading && <RefreshCw className="w-3 h-3 animate-spin ml-2" />}
                     </div>
-                    {isOpen && shiftState.shift.start_time && (
+                    {hasShift && shiftState.shift.start_time && (
                         <span className="text-[10px] text-white text-opacity-90 font-mono mt-0.5">
                             Started: {new Date(shiftState.shift.start_time).toLocaleTimeString()}
                         </span>
@@ -69,9 +91,9 @@ const ShiftBanner: React.FC = () => {
             </div>
 
             <div>
-                {!isOpen ? (
+                {!isActive ? (
                     <button
-                        disabled={isLoading}
+                        disabled={isLoading || isAwaiting || isPending}
                         onClick={handleStartShift}
                         className="bg-white text-amber-700 text-[10px] font-black tracking-wider px-4 py-1.5 rounded-lg hover:bg-amber-50 active:scale-95 disabled:opacity-50 transition-all flex items-center shadow-lg"
                     >

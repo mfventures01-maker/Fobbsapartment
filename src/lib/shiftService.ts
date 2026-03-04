@@ -12,7 +12,7 @@ export async function getActiveShift(userId: string): Promise<Shift | null> {
         .from("shifts")
         .select("*")
         .eq("staff_id", userId)
-        .is("ends_at", null)
+        .neq("status", "closed")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
