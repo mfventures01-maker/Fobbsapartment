@@ -3,15 +3,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
 import { supabase } from '@/lib/supabaseClient';
 import {
-    Zap,
-    ShoppingCart, CreditCard, Package,
+    Zap, ShoppingCart, Package,
     Activity, ArrowRight,
     Plus, Minus, Search,
-    Banknote, Smartphone, Receipt, X
+    Clock, Banknote, Smartphone, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Order, InventoryItem, Transaction, PaymentIntent } from '@/types/db';
 import ShiftSettlementPanel from '@/components/ShiftSettlementPanel';
+import { SHIFT_STATUS } from '../../../constants/shiftStatus';
 
 // --- TYPES ---
 interface CartItem {
@@ -28,7 +28,6 @@ const StaffOperationalTerminal: React.FC = () => {
     const { shiftState, startShift, endShift, refreshShift } = useShiftState();
 
     // --- STATE ---
-    const [orders, setOrders] = useState<Order[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
@@ -47,17 +46,6 @@ const StaffOperationalTerminal: React.FC = () => {
         if (!authority.businessId) return;
 
         try {
-            // 1. Fetch Open Orders
-            const { data: orderData } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('org_id', authority.businessId)
-                .neq('status', 'cancelled')
-                .order('created_at', { ascending: false })
-                .limit(20);
-
-            if (orderData) setOrders(orderData);
-
             // 2. Fetch Recent Transactions
             const { data: txData } = await supabase
                 .from('transactions')
@@ -143,7 +131,7 @@ const StaffOperationalTerminal: React.FC = () => {
 
     // --- ACTIONS ---
     const handleCreateOrder = async () => {
-        if (!user || cart.length === 0 || shiftState.status !== 'active') return;
+        if (!user || cart.length === 0 || shiftState.status !== SHIFT_STATUS.OPEN) return;
 
         const loading = toast.loading('Creating High-Integrity Order...');
         try {
@@ -178,6 +166,7 @@ const StaffOperationalTerminal: React.FC = () => {
             if (itemsErr) throw itemsErr;
 
             toast.success('Order Created Successfully', { id: loading });
+            setCheckoutOrder(order); // Added to trigger checkout modal
             setCart([]);
             setCustomerName('');
             setTableRef('');
@@ -197,7 +186,7 @@ const StaffOperationalTerminal: React.FC = () => {
                     org_id: authority.businessId,
                     branch_id: authority.branchId,
                     staff_id: user?.id,
-                    shift_id: shiftState.status === 'active' ? shiftState.shift.id : null,
+                    shift_id: shiftState.status === SHIFT_STATUS.OPEN ? shiftState.shift.id : null,
                     expected_amount: order.total_amount,
                     payment_type: type,
                     status: 'pending'
@@ -244,7 +233,7 @@ const StaffOperationalTerminal: React.FC = () => {
     }, [inventory, searchQuery]);
 
     const shiftRevenue = transactions
-        .filter(tx => tx.shift_id === (shiftState.status === 'active' ? (shiftState as any).shift?.id : ''))
+        .filter(tx => tx.shift_id === (shiftState.status === SHIFT_STATUS.OPEN ? (shiftState as any).shift?.id : ''))
         .reduce((acc, tx) => acc + Number(tx.amount), 0);
 
     return (
@@ -288,7 +277,7 @@ const StaffOperationalTerminal: React.FC = () => {
                             </button>
                         )}
 
-                        {shiftState.status === 'active' && (
+                        {shiftState.status === SHIFT_STATUS.OPEN && (
                             <button onClick={endShift} className="bg-rose-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-400 transition-all shadow-lg active:scale-95">
                                 End Shift
                             </button>
@@ -301,11 +290,11 @@ const StaffOperationalTerminal: React.FC = () => {
 
                 {/* Column 1: Order Terminal & Active Orders (8/12) */}
                 <div className="lg:col-span-8 space-y-6">
-                    {shiftState.status === 'pending_declaration' && (
+                    {shiftState.status === SHIFT_STATUS.PENDING_DECLARATION && (
                         <ShiftSettlementPanel shiftId={shiftState.shift.id} onSuccess={refreshShift} />
                     )}
 
-                    {shiftState.status === 'awaiting_approval' && (
+                    {shiftState.status === SHIFT_STATUS.AWAITING_APPROVAL && (
                         <div className="bg-white rounded-[2rem] border-2 border-amber-200 p-12 text-center space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
                             <div className="p-6 bg-amber-50 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
                                 <Clock className="w-10 h-10 text-amber-600 animate-pulse" />
@@ -317,7 +306,7 @@ const StaffOperationalTerminal: React.FC = () => {
                         </div>
                     )}
 
-                    {(shiftState.status === 'active' || shiftState.status === 'no_shift' || shiftState.status === 'requested') && (
+                    {(shiftState.status === SHIFT_STATUS.OPEN || shiftState.status === 'no_shift' || shiftState.status === SHIFT_STATUS.REQUESTED) && (
                         <section className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col md:flex-row h-[600px]">
                             {/* Menu Area */}
                             <div className="flex-1 flex flex-col border-r border-slate-50">
@@ -338,7 +327,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                         <button
                                             key={item.id}
                                             onClick={() => addToCart(item)}
-                                            disabled={shiftState.status !== 'active' || item.current_stock <= 0}
+                                            disabled={shiftState.status !== SHIFT_STATUS.OPEN || item.current_stock <= 0}
                                             className="bg-slate-50 p-4 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all text-left disabled:opacity-50 relative group"
                                         >
                                             <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">
@@ -388,7 +377,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                     </div>
                                     <button
                                         onClick={handleCreateOrder}
-                                        disabled={cart.length === 0 || shiftState.status !== 'active'}
+                                        disabled={cart.length === 0 || shiftState.status !== SHIFT_STATUS.OPEN}
                                         className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
                                     >
                                         Confirm Order
@@ -444,7 +433,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                     <div key={item.id} className="flex items-center justify-between text-xs">
                                         <div>
                                             <p className="font-bold text-slate-900">{item.name}</p>
-                                            <p className="text-slate-400">{item.current_stock} remaining</p>
+                                            <p className="text-slate-400">{item.current_stock} {item.unit} remaining</p>
                                         </div>
                                         <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                             <div

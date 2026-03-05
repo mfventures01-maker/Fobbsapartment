@@ -3,15 +3,15 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/db';
 import { getActiveShift, submitShiftDeclaration as apiSubmitDeclaration } from '../lib/shiftService';
+import { SHIFT_STATUS } from '../constants/shiftStatus';
 
 export type ShiftState =
     | { status: 'loading' }
     | { status: 'no_shift' }
-    | { status: 'requested'; shift: Shift }
-    | { status: 'active'; shift: Shift }
-    | { status: 'pending_declaration'; shift: Shift }
-    | { status: 'awaiting_approval'; shift: Shift }
-    | { status: 'awaiting_close_approval'; shift: Shift }
+    | { status: typeof SHIFT_STATUS.REQUESTED; shift: Shift }
+    | { status: typeof SHIFT_STATUS.OPEN; shift: Shift }
+    | { status: typeof SHIFT_STATUS.PENDING_DECLARATION; shift: Shift }
+    | { status: typeof SHIFT_STATUS.AWAITING_APPROVAL; shift: Shift }
     | { status: 'error'; error: string };
 
 interface ShiftContextType {
@@ -59,25 +59,30 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
                 switch (shift.status) {
-                    case 'requested':
-                    case 'awaiting_manager_open':
-                        setShiftState({ status: 'requested', shift });
+                    case SHIFT_STATUS.REQUESTED:
+                        setShiftState({ status: SHIFT_STATUS.REQUESTED, shift });
                         break;
-                    case 'open':
-                        setShiftState({ status: 'active', shift });
+                    case SHIFT_STATUS.OPEN:
+                        setShiftState({ status: SHIFT_STATUS.OPEN, shift });
                         break;
-                    case 'pending_declaration':
-                        setShiftState({ status: 'pending_declaration', shift });
+                    case SHIFT_STATUS.PENDING_DECLARATION:
+                        setShiftState({ status: SHIFT_STATUS.PENDING_DECLARATION, shift });
                         break;
-                    case 'awaiting_close_approval':
-                    case 'awaiting_manager_approval':
-                        setShiftState({ status: 'awaiting_approval', shift });
+                    case SHIFT_STATUS.AWAITING_APPROVAL:
+                        setShiftState({ status: SHIFT_STATUS.AWAITING_APPROVAL, shift });
                         break;
-                    case 'closed':
+                    case SHIFT_STATUS.CLOSED:
                         setShiftState({ status: 'no_shift' });
                         break;
                     default:
-                        setShiftState({ status: 'no_shift' });
+                        // Handle legacy or unknown statuses mapping to base states
+                        if ((shift.status as string) === 'awaiting_manager_open') {
+                            setShiftState({ status: SHIFT_STATUS.REQUESTED, shift });
+                        } else if ((shift.status as string) === 'awaiting_close_approval' || (shift.status as string) === 'awaiting_manager_approval') {
+                            setShiftState({ status: SHIFT_STATUS.AWAITING_APPROVAL, shift });
+                        } else {
+                            setShiftState({ status: 'no_shift' });
+                        }
                 }
             }
         } catch (err: any) {
@@ -112,7 +117,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const endShift = async () => {
-        if (!user || shiftState.status !== 'active') return { error: { message: 'No active shift to end' } };
+        if (!user || shiftState.status !== SHIFT_STATUS.OPEN) return { error: { message: 'No active shift to end' } };
 
         console.log('[SHIFT] Initiating end_shift RPC...');
         const { data, error } = await (supabase as any).rpc('end_shift');

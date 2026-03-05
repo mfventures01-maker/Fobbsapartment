@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
 import {
-    Activity, ShieldCheck, CreditCard, Package, Users,
-    Clock, RefreshCw, AlertTriangle, ArrowUpRight,
-    TrendingUp, ShoppingBag, Landmark, Power,
-    ChevronRight, MapPin, Building2, Briefcase,
-    XCircle, CheckCircle, Search
+    Clock, ShoppingBag, Landmark,
+    ChevronRight, Building2,
+    XCircle, CheckCircle,
+    Activity, RefreshCw, TrendingUp,
+    ShieldCheck, CreditCard, Package, Users, AlertTriangle
 } from 'lucide-react';
+import { SHIFT_STATUS } from '../../../constants/shiftStatus';
 import toast from 'react-hot-toast';
 
 // --- SUB-COMPONENTS ---
@@ -75,8 +76,8 @@ const ReconciliationRow = ({ label, expected, declared }: { label: string, expec
 };
 
 const ManagerCommandCenter: React.FC = () => {
-    const { user, authority } = useAuth();
-    const { shiftState, startShift, endShift, refreshShift, approveShift, rejectShift } = useShiftState();
+    const { authority } = useAuth();
+    const { refreshShift, approveShift } = useShiftState();
 
     // --- STATE ---
     const [stats, setStats] = useState({
@@ -137,7 +138,7 @@ const ManagerCommandCenter: React.FC = () => {
                 .from('shifts')
                 .select('*')
                 .eq('business_id', authority.businessId)
-                .in('status', ['requested', 'awaiting_manager_open', 'awaiting_close_approval', 'awaiting_manager_approval']);
+                .in('status', [SHIFT_STATUS.REQUESTED, SHIFT_STATUS.AWAITING_APPROVAL]);
             setPendingShifts(pShifts || []);
 
             // 5. Inventory
@@ -368,7 +369,7 @@ const ManagerCommandCenter: React.FC = () => {
                                                         Staff Session: {shift.staff_id.slice(0, 8).toUpperCase()}
                                                     </h3>
                                                 </div>
-                                                {shift.status === 'requested' || shift.status === 'awaiting_manager_open' ? (
+                                                {shift.status === SHIFT_STATUS.REQUESTED ? (
                                                     <div className="flex gap-2">
                                                         <button onClick={() => handleShiftRejectOpen(shift.id)} className="bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl font-black uppercase text-[10px] border border-rose-100">Reject</button>
                                                         <button onClick={() => handleShiftOpen(shift.id)} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] shadow-lg">Approve Opening</button>
@@ -378,7 +379,7 @@ const ManagerCommandCenter: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            {(shift.status === 'awaiting_close_approval' || shift.status === 'awaiting_manager_approval') && (
+                                            {shift.status === SHIFT_STATUS.AWAITING_APPROVAL && (
                                                 <div className="bg-slate-50 rounded-[2.5rem] border border-slate-100 overflow-hidden">
                                                     <table className="w-full text-left">
                                                         <thead>

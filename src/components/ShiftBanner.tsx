@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
 import { RefreshCw, Play, Lock, Clock, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { SHIFT_STATUS } from '../constants/shiftStatus';
 
 const ShiftBanner: React.FC = () => {
     const { authority } = useAuth();
@@ -34,9 +35,9 @@ const ShiftBanner: React.FC = () => {
 
     const isLoading = shiftState.status === 'loading';
     const hasShift = 'shift' in shiftState;
-    const isActive = shiftState.status === 'active';
-    const isAwaiting = shiftState.status === 'requested' || shiftState.status === 'awaiting_approval' || shiftState.status === 'awaiting_close_approval';
-    const isPending = shiftState.status === 'pending_declaration';
+    const isActive = shiftState.status === SHIFT_STATUS.OPEN;
+    const isAwaiting = shiftState.status === SHIFT_STATUS.REQUESTED || shiftState.status === SHIFT_STATUS.AWAITING_APPROVAL;
+    const isPending = shiftState.status === SHIFT_STATUS.PENDING_DECLARATION;
 
     const bgColor = isActive ? 'bg-emerald-600' :
         (isAwaiting || isPending) ? 'bg-amber-600' :
@@ -47,22 +48,22 @@ const ShiftBanner: React.FC = () => {
             <div className="flex items-center gap-4">
                 <div className="flex flex-col">
                     <div className="flex items-center space-x-2 font-black text-[10px] tracking-widest uppercase">
-                        {shiftState.status === 'active' ? (
+                        {shiftState.status === SHIFT_STATUS.OPEN ? (
                             <>
                                 <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
                                 <span>Shift Active</span>
                             </>
-                        ) : shiftState.status === 'requested' ? (
+                        ) : shiftState.status === SHIFT_STATUS.REQUESTED ? (
                             <>
                                 <Clock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
                                 <span>Awaiting Manager Approval</span>
                             </>
-                        ) : shiftState.status === 'pending_declaration' ? (
+                        ) : shiftState.status === SHIFT_STATUS.PENDING_DECLARATION ? (
                             <>
                                 <Lock className="w-3.5 h-3.5 text-amber-200" />
                                 <span>Shift Ended — Enter Declaration</span>
                             </>
-                        ) : shiftState.status === 'awaiting_approval' ? (
+                        ) : shiftState.status === SHIFT_STATUS.AWAITING_APPROVAL ? (
                             <>
                                 <ShieldCheck className="w-3.5 h-3.5 text-blue-200 animate-pulse" />
                                 <span>Waiting for Manager Review</span>
