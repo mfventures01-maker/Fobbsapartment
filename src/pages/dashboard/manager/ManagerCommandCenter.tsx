@@ -74,7 +74,7 @@ const ReconciliationRow = ({ label, expected, declared }: { label: string, expec
     );
 };
 
-const ManagerDashboard: React.FC = () => {
+const ManagerCommandCenter: React.FC = () => {
     const { user, authority } = useAuth();
     const { shiftState, startShift, endShift, refreshShift, approveShift, rejectShift } = useShiftState();
 
@@ -137,7 +137,7 @@ const ManagerDashboard: React.FC = () => {
                 .from('shifts')
                 .select('*')
                 .eq('business_id', authority.businessId)
-                .in('status', ['awaiting_manager_open', 'awaiting_manager_approval']);
+                .in('status', ['requested', 'awaiting_manager_open', 'awaiting_close_approval', 'awaiting_manager_approval']);
             setPendingShifts(pShifts || []);
 
             // 5. Inventory
@@ -233,10 +233,23 @@ const ManagerDashboard: React.FC = () => {
     };
 
     const handleShiftOpen = async (shiftId: string) => {
-        const { error } = await (supabase as any).rpc('manager_open_shift', { p_shift: shiftId });
-        if (error) toast.error(error.message);
+        const loading = toast.loading('Opening Shift...');
+        const { data, error } = await (supabase as any).rpc('approve_shift_open', { p_shift_id: shiftId });
+        if (error || !data?.success) toast.error(error?.message || data?.error || 'Failed to open', { id: loading });
         else {
-            toast.success('Shift Opened');
+            toast.success('Shift Opened', { id: loading });
+            hydrate();
+        }
+    };
+
+    const handleShiftRejectOpen = async (shiftId: string) => {
+        const reason = window.prompt('Reason for rejection:');
+        if (!reason) return;
+        const loading = toast.loading('Rejecting Request...');
+        const { data, error } = await (supabase as any).rpc('reject_shift_open', { p_shift_id: shiftId, p_reason: reason });
+        if (error || !data?.success) toast.error(error?.message || data?.error || 'Failed to reject', { id: loading });
+        else {
+            toast.success('Shift Request Rejected', { id: loading });
             hydrate();
         }
     };
@@ -355,14 +368,17 @@ const ManagerDashboard: React.FC = () => {
                                                         Staff Session: {shift.staff_id.slice(0, 8).toUpperCase()}
                                                     </h3>
                                                 </div>
-                                                {shift.status === 'awaiting_manager_open' ? (
-                                                    <button onClick={() => handleShiftOpen(shift.id)} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] shadow-lg">Approve Opening</button>
+                                                {shift.status === 'requested' || shift.status === 'awaiting_manager_open' ? (
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => handleShiftRejectOpen(shift.id)} className="bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl font-black uppercase text-[10px] border border-rose-100">Reject</button>
+                                                        <button onClick={() => handleShiftOpen(shift.id)} className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] shadow-lg">Approve Opening</button>
+                                                    </div>
                                                 ) : (
                                                     <button onClick={() => handleShiftApprove(shift.id)} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] shadow-lg">Verify & Close Shift</button>
                                                 )}
                                             </div>
 
-                                            {shift.status === 'awaiting_manager_approval' && (
+                                            {(shift.status === 'awaiting_close_approval' || shift.status === 'awaiting_manager_approval') && (
                                                 <div className="bg-slate-50 rounded-[2.5rem] border border-slate-100 overflow-hidden">
                                                     <table className="w-full text-left">
                                                         <thead>
@@ -424,7 +440,7 @@ const ManagerDashboard: React.FC = () => {
                                                 </td>
                                                 <td className="px-10 py-6">
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${tx.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700' :
-                                                            tx.payment_type === 'pos' ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'
+                                                        tx.payment_type === 'pos' ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'
                                                         }`}>
                                                         {tx.payment_type}
                                                     </span>
@@ -513,4 +529,4 @@ const ManagerDashboard: React.FC = () => {
     );
 };
 
-export default ManagerDashboard;
+export default ManagerCommandCenter;

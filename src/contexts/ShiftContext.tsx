@@ -7,10 +7,11 @@ import { getActiveShift, submitShiftDeclaration as apiSubmitDeclaration } from '
 export type ShiftState =
     | { status: 'loading' }
     | { status: 'no_shift' }
-    | { status: 'awaiting_opening'; shift: Shift }
+    | { status: 'requested'; shift: Shift }
     | { status: 'active'; shift: Shift }
     | { status: 'pending_declaration'; shift: Shift }
     | { status: 'awaiting_approval'; shift: Shift }
+    | { status: 'awaiting_close_approval'; shift: Shift }
     | { status: 'error'; error: string };
 
 interface ShiftContextType {
@@ -58,8 +59,9 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
                 switch (shift.status) {
+                    case 'requested':
                     case 'awaiting_manager_open':
-                        setShiftState({ status: 'awaiting_opening', shift });
+                        setShiftState({ status: 'requested', shift });
                         break;
                     case 'open':
                         setShiftState({ status: 'active', shift });
@@ -67,6 +69,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     case 'pending_declaration':
                         setShiftState({ status: 'pending_declaration', shift });
                         break;
+                    case 'awaiting_close_approval':
                     case 'awaiting_manager_approval':
                         setShiftState({ status: 'awaiting_approval', shift });
                         break;
@@ -97,11 +100,11 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const startShift = async () => {
         if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
 
-        console.log('[SHIFT] Initiating start_shift RPC...');
-        const { data, error } = await (supabase as any).rpc('start_shift');
+        console.log('[SHIFT] Initiating request_shift RPC...');
+        const { data, error } = await (supabase as any).rpc('request_shift');
 
         if (error || !data?.success) {
-            return { error: error || (data?.error ? { message: data.error } : { message: 'Failed to start shift' }) };
+            return { error: error || (data?.error ? { message: data.error } : { message: 'Failed to request shift' }) };
         }
 
         await resolveShift();
@@ -151,7 +154,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const approveShift = async (shiftId: string) => {
-        const { data, error } = await (supabase as any).rpc('approve_shift', {
+        const { data, error } = await (supabase as any).rpc('approve_shift_close', {
             p_shift_id: shiftId
         });
 

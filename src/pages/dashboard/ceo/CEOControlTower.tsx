@@ -53,7 +53,7 @@ const BranchRow = ({ branch }: { branch: any }) => (
     </div>
 );
 
-const CeoDashboard: React.FC = () => {
+const CEOControlTower: React.FC = () => {
     const { user, authority } = useAuth();
 
     // --- STATE ---
@@ -426,4 +426,4 @@ const CeoDashboard: React.FC = () => {
     );
 };
 
-export default CeoDashboard;
+export default CEOControlTower;

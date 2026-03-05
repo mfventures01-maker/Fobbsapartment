@@ -10,16 +10,20 @@ import SuperAdminDashboard from '@/pages/dashboard/super_admin/SuperAdminDashboa
 
 // CEO
 import CeoLayout from '@/pages/dashboard/ceo/CeoLayout';
-import CeoOverview from '@/pages/dashboard/ceo/CeoOverview';
+import CEOControlTower from '@/pages/dashboard/ceo/CEOControlTower';
 import CeoBranches from '@/pages/dashboard/ceo/CeoBranches';
 import CeoAuditFeed from '@/pages/dashboard/ceo/CeoAuditFeed';
 import CeoStaffAdmin from '@/pages/dashboard/ceo/CeoStaffAdmin';
 import CeoSettings from '@/pages/dashboard/ceo/CeoSettings';
 
 // Manager
-import ManagerDashboard from '@/pages/dashboard/manager/ManagerDashboard';
+import ManagerCommandCenter from '@/pages/dashboard/manager/ManagerCommandCenter';
 
+// Staff
 import { HardenedStaffTerminal } from '@/components/staff/HardenedStaffTerminal';
+
+// Store / Branch
+import StoreOperationsPanel from '@/pages/dashboard/store/StoreOperationsPanel';
 
 const DashboardEngine: React.FC = () => {
     const { authority } = useAuth();
@@ -29,9 +33,10 @@ const DashboardEngine: React.FC = () => {
 
     const { role } = authority;
 
-    // Use specific components instead of a switch for cleaner routing
+    // --- HIGH-INTEGRITY TERMINAL ROUTING ---
     return (
         <Routes>
+            {/* 1. Super Admin Ops */}
             <Route
                 path="super_admin"
                 element={
@@ -40,13 +45,15 @@ const DashboardEngine: React.FC = () => {
                     </ProtectedRoute>
                 }
             />
+
+            {/* 2. CEO Control Tower */}
             <Route
                 path="ceo/*"
                 element={
                     <ProtectedRoute allowedRoles={['ceo', 'owner']}>
                         <CeoLayout>
                             <Routes>
-                                <Route index element={<CeoOverview />} />
+                                <Route index element={<CEOControlTower />} />
                                 <Route path="branches" element={<CeoBranches />} />
                                 <Route path="audit" element={<CeoAuditFeed />} />
                                 <Route path="staff" element={<CeoStaffAdmin />} />
@@ -56,22 +63,37 @@ const DashboardEngine: React.FC = () => {
                     </ProtectedRoute>
                 }
             />
+
             {/* Alias owner to ceo view */}
             <Route path="owner/*" element={<Navigate to="/dashboard/ceo" replace />} />
+
+            {/* 3. Manager Command Center */}
             <Route
                 path="manager"
                 element={
                     <ProtectedRoute allowedRoles={['manager']}>
-                        <DashboardLayout><ManagerDashboard /></DashboardLayout>
+                        <DashboardLayout><ManagerCommandCenter /></DashboardLayout>
                     </ProtectedRoute>
                 }
             />
+
+            {/* 4. Staff Operational Terminal */}
             <Route
                 path="staff/*"
                 element={
                     <DashboardLayout>
                         <HardenedStaffTerminal />
                     </DashboardLayout>
+                }
+            />
+
+            {/* 5. Store Operations Panel */}
+            <Route
+                path="store"
+                element={
+                    <ProtectedRoute allowedRoles={['ceo', 'manager']}>
+                        <DashboardLayout><StoreOperationsPanel /></DashboardLayout>
+                    </ProtectedRoute>
                 }
             />
 
