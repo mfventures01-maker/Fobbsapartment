@@ -75,14 +75,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                         setShiftState({ status: 'no_shift' });
                         break;
                     default:
-                        // Handle legacy or unknown statuses mapping to base states
-                        if ((shift.status as string) === 'awaiting_manager_open') {
-                            setShiftState({ status: SHIFT_STATUS.REQUESTED, shift });
-                        } else if ((shift.status as string) === 'awaiting_close_approval' || (shift.status as string) === 'awaiting_manager_approval') {
-                            setShiftState({ status: SHIFT_STATUS.AWAITING_APPROVAL, shift });
-                        } else {
-                            setShiftState({ status: 'no_shift' });
-                        }
+                        setShiftState({ status: 'no_shift' });
                 }
             }
         } catch (err: any) {

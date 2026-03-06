@@ -9,8 +9,9 @@ import {
     Activity, RefreshCw, TrendingUp,
     ShieldCheck, CreditCard, Package, Users, AlertTriangle
 } from 'lucide-react';
-import { SHIFT_STATUS } from '../../../constants/shiftStatus';
+import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import toast from 'react-hot-toast';
+import { Shift, Transaction, InventoryItem, PaymentIntent } from '@/types/db';
 
 // --- SUB-COMPONENTS ---
 
@@ -61,13 +62,15 @@ const InventoryRow = ({ item }: { item: any }) => {
     );
 };
 
-const ReconciliationRow = ({ label, expected, declared }: { label: string, expected: number, declared: number }) => {
-    const diff = declared - expected;
+const ReconciliationRow = ({ label, expected, declared }: { label: string, expected: number | undefined, declared: number | undefined }) => {
+    const safeExpected = expected || 0;
+    const safeDeclared = declared || 0;
+    const diff = safeDeclared - safeExpected;
     return (
         <tr className="hover:bg-slate-50/50 transition-colors">
             <td className="px-6 py-4 font-bold text-slate-700 text-xs">{label}</td>
-            <td className="px-6 py-4 text-right font-mono text-xs">₦{Number(expected || 0).toLocaleString()}</td>
-            <td className="px-6 py-4 text-right font-mono text-xs">₦{Number(declared || 0).toLocaleString()}</td>
+            <td className="px-6 py-4 text-right font-mono text-xs">₦{Number(safeExpected).toLocaleString()}</td>
+            <td className="px-6 py-4 text-right font-mono text-xs">₦{Number(safeDeclared).toLocaleString()}</td>
             <td className={`px-6 py-4 text-right font-mono text-xs font-black ${diff < 0 ? 'text-rose-600' : diff > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
                 {diff === 0 ? '-' : `₦${diff.toLocaleString()}`}
             </td>
@@ -87,11 +90,11 @@ const ManagerCommandCenter: React.FC = () => {
         activeStaffCount: 0
     });
 
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [pendingIntents, setPendingIntents] = useState<any[]>([]);
-    const [pendingShifts, setPendingShifts] = useState<any[]>([]);
-    const [inventory, setInventory] = useState<any[]>([]);
-    const [activeShifts, setActiveShifts] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [pendingIntents, setPendingIntents] = useState<PaymentIntent[]>([]);
+    const [pendingShifts, setPendingShifts] = useState<Shift[]>([]);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [activeShifts, setActiveShifts] = useState<Shift[]>([]);
     const [alerts, setAlerts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -133,13 +136,19 @@ const ManagerCommandCenter: React.FC = () => {
                 .eq('status', 'pending');
             setPendingIntents(intentList || []);
 
-            // 4. Pending Shifts (Reconciliation)
-            const { data: pShifts } = await supabase
-                .from('shifts')
-                .select('*')
-                .eq('business_id', authority.businessId)
-                .in('status', [SHIFT_STATUS.REQUESTED, SHIFT_STATUS.AWAITING_APPROVAL]);
-            setPendingShifts(pShifts || []);
+            // 4. Pending Shifts (Operational Gate Monitoring)
+            // We monitor two states: 
+            // - 'requested': Staff wants to open a shift (Gate A)
+            // - 'awaiting_approval': Staff has declared totals and wants to close (Gate B)
+            const { data: qShifts } = await supabase
+                .from("shifts")
+                .select("*")
+                .eq("business_id", authority.businessId)
+                .in("status", [
+                    SHIFT_STATUS.REQUESTED,
+                    SHIFT_STATUS.AWAITING_APPROVAL
+                ]);
+            setPendingShifts(qShifts || []);
 
             // 5. Inventory
             const { data: invList } = await supabase
@@ -162,6 +171,9 @@ const ManagerCommandCenter: React.FC = () => {
             txList?.forEach(tx => {
                 if (tx.amount > 100000) newAlerts.push({ type: 'security', message: `High value ${tx.payment_type} detected: ₦${tx.amount.toLocaleString()}` });
             });
+            if (qShifts && qShifts.length > 0) {
+                newAlerts.push({ type: 'security', message: `${qShifts.length} Shift approvals pending verification` });
+            }
             setAlerts(newAlerts);
 
         } catch (err) {
@@ -398,7 +410,7 @@ const ManagerCommandCenter: React.FC = () => {
                                                                 <td className="px-6 py-5 font-black text-slate-900">Total Settlement</td>
                                                                 <td className="px-6 py-5 text-right font-black">₦{Number(shift.expected_total || 0).toLocaleString()}</td>
                                                                 <td className="px-6 py-5 text-right font-black text-indigo-600">₦{Number(shift.declared_total || 0).toLocaleString()}</td>
-                                                                <td className={`px-6 py-5 text-right font-black ${shift.variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>₦{Number(shift.variance || 0).toLocaleString()}</td>
+                                                                <td className={`px-6 py-5 text-right font-black ${(shift.variance || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>₦{Number(shift.variance || 0).toLocaleString()}</td>
                                                             </tr>
                                                         </tbody>
                                                     </table>

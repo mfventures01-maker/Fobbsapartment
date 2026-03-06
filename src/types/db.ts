@@ -22,6 +22,7 @@ export interface PaymentIntent {
     status: PaymentStatus;
     external_reference?: string;
     created_at: string;
+    order?: Order;
 }
 
 export interface Shift {
@@ -42,6 +43,10 @@ export interface Shift {
     declared_total?: number; // Generated in DB
 
     // Reconciliation Fields
+    expected_cash?: number;
+    expected_pos?: number;
+    expected_transfer?: number;
+    expected_total?: number;
     expected_revenue?: number;
     total_revenue?: number;
     variance?: number;
