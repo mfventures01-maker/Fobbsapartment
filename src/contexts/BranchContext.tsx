@@ -19,7 +19,7 @@ interface BranchContextType {
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
 export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { profile } = useAuth();
+    const { authority } = useAuth();
     const [branches, setBranches] = useState<Branch[]>([]);
     const [currentBranch, setCurrentBranch] = useState<Branch | 'all'>('all');
     const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     useEffect(() => {
         const fetchBranches = async () => {
             // Ensure supabase client and business_id are available before proceeding
-            if (!supabase || !profile?.business_id) {
+            if (!supabase || !authority.businessId) {
                 setLoading(false);
                 return;
             }
@@ -37,7 +37,7 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 const { data, error } = await supabase
                     .from('branches')
                     .select('id, name, city')
-                    .eq('business_id', profile.business_id);
+                    .eq('business_id', authority.businessId);
 
                 if (error) throw error;
 
@@ -52,8 +52,8 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 // Set default branch if not 'all'
                 if (mappedBranches.length > 0 && currentBranch === 'all') {
                     // we keep 'all' as default for CEO, but could auto-select first for staff
-                    if (profile.role === 'staff' || profile.role === 'manager') {
-                        const myBranch = mappedBranches.find(b => b.id === (profile as any).branch_id);
+                    if (authority.role === 'staff' || authority.role === 'manager') {
+                        const myBranch = mappedBranches.find(b => b.id === authority.branchId);
                         if (myBranch) setCurrentBranch(myBranch);
                     }
                 }
@@ -65,7 +65,7 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         };
 
         fetchBranches();
-    }, [profile?.business_id]);
+    }, [authority.businessId]);
 
     return (
         <BranchContext.Provider value={{

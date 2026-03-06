@@ -1,13 +1,13 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useShiftState } from '@/contexts/ShiftContext';
 import {
-    Activity, ShieldCheck, CreditCard, Package, Users,
-    Clock, RefreshCw, AlertTriangle, ArrowUpRight,
-    TrendingUp, ShoppingBag, Landmark, Power,
-    ChevronRight, MapPin, Building2, Briefcase,
-    Zap, Target, ShieldAlert, BarChart3, PieChart,
-    Plus, Lock, Unlock, Search, Filter, Layers
+    Activity, ShieldCheck, Zap, Target, ShieldAlert,
+    Clock, RefreshCw, AlertTriangle,
+    TrendingUp, Landmark,
+    Plus, Lock, Users,
+    MapPin, Building2, Layers, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -54,7 +54,8 @@ const BranchRow = ({ branch }: { branch: any }) => (
 );
 
 const CEOControlTower: React.FC = () => {
-    const { user, authority } = useAuth();
+    const { authority } = useAuth();
+    const { shiftState } = useShiftState();
 
     // --- STATE ---
     const [loading, setLoading] = useState(true);
@@ -87,8 +88,9 @@ const CEOControlTower: React.FC = () => {
             // 1. GLOBAL COMMAND STATS
             const { data: bCount } = await supabase.from('branches').select('id').eq('business_id', authority.businessId).eq('is_active', true);
             const { data: sCount } = await supabase.from('business_memberships').select('user_id').eq('business_id', authority.businessId).eq('status', 'active');
-            const { data: openShifts } = await supabase.from('shifts').select('id').eq('business_id', authority.businessId).eq('status', 'open');
             const { data: dCount } = await supabase.from('departments').select('id').eq('business_id', authority.businessId);
+
+            const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
 
             // 2. FINANCIAL INTELLIGENCE
             const { data: txToday } = await supabase.from('transactions').select('amount, created_at').eq('business_id', authority.businessId).gte('created_at', today);
@@ -102,7 +104,7 @@ const CEOControlTower: React.FC = () => {
             setStats({
                 activeBranches: bCount?.length || 0,
                 activeStaff: sCount?.length || 0,
-                activeShifts: openShifts?.length || 0,
+                activeShifts: activeShiftsFromContext.length,
                 totalDepartments: dCount?.length || 0,
                 revenueToday: revToday,
                 revenueHour: revHour,
@@ -137,12 +139,15 @@ const CEOControlTower: React.FC = () => {
 
             // 6. RISK & EXCEPTION MONITORING
             const { data: highVal } = await supabase.from('transactions').select('id, amount, created_at, business_id').eq('business_id', authority.businessId).gt('amount', 100000).order('created_at', { ascending: false }).limit(3);
-            const { data: variances } = await supabase.from('shifts').select('id, variance, staff_id').eq('business_id', authority.businessId).neq('variance', 0).order('created_at', { ascending: false }).limit(3);
+
+            // Variances are now monitored through the active business shifts in context
+            const variances = activeShiftsFromContext.filter(s => Number(s.variance || 0) !== 0);
+
             const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
 
-            const risks = [];
+            const risks: { type: string; message: string }[] = [];
             highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${v.amount.toLocaleString()})` }));
-            variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${v.variance.toLocaleString()} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
+            variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${(v.variance || 0).toLocaleString()} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
             setRiskAlerts(risks);
             setInventoryAlerts(lowStock || []);
 

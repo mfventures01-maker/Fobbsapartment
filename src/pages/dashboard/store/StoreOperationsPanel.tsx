@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useShiftState } from '@/contexts/ShiftContext';
 import {
-    Activity, Layout, ShoppingBag,
-    Users, Package, Clock,
-    MapPin, RefreshCw, Zap
+    Layout, ShoppingBag,
+    Users, Package,
+    RefreshCw, Zap, MapPin
 } from 'lucide-react';
 
 const StoreOperationsPanel: React.FC = () => {
     const { authority } = useAuth();
+    const { shiftState } = useShiftState();
     const [stats, setStats] = useState({
         revenue: 0,
         orders: 0,
@@ -35,11 +37,9 @@ const StoreOperationsPanel: React.FC = () => {
                 .eq('location_id', authority.branchId)
                 .gte('created_at', today);
 
-            // 3. Active Staff (shifts)
-            const { data: shifts } = await supabase.from('shifts')
-                .select('id')
-                .eq('branch_id', authority.branchId)
-                .eq('status', 'open');
+            // 3. Active Staff (from context)
+            const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
+            const branchStaff = activeShiftsFromContext.filter(s => s.branch_id === authority.branchId);
 
             // 4. Low Stock
             const { data: inv } = await supabase.from('inventory')
@@ -50,7 +50,7 @@ const StoreOperationsPanel: React.FC = () => {
             setStats({
                 revenue: tx?.reduce((acc, t) => acc + Number(t.amount), 0) || 0,
                 orders: ord?.length || 0,
-                staff: shifts?.length || 0,
+                staff: branchStaff.length,
                 lowStock: inv?.length || 0
             });
         } catch (err) {
@@ -65,7 +65,6 @@ const StoreOperationsPanel: React.FC = () => {
         const channel = supabase.channel(`store-ops-${authority.branchId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `branch_id=eq.${authority.branchId}` }, () => hydrate())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `location_id=eq.${authority.branchId}` }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts', filter: `branch_id=eq.${authority.branchId}` }, () => hydrate())
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };

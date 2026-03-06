@@ -7,11 +7,11 @@ import { SHIFT_STATUS } from '../constants/shiftStatus';
 
 export type ShiftState =
     | { status: 'loading' }
-    | { status: 'no_shift' }
-    | { status: typeof SHIFT_STATUS.REQUESTED; shift: Shift }
-    | { status: typeof SHIFT_STATUS.OPEN; shift: Shift }
-    | { status: typeof SHIFT_STATUS.PENDING_DECLARATION; shift: Shift }
-    | { status: typeof SHIFT_STATUS.AWAITING_APPROVAL; shift: Shift }
+    | { status: 'no_shift'; activeBusinessShifts: Shift[] }
+    | { status: typeof SHIFT_STATUS.REQUESTED; shift: Shift; activeBusinessShifts: Shift[] }
+    | { status: typeof SHIFT_STATUS.OPEN; shift: Shift; activeBusinessShifts: Shift[] }
+    | { status: typeof SHIFT_STATUS.PENDING_DECLARATION; shift: Shift; activeBusinessShifts: Shift[] }
+    | { status: typeof SHIFT_STATUS.AWAITING_APPROVAL; shift: Shift; activeBusinessShifts: Shift[] }
     | { status: 'error'; error: string };
 
 interface ShiftContextType {
@@ -37,45 +37,51 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
         }
 
-        const { role } = authority;
-
-        // CEO/SuperAdmin/Owner do not require active shifts for terminal access
-        if (role === 'super_admin' || role === 'ceo' || role === 'owner') {
-            if (isMounted.current) setShiftState({ status: 'no_shift' });
-            return;
-        }
-
         try {
             console.log('[SHIFT CONTEXT] Resolving via ANTI-GRAVITY engine...');
 
-            // STEP 1 — Database is the only authority
-            const shift = await getActiveShift(user.id);
+            const { role } = authority;
+            const isManagement = role === 'super_admin' || role === 'ceo' || role === 'owner' || role === 'manager';
+            let businessShifts: Shift[] = [];
 
-            if (!shift) {
-                if (isMounted.current) setShiftState({ status: 'no_shift' });
-                return;
+            // STEP 1 — Managers/CEOs resolve all open shifts in the business
+            if (isManagement && authority.businessId) {
+                const { data: allShifts } = await supabase
+                    .from('shifts')
+                    .select('*')
+                    .eq('business_id', authority.businessId)
+                    .neq('status', SHIFT_STATUS.CLOSED);
+                businessShifts = allShifts || [];
             }
+
+            // STEP 2 — Resolve personal shift for terminal control
+            const shift = await getActiveShift(user.id);
 
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
+                if (!shift) {
+                    setShiftState({ status: 'no_shift', activeBusinessShifts: businessShifts });
+                    return;
+                }
+
                 switch (shift.status) {
                     case SHIFT_STATUS.REQUESTED:
-                        setShiftState({ status: SHIFT_STATUS.REQUESTED, shift });
+                        setShiftState({ status: SHIFT_STATUS.REQUESTED, shift, activeBusinessShifts: businessShifts });
                         break;
                     case SHIFT_STATUS.OPEN:
-                        setShiftState({ status: SHIFT_STATUS.OPEN, shift });
+                        setShiftState({ status: SHIFT_STATUS.OPEN, shift, activeBusinessShifts: businessShifts });
                         break;
                     case SHIFT_STATUS.PENDING_DECLARATION:
-                        setShiftState({ status: SHIFT_STATUS.PENDING_DECLARATION, shift });
+                        setShiftState({ status: SHIFT_STATUS.PENDING_DECLARATION, shift, activeBusinessShifts: businessShifts });
                         break;
                     case SHIFT_STATUS.AWAITING_APPROVAL:
-                        setShiftState({ status: SHIFT_STATUS.AWAITING_APPROVAL, shift });
+                        setShiftState({ status: SHIFT_STATUS.AWAITING_APPROVAL, shift, activeBusinessShifts: businessShifts });
                         break;
                     case SHIFT_STATUS.CLOSED:
-                        setShiftState({ status: 'no_shift' });
+                        setShiftState({ status: 'no_shift', activeBusinessShifts: businessShifts });
                         break;
                     default:
-                        setShiftState({ status: 'no_shift' });
+                        setShiftState({ status: 'no_shift', activeBusinessShifts: businessShifts });
                 }
             }
         } catch (err: any) {

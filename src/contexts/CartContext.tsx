@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useShiftState } from './ShiftContext';
 import { getActiveShift } from '@/lib/shiftService';
 
+import { SHIFT_STATUS } from '../constants/shiftStatus';
+
 export interface CartItem {
     id: string; // product_id or unique item ID
     name: string;
@@ -60,7 +62,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             // STEP 4 — TERMINAL LOCK GUARD
             // Check in-memory state first for speed
-            if (shiftState.status !== 'active') {
+            if (shiftState.status !== SHIFT_STATUS.OPEN) {
                 toast.error("NO ACTIVE SHIFT: Access Denied. Please start a shift before processing sales.");
                 throw new Error("No active shift");
             }

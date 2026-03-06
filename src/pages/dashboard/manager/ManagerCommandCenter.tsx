@@ -115,7 +115,7 @@ const ManagerCommandCenter: React.FC = () => {
                 ordersToday: ordToday?.length || 0,
                 revenueToday: txToday?.reduce((acc, t) => acc + Number(t.amount), 0) || 0,
                 openOrders: ordOpen?.length || 0,
-                activeStaffCount: shiftState.status === SHIFT_STATUS.OPEN ? 1 : 0
+                activeStaffCount: 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0
             });
 
             // 2. Settlement Feed
@@ -139,15 +139,13 @@ const ManagerCommandCenter: React.FC = () => {
             // We monitor two states: 
             // - 'requested': Staff wants to open a shift (Gate A)
             // - 'awaiting_approval': Staff has declared totals and wants to close (Gate B)
-            const { data: qShifts } = await supabase
-                .from("shifts")
-                .select("*")
-                .eq("business_id", authority.businessId)
-                .in("status", [
-                    SHIFT_STATUS.REQUESTED,
-                    SHIFT_STATUS.AWAITING_APPROVAL
-                ]);
-            setPendingShifts(qShifts || []);
+            // Now derived from ShiftContext
+            const businessShifts = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
+            const pending = businessShifts.filter(s =>
+                s.status === SHIFT_STATUS.REQUESTED ||
+                s.status === SHIFT_STATUS.AWAITING_APPROVAL
+            );
+            setPendingShifts(pending);
 
             // 5. Inventory and Shift Alignment
             const { data: invList } = await supabase
@@ -157,8 +155,8 @@ const ManagerCommandCenter: React.FC = () => {
                 .order('current_stock', { ascending: true });
             setInventory(invList || []);
 
-            // activeShifts is now derived from ShiftContext for the current terminal session
-            setActiveShifts(shiftState.status === SHIFT_STATUS.OPEN ? [shiftState.shift] : []);
+            // activeShifts is now derived from ShiftContext for the entire business
+            setActiveShifts('activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : []);
 
             // 6. Alert Logic
             const newAlerts = [];
@@ -171,8 +169,8 @@ const ManagerCommandCenter: React.FC = () => {
             txList?.forEach(tx => {
                 if (tx.amount > 100000) newAlerts.push({ type: 'security', message: `High value ${tx.payment_type} detected: ₦${tx.amount.toLocaleString()}` });
             });
-            if (qShifts && qShifts.length > 0) {
-                newAlerts.push({ type: 'security', message: `${qShifts.length} Shift approvals pending verification` });
+            if (pending.length > 0) {
+                newAlerts.push({ type: 'security', message: `${pending.length} Shift approvals pending verification` });
             }
             setAlerts(newAlerts);
 
@@ -289,17 +287,19 @@ const ManagerCommandCenter: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${shiftState.status === SHIFT_STATUS.OPEN ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${('activeBusinessShifts' in shiftState && shiftState.activeBusinessShifts.length > 0) ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Service State</p>
-                                <p className={`text-xs font-black uppercase ${shiftState.status === SHIFT_STATUS.OPEN ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                    {shiftState.status === SHIFT_STATUS.OPEN ? 'Live' : 'Offline'}
+                                <p className={`text-xs font-black uppercase ${('activeBusinessShifts' in shiftState && shiftState.activeBusinessShifts.length > 0) ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                    {('activeBusinessShifts' in shiftState && shiftState.activeBusinessShifts.length > 0) ? 'Live' : 'Offline'}
                                 </p>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Active Terminals</p>
-                                <p className="text-xs font-black text-slate-800">{shiftState.status === SHIFT_STATUS.OPEN ? 1 : 0}</p>
+                                <p className="text-xs font-black text-slate-800">
+                                    {'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0}
+                                </p>
                             </div>
                         </div>
                         <button onClick={hydrate} className="p-3 hover:bg-slate-100 rounded-2xl border border-slate-100 transition-all">
