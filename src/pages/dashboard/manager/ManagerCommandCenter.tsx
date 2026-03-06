@@ -80,7 +80,7 @@ const ReconciliationRow = ({ label, expected, declared }: { label: string, expec
 
 const ManagerCommandCenter: React.FC = () => {
     const { authority } = useAuth();
-    const { refreshShift, approveShift } = useShiftState();
+    const { shiftState, refreshShift, approveShift } = useShiftState();
 
     // --- STATE ---
     const [stats, setStats] = useState({
@@ -110,13 +110,12 @@ const ManagerCommandCenter: React.FC = () => {
             const { data: ordToday } = await supabase.from('orders').select('id').eq('org_id', authority.businessId).gte('created_at', today);
             const { data: ordOpen } = await supabase.from('orders').select('id').eq('org_id', authority.businessId).eq('status', 'open');
             const { data: txToday } = await supabase.from('transactions').select('amount').eq('business_id', authority.businessId).gte('created_at', today);
-            const { data: currentShifts } = await supabase.from('shifts').select('*').eq('business_id', authority.businessId).eq('status', 'open');
 
             setStats({
                 ordersToday: ordToday?.length || 0,
                 revenueToday: txToday?.reduce((acc, t) => acc + Number(t.amount), 0) || 0,
                 openOrders: ordOpen?.length || 0,
-                activeStaffCount: currentShifts?.length || 0
+                activeStaffCount: shiftState.status === SHIFT_STATUS.OPEN ? 1 : 0
             });
 
             // 2. Settlement Feed
@@ -150,7 +149,7 @@ const ManagerCommandCenter: React.FC = () => {
                 ]);
             setPendingShifts(qShifts || []);
 
-            // 5. Inventory
+            // 5. Inventory and Shift Alignment
             const { data: invList } = await supabase
                 .from('inventory')
                 .select('*')
@@ -158,7 +157,8 @@ const ManagerCommandCenter: React.FC = () => {
                 .order('current_stock', { ascending: true });
             setInventory(invList || []);
 
-            setActiveShifts(currentShifts || []);
+            // activeShifts is now derived from ShiftContext for the current terminal session
+            setActiveShifts(shiftState.status === SHIFT_STATUS.OPEN ? [shiftState.shift] : []);
 
             // 6. Alert Logic
             const newAlerts = [];
@@ -289,17 +289,17 @@ const ManagerCommandCenter: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${stats.activeStaffCount > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${shiftState.status === SHIFT_STATUS.OPEN ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Service State</p>
-                                <p className={`text-xs font-black uppercase ${stats.activeStaffCount > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                    {stats.activeStaffCount > 0 ? 'Active' : 'Offline'}
+                                <p className={`text-xs font-black uppercase ${shiftState.status === SHIFT_STATUS.OPEN ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                    {shiftState.status === SHIFT_STATUS.OPEN ? 'Live' : 'Offline'}
                                 </p>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Active Terminals</p>
-                                <p className="text-xs font-black text-slate-800">{stats.activeStaffCount}</p>
+                                <p className="text-xs font-black text-slate-800">{shiftState.status === SHIFT_STATUS.OPEN ? 1 : 0}</p>
                             </div>
                         </div>
                         <button onClick={hydrate} className="p-3 hover:bg-slate-100 rounded-2xl border border-slate-100 transition-all">
