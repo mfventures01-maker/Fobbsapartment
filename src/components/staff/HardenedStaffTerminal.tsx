@@ -7,15 +7,16 @@ import { ShieldCheck, Clock, RefreshCw } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import HousekeepingStaff from "@/pages/dashboard/staff/HousekeepingStaff";
 import StaffOperationalTerminal from "@/pages/dashboard/staff/StaffOperationalTerminal";
+import { SHIFT_STATUS } from "@/constants/shiftStatus";
 
-const AwaitingApprovalScreen = () => (
+const AwaitingApprovalScreen = ({ title, message }: { title?: string, message?: string }) => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100 text-center space-y-6">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
                 <ShieldCheck className="w-10 h-10 text-blue-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 font-serif">Awaiting Approval</h1>
-            <p className="text-gray-500 text-sm">Your shift declaration has been submitted for review. Contact your manager or supervisor to finalize closure.</p>
+            <h1 className="text-2xl font-bold text-gray-900 font-serif">{title || "Awaiting Approval"}</h1>
+            <p className="text-gray-500 text-sm">{message || "Your shift declaration has been submitted for review. Contact your manager or supervisor to finalize closure."}</p>
             <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-center gap-3">
                 <Clock className="w-5 h-5 text-gray-400 animate-pulse" />
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pending Review</span>
@@ -75,13 +76,19 @@ export function HardenedStaffTerminal() {
         case 'no_shift':
             return <OpenShiftScreen />;
 
-        case 'pending_declaration':
+        case SHIFT_STATUS.REQUESTED:
+            return <AwaitingApprovalScreen
+                title="Shift Requested"
+                message="Your request to open a shift has been sent. Please wait for a manager to authorize your terminal access."
+            />;
+
+        case SHIFT_STATUS.PENDING_DECLARATION:
             return <ShiftDeclarationScreen />;
 
-        case 'awaiting_approval':
+        case SHIFT_STATUS.AWAITING_APPROVAL:
             return <AwaitingApprovalScreen />;
 
-        case 'active':
+        case SHIFT_STATUS.OPEN:
             // Redirect to unified Operational Terminal for all active shifts 
             // (Except specialized departments like Housekeeping)
             if (authority.departmentName === 'Housekeeping') return <HousekeepingStaff />;
