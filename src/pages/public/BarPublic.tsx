@@ -3,11 +3,13 @@ import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
-import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
+import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const BarPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
+    const navigate = useNavigate();
 
     // Form State
     const [name, setName] = useState('');
@@ -20,6 +22,7 @@ const BarPublic: React.FC = () => {
     const [delivery, setDelivery] = useState('Room Delivery');
     const [paymentMethod, setPaymentMethod] = useState('POS on Delivery');
     const [tableNumber, setTableNumber] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     const addToCart = (item: any) => {
         setCart(prev => {
@@ -30,7 +33,6 @@ const BarPublic: React.FC = () => {
             return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1 }];
         });
     };
-
 
     const updateQuantity = (id: string, delta: number) => {
         setCart(prev => prev.map(i => {
@@ -44,7 +46,7 @@ const BarPublic: React.FC = () => {
 
     const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-    const handleSubmit = (channel: 'whatsapp' | 'telegram') => {
+    const handleSubmit = async (channel: 'whatsapp' | 'telegram' | 'web') => {
         if (cart.length === 0) return;
         if (!name || !phone) {
             alert("Please provide your name and phone number");
@@ -56,38 +58,83 @@ const BarPublic: React.FC = () => {
             return;
         }
 
-        // Log to Supabase for Dashboard visibility
-        logLeadOrBooking({
-            customer_name: name,
-            customer_phone: phone,
-            item_name: "Bar Order",
-            total_value: subtotal,
-            business_type: 'bar',
-            metadata: {
-                cart_items: cart,
-                payment_method: paymentMethod,
-                delivery_method: delivery,
-                room_number: room || 'N/A',
-                table_number: tableNumber || 'N/A',
-                notes: notes,
-                channel: channel
-            }
-        });
+        setSubmitting(true);
 
-        sendRequest(
-            'Bar Order',
-            buildBarOrderMessage,
-            {
-                items: cart,
-                subtotal: subtotal,
-                payment_method: paymentMethod,
-                notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
-                room_number: room || "N/A",
-                summary: `${cart.length} drinks (₦${subtotal.toLocaleString()})`
-            },
-            channel,
-            'kitchen' // Bar orders often go to kitchen/bar printer or same phone
-        );
+        try {
+            if (!supabase) throw new Error("Database client not available");
+
+            // 1. Create Order via Universal Gateway
+            const { data: gatewayResult, error: gatewayError } = await (supabase as any).rpc('create_order_gateway', {
+                p_source: 'qr_menu_bar',
+                p_business_id: HOTEL_CONFIG.org_id,
+                p_location_id: HOTEL_CONFIG.location_id,
+                p_customer_name: name,
+                p_customer_phone: phone,
+                p_items: cart.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                p_metadata: {
+                    room_number: room || 'N/A',
+                    table_number: tableNumber || 'N/A',
+                    delivery_method: delivery,
+                    notes: notes,
+                    payment_method_preference: paymentMethod
+                }
+            });
+
+            if (gatewayError) throw gatewayError;
+            if (!gatewayResult.success) throw new Error(gatewayResult.error);
+
+            const orderId = gatewayResult.order_id;
+
+            // 2. Log to Supabase for Dashboard visibility (Legacy/Forensic)
+            logLeadOrBooking({
+                customer_name: name,
+                customer_phone: phone,
+                item_name: "Bar Order",
+                total_value: subtotal,
+                business_type: 'bar',
+                metadata: {
+                    order_id: orderId,
+                    cart_items: cart,
+                    payment_method: paymentMethod,
+                    delivery_method: delivery,
+                    room_number: room || 'N/A',
+                    table_number: tableNumber || 'N/A',
+                    notes: notes,
+                    channel: channel
+                }
+            });
+
+            // 3. Optional: WhatsApp Notification (Background)
+            if (channel !== 'web') {
+                sendRequest(
+                    'Bar Order',
+                    buildBarOrderMessage,
+                    {
+                        items: cart,
+                        subtotal: subtotal,
+                        payment_method: paymentMethod,
+                        notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
+                        room_number: room || "N/A",
+                        summary: `${cart.length} drinks (₦${subtotal.toLocaleString()})`
+                    },
+                    channel as any,
+                    'kitchen'
+                );
+            }
+
+            // 4. Redirect to Payment Intent
+            navigate(`/payment-intent?order_id=${orderId}`);
+
+        } catch (err: any) {
+            console.error("Bar submission failed:", err);
+            alert("Failed to submit order: " + (err.message || "Unknown error"));
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     // Safe access to bar menu
@@ -281,21 +328,31 @@ const BarPublic: React.FC = () => {
 
                                     <div className="space-y-2 pt-2">
                                         <button
+                                            disabled={submitting}
                                             onClick={() => handleSubmit('whatsapp')}
-                                            className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20bd5a] flex items-center justify-center space-x-2 shadow-lg shadow-green-100"
+                                            className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20bd5a] flex items-center justify-center space-x-2 shadow-lg shadow-green-100 disabled:opacity-50"
                                         >
-                                            <Send className="w-4 h-4" />
-                                            <span>Order on WhatsApp</span>
+                                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                            <span>{submitting ? 'Ordering...' : 'Order on WhatsApp'}</span>
                                         </button>
                                         {HOTEL_CONFIG.channels.telegram_handle && (
                                             <button
+                                                disabled={submitting}
                                                 onClick={() => handleSubmit('telegram')}
-                                                className="w-full py-3 bg-[#0088cc] text-white rounded-xl font-bold hover:bg-[#0077b5] flex items-center justify-center space-x-2 shadow-lg shadow-blue-100"
+                                                className="w-full py-3 bg-[#0088cc] text-white rounded-xl font-bold hover:bg-[#0077b5] flex items-center justify-center space-x-2 shadow-lg shadow-blue-100 disabled:opacity-50"
                                             >
-                                                <Send className="w-4 h-4" />
-                                                <span>Order on Telegram</span>
+                                                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                                <span>{submitting ? 'Ordering...' : 'Order on Telegram'}</span>
                                             </button>
                                         )}
+                                        <button
+                                            disabled={submitting}
+                                            onClick={() => handleSubmit('web')}
+                                            className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 flex items-center justify-center space-x-2 shadow-lg shadow-gray-100 disabled:opacity-50"
+                                        >
+                                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />}
+                                            <span>{submitting ? 'Submitting...' : 'Order Online'}</span>
+                                        </button>
                                     </div>
                                 </div>
                             )}

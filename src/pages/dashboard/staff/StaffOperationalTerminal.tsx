@@ -9,7 +9,7 @@ import {
     Clock, Banknote, Smartphone, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Order, InventoryItem, Transaction, PaymentIntent } from '@/types/db';
+import { InventoryItem, Transaction, PaymentIntent } from '@/types/db';
 import ShiftSettlementPanel from '@/components/ShiftSettlementPanel';
 import { SHIFT_STATUS } from '../../../constants/shiftStatus';
 
@@ -33,7 +33,6 @@ const StaffOperationalTerminal: React.FC = () => {
 
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [checkoutOrder, setCheckoutOrder] = useState<Order | null>(null);
     const [activeIntent, setActiveIntent] = useState<PaymentIntent | null>(null);
 
     const [customerName, setCustomerName] = useState('');
@@ -133,40 +132,46 @@ const StaffOperationalTerminal: React.FC = () => {
     const handleCreateOrder = async () => {
         if (!user || cart.length === 0 || shiftState.status !== SHIFT_STATUS.OPEN) return;
 
-        const loading = toast.loading('Creating High-Integrity Order...');
+        const loading = toast.loading('Creating Synchronous Order...');
         try {
-            // 1. Create Order
-            const { data: order, error: orderErr } = await supabase
-                .from('orders')
-                .insert({
-                    org_id: authority.businessId,
-                    location_id: authority.branchId,
-                    staff_id: user.id,
-                    customer_name: customerName || 'Walk-in',
-                    table_reference: tableRef || 'Counter',
-                    total_amount: total,
-                    status: 'open'
-                })
-                .select()
+            // 1. Create Order & Intent via Universal Gateway
+            const { data: gatewayResult, error: gatewayError } = await (supabase as any).rpc('create_order_gateway', {
+                p_source: 'staff_terminal',
+                p_business_id: authority.businessId,
+                p_location_id: authority.branchId,
+                p_staff_id: user.id,
+                p_customer_name: customerName || 'Walk-in',
+                p_table_id: tableRef || 'Counter',
+                p_items: cart.map(i => ({
+                    name: i.name,
+                    quantity: i.quantity,
+                    price: i.price,
+                    item_id: i.id
+                })),
+                p_metadata: {
+                    terminal_mode: 'staff',
+                    customer_name: customerName,
+                    table_reference: tableRef
+                }
+            });
+
+            if (gatewayError) throw gatewayError;
+            if (!gatewayResult.success) throw new Error(gatewayResult.error);
+
+            toast.success('Order & Intent Synchronized', { id: loading });
+
+            // Set the intent as active immediately for payment method selection
+            // The gateway creates a pending intent; we just need to fetch it or use the returned ID
+            const { data: intentData, error: intentError } = await supabase
+                .from('payment_intents')
+                .select('*')
+                .eq('id', gatewayResult.payment_intent_id)
                 .single();
 
-            if (orderErr) throw orderErr;
+            if (intentError) throw intentError;
 
-            // 2. Create Order Items
-            const items = cart.map(i => ({
-                order_id: order.id,
-                org_id: authority.businessId,
-                name: i.name,
-                qty: i.quantity,
-                price: i.price,
-                subtotal: i.price * i.quantity
-            }));
+            setActiveIntent(intentData);
 
-            const { error: itemsErr } = await supabase.from('order_items').insert(items);
-            if (itemsErr) throw itemsErr;
-
-            toast.success('Order Created Successfully', { id: loading });
-            setCheckoutOrder(order); // Added to trigger checkout modal
             setCart([]);
             setCustomerName('');
             setTableRef('');
@@ -176,30 +181,19 @@ const StaffOperationalTerminal: React.FC = () => {
         }
     };
 
-    const createIntent = async (order: Order, type: string) => {
-        const loading = toast.loading(`Creating ${type} Intent...`);
+    const updateIntentMethod = async (type: string) => {
+        if (!activeIntent) return;
+        const loading = toast.loading(`Updating to ${type}...`);
         try {
-            const { data: intent, error } = await supabase
+            const { error } = await supabase
                 .from('payment_intents')
-                .insert({
-                    order_id: order.id,
-                    org_id: authority.businessId,
-                    branch_id: authority.branchId,
-                    staff_id: user?.id,
-                    shift_id: shiftState.status === SHIFT_STATUS.OPEN ? shiftState.shift.id : null,
-                    expected_amount: order.total_amount,
-                    payment_type: type,
-                    status: 'pending'
-                })
-                .select()
-                .single();
+                .update({ payment_type: type })
+                .eq('id', activeIntent.id);
 
             if (error) throw error;
 
-            setActiveIntent(intent);
-            setCheckoutOrder(null);
-            toast.success('Intent Created', { id: loading });
-            hydrate();
+            setActiveIntent({ ...activeIntent, payment_type: type });
+            toast.success('Method Selected', { id: loading });
         } catch (err: any) {
             toast.error(err.message, { id: loading });
         }
@@ -390,32 +384,45 @@ const StaffOperationalTerminal: React.FC = () => {
 
                 {/* Column 2: Feed & Sidebars (4/12) */}
                 <div className="lg:col-span-4 space-y-6">
-                    {(checkoutOrder || activeIntent) && (
+                    {activeIntent && (
                         <section className="bg-white rounded-[2rem] shadow-2xl border border-emerald-500/20 p-8 space-y-6 animate-in zoom-in-95">
                             <div className="flex justify-between items-start">
                                 <h3 className="text-xl font-black text-slate-900 uppercase">Settlement</h3>
-                                <button onClick={() => { setCheckoutOrder(null); setActiveIntent(null); }} className="text-slate-300"><X className="w-5 h-5" /></button>
+                                <button onClick={() => { setActiveIntent(null); }} className="text-slate-300"><X className="w-5 h-5" /></button>
                             </div>
-                            {checkoutOrder && (
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={() => createIntent(checkoutOrder, 'cash')} className="p-4 bg-emerald-50 rounded-2xl flex flex-col items-center gap-2 text-emerald-700 font-black text-[10px] uppercase border border-emerald-100">
-                                        <Banknote className="w-6 h-6" /> Cash
-                                    </button>
-                                    <button onClick={() => createIntent(checkoutOrder, 'pos')} className="p-4 bg-blue-50 rounded-2xl flex flex-col items-center gap-2 text-blue-700 font-black text-[10px] uppercase border border-blue-100">
-                                        <Smartphone className="w-6 h-6" /> POS Terminal
-                                    </button>
-                                    <button onClick={() => createIntent(checkoutOrder, 'transfer')} className="col-span-2 p-4 bg-slate-900 rounded-2xl flex items-center justify-center gap-3 text-white font-black text-[10px] uppercase">
-                                        <ArrowRight className="w-4 h-4" /> Bank Transfer
-                                    </button>
+
+                            {/* Payment Method Selection (if still in gateway-default state) */}
+                            {activeIntent.status === 'pending' && activeIntent.payment_type?.includes('_order') && (
+                                <div className="space-y-4">
+                                    <p className="text-xs font-bold text-slate-400 uppercase">Select Payment Method</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button onClick={() => updateIntentMethod('cash')} className="p-4 bg-emerald-50 rounded-2xl flex flex-col items-center gap-2 text-emerald-700 font-black text-[10px] uppercase border border-emerald-100">
+                                            <Banknote className="w-6 h-6" /> Cash
+                                        </button>
+                                        <button onClick={() => updateIntentMethod('pos')} className="p-4 bg-blue-50 rounded-2xl flex flex-col items-center gap-2 text-blue-700 font-black text-[10px] uppercase border border-blue-100">
+                                            <Smartphone className="w-6 h-6" /> POS Terminal
+                                        </button>
+                                        <button onClick={() => updateIntentMethod('transfer')} className="col-span-2 p-4 bg-slate-900 rounded-2xl flex items-center justify-center gap-3 text-white font-black text-[10px] uppercase">
+                                            <ArrowRight className="w-4 h-4" /> Bank Transfer
+                                        </button>
+                                    </div>
                                 </div>
                             )}
-                            {activeIntent && (
+
+                            {/* Settlement Action (if real method selected) */}
+                            {activeIntent.status === 'pending' && !activeIntent.payment_type?.includes('_order') && (
                                 <div className="p-6 bg-emerald-900 rounded-2xl text-white text-center space-y-4">
-                                    <p className="text-[10px] uppercase opacity-60">Expected Amount</p>
+                                    <p className="text-[10px] uppercase opacity-60">Settling via {activeIntent.payment_type}</p>
                                     <h4 className="text-3xl font-black">₦{Number(activeIntent.expected_amount).toLocaleString()}</h4>
-                                    <button onClick={() => confirmPayment()} className="w-full bg-white text-emerald-900 py-3 rounded-xl font-black uppercase text-[10px] shadow-lg">
-                                        Verify & Settle
-                                    </button>
+
+                                    <div className="flex gap-2">
+                                        <button onClick={() => confirmPayment()} className="flex-1 bg-white text-emerald-900 py-3 rounded-xl font-black uppercase text-[10px] shadow-lg">
+                                            Verify & Settle
+                                        </button>
+                                        <button onClick={() => setActiveIntent({ ...activeIntent, payment_type: 'staff_terminal_order' })} className="px-4 bg-emerald-800 text-white py-3 rounded-xl font-black uppercase text-[10px]">
+                                            Back
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </section>

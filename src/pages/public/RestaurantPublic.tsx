@@ -63,43 +63,31 @@ const RestaurantPublic: React.FC = () => {
         try {
             if (!supabase) throw new Error("Database client not available");
 
-            // 1. Create Order
-            const { data: order, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    org_id: HOTEL_CONFIG.org_id,
-                    location_id: HOTEL_CONFIG.location_id,
-                    customer_name: name,
-                    customer_phone: phone,
-                    status: 'open',
-                    total: subtotal,
-                    metadata: {
-                        room_number: room || 'N/A',
-                        table_number: tableNumber || 'N/A',
-                        delivery_method: delivery,
-                        notes: notes
-                    }
-                })
-                .select()
-                .single();
+            // 1. Create Order via Universal Gateway
+            const { data: gatewayResult, error: gatewayError } = await (supabase as any).rpc('create_order_gateway', {
+                p_source: 'qr_menu',
+                p_business_id: HOTEL_CONFIG.org_id,
+                p_location_id: HOTEL_CONFIG.location_id,
+                p_customer_name: name,
+                p_customer_phone: phone,
+                p_items: cart.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                p_metadata: {
+                    room_number: room || 'N/A',
+                    table_number: tableNumber || 'N/A',
+                    delivery_method: delivery,
+                    notes: notes,
+                    payment_method_preference: paymentMethod
+                }
+            });
 
-            if (orderError) throw orderError;
+            if (gatewayError) throw gatewayError;
+            if (!gatewayResult.success) throw new Error(gatewayResult.error);
 
-            // 2. Create Order Items
-            const itemsToInsert = cart.map(item => ({
-                org_id: HOTEL_CONFIG.org_id,
-                order_id: order.id,
-                name: item.name,
-                qty: item.quantity,
-                unit_price: item.price,
-                line_total: item.price * item.quantity
-            }));
-
-            const { error: itemsError } = await supabase
-                .from('order_items')
-                .insert(itemsToInsert);
-
-            if (itemsError) throw itemsError;
+            const orderId = gatewayResult.order_id;
 
             // 3. Optional: WhatsApp Notification (Background)
             if (channel !== 'web') {
@@ -120,7 +108,7 @@ const RestaurantPublic: React.FC = () => {
             }
 
             // 4. Redirect to Payment Intent
-            navigate(`/payment-intent?order_id=${order.id}`);
+            navigate(`/payment-intent?order_id=${orderId}`);
 
         } catch (err: any) {
             console.error("Submission failed:", err);
