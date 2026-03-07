@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Clock, Shield, Wifi, WifiOff, AlertCircle } from 'lucide-react';
-import { createOrderGateway } from '@/services/orderService';
+import { createStaffOrder } from '@/services/orderService';
 import { confirmPaymentIntent } from '@/services/paymentService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
@@ -62,16 +62,11 @@ const DashboardHome: React.FC = () => {
         }
 
         try {
-            const data = await createOrderGateway(
-                [{ name: 'Manual Quick Sale', quantity: 1, price: amount }],
-                type.toLowerCase(),
+            const data = await createStaffOrder(
                 profile.business_id,
                 currentBranch.id,
-                profile.user_id,
-                undefined,
-                'Walk-In',
-                undefined,
-                { reference: `REF-${Math.floor(Math.random() * 9999)}` }
+                [{ name: 'Manual Quick Sale', quantity: 1, price: amount }],
+                { source: type.toLowerCase(), customer_name: 'Walk-In', reference: `REF-${Math.floor(Math.random() * 9999)}` }
             );
 
             await confirmPaymentIntent(data.payment_intent_id);

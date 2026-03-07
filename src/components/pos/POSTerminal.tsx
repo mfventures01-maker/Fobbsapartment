@@ -7,7 +7,7 @@ import {
 import { HOTEL_CONFIG, MenuItem } from '@/config/cars.config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
-import { createOrderGateway } from '@/services/orderService';
+import { createStaffOrder } from '@/services/orderService';
 import { confirmPaymentIntent } from '@/services/paymentService';
 import toast from 'react-hot-toast';
 
@@ -20,7 +20,7 @@ interface POSTerminalProps {
 }
 
 const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
-    const { user, authority } = useAuth();
+    const { authority } = useAuth();
     const { shiftState } = useShiftState();
     const [cart, setCart] = useState<CartItem[]>([]);
     const [category, setCategory] = useState<string>('All');
@@ -90,16 +90,11 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
         try {
             const items = cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
 
-            const orderGatewayResult = await createOrderGateway(
-                items,
-                'staff_terminal',
+            const orderGatewayResult = await createStaffOrder(
                 authority.businessId!,
                 authority.branchId!,
-                user?.id,
-                undefined,
-                customerName || 'Walk-in Guest',
-                undefined,
-                { department: department }
+                items,
+                { department: department, customer_name: customerName || 'Walk-in Guest' }
             );
 
             // D. Handle Instant Confirmation for Cash/POS

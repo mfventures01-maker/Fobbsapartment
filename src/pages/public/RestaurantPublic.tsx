@@ -3,6 +3,7 @@ import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildRoomServiceMessage } from '@/lib/channelRouting';
 import { supabase } from '@/lib/supabaseClient';
+import { createPublicOrder } from '@/services/orderService';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Loader2, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -64,28 +65,27 @@ const RestaurantPublic: React.FC = () => {
             if (!supabase) throw new Error("Database client not available");
 
             // 1. Create Order via Universal Gateway
-            const { data: gatewayResult, error: gatewayError } = await (supabase as any).rpc('create_order_gateway', {
-                p_source: 'qr_menu',
-                p_business_id: HOTEL_CONFIG.org_id,
-                p_location_id: HOTEL_CONFIG.location_id,
-                p_customer_name: name,
-                p_customer_phone: phone,
-                p_items: cart.map(item => ({
+            const gatewayResult = await createPublicOrder(
+                HOTEL_CONFIG.org_id,
+                HOTEL_CONFIG.location_id,
+                cart.map(item => ({
                     name: item.name,
                     quantity: item.quantity,
                     price: item.price
                 })),
-                p_metadata: {
+                name,
+                phone,
+                {
+                    source: 'qr_menu',
                     room_number: room || 'N/A',
                     table_number: tableNumber || 'N/A',
                     delivery_method: delivery,
                     notes: notes,
                     payment_method_preference: paymentMethod
                 }
-            });
+            );
 
-            if (gatewayError) throw gatewayError;
-            if (!gatewayResult.success) throw new Error(gatewayResult.error);
+            if (!gatewayResult.success) throw new Error(gatewayResult.error || "Failed to create order");
 
             const orderId = gatewayResult.order_id;
 

@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { Shift } from '../types/database';
 import { getActiveShift } from '../lib/shiftService'; // Note: if getActiveShift isn't moved yet we can leave it
 import { requestShift, endShift as apiEndShift, submitDeclaration as apiSubmitDeclaration, approveShift as apiApproveShift } from '../services/shiftService';
-import { subscribeToShiftTelemetry } from '../lib/realtimeTelemetry';
+import { subscribeToOperationalTelemetry } from '../lib/realtimeTelemetry';
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
 export type ShiftState =
@@ -101,9 +101,11 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         resolveShift();
 
-        const unsubscribeTelemetry = subscribeToShiftTelemetry(() => {
-            console.log('[SHIFT CONTEXT] Realtime update received, resolving shift state');
-            resolveShift();
+        const unsubscribeTelemetry = subscribeToOperationalTelemetry({
+            onShiftUpdate: () => {
+                console.log('[SHIFT CONTEXT] Realtime shift update received, resolving state');
+                resolveShift();
+            }
         });
 
         return () => {

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import OpenShiftScreen from '../../pages/dashboard/staff/OpenShiftScreen';
 import ShiftDeclarationScreen from '../../pages/dashboard/staff/ShiftDeclarationScreen';
 import { Clock, ShieldCheck, RefreshCw } from 'lucide-react';
-import { subscribeToShiftTelemetry } from '@/lib/realtimeTelemetry';
+import { subscribeToOperationalTelemetry } from '@/lib/realtimeTelemetry';
 
 const AwaitingApprovalScreen = () => (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -58,9 +58,11 @@ const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: bool
         if (authorityStatus !== 'authorized') return;
 
         // Auto-refresh shift state on any DB change
-        const unsubscribe = subscribeToShiftTelemetry(() => {
-            console.log('[TELEMETRY] Shift change detected in Protected Route. Refreshing...');
-            refreshShift();
+        const unsubscribe = subscribeToOperationalTelemetry({
+            onShiftUpdate: () => {
+                console.log('[TELEMETRY] Shift change detected in Protected Route. Refreshing...');
+                refreshShift();
+            }
         });
 
         return unsubscribe;
@@ -83,7 +85,7 @@ const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: bool
         return <OpenShiftScreen />;
     }
 
-    if (shiftState.status === 'awaiting_opening') {
+    if (shiftState.status === 'requested') {
         return <AwaitingOpeningScreen />;
     }
 

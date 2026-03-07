@@ -3,8 +3,8 @@ import React, { createContext, useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useShiftState } from './ShiftContext';
-import { getActiveShift } from '@/lib/shiftService';
-import { createOrderGateway } from '@/services/orderService';
+import { getActiveShift } from '../lib/shiftService';
+import { createStaffOrder } from '../services/orderService';
 
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
@@ -83,16 +83,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }));
 
             // 2. Create Order via Gateway
-            const gatewayResult = await createOrderGateway(
-                orderItems,
-                'cart_checkout',
+            const gatewayResult = await createStaffOrder(
                 activeShift.business_id,
                 activeShift.branch_id,
-                activeShift.staff_id,
-                undefined,
-                'Walk-In',
-                undefined,
-                { paymentMethod }
+                orderItems,
+                { source: 'cart_checkout', customer_name: 'Walk-In', paymentMethod }
             );
 
             toast.success("Order Created! Proceeding to Payment...");
