@@ -32,7 +32,6 @@ export interface Shift {
     branch_id: string;
     department_id: string;
     start_time: string;
-    ends_at?: string;
     status: ShiftStatus;
     created_at?: string;
 
@@ -95,7 +94,7 @@ export interface Order {
     location_id: string;
     staff_id?: string;
     customer_id?: string;
-    total_amount: number;
+    total: number;
     status: 'open' | 'paid' | 'served' | 'void' | 'cancelled';
     created_at: string;
     updated_at: string;

@@ -23,7 +23,7 @@ export async function logLeadOrBooking(payload: LogPayload) {
             item: payload.item_name,
             ...payload.metadata
         },
-        total_amount: payload.total_value,
+        total: payload.total_value,
         status: 'pending_whatsapp',
         created_at: new Date().toISOString()
     };
@@ -91,7 +91,7 @@ export async function logGuestHubEvent(payload: GuestHubLogPayload) {
             items: payload.details,
             notes: payload.notes
         },
-        total_amount: payload.subtotal || 0,
+        total: payload.subtotal || 0,
         status: `pending_${payload.channel}`,
         created_at: new Date().toISOString()
     };

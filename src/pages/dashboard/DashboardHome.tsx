@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Clock, Shield, Wifi, WifiOff, AlertCircle } from 'lucide-react';
-import { transactionService, Transaction } from '@/lib/TransactionService';
+import { createOrderGateway } from '@/services/orderService';
+import { confirmPaymentIntent } from '@/services/paymentService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -32,7 +33,7 @@ const DashboardHome: React.FC = () => {
         const { data, error } = await query;
         if (!error) setTransactions(data || []);
 
-        setOfflineCount(transactionService.getOfflineCount());
+        setOfflineCount(0); // Removing legacy offline mode hook for now to align with real-time architecture
         setLoading(false);
     };
 
@@ -40,19 +41,12 @@ const DashboardHome: React.FC = () => {
         fetchLiveStats();
         const interval = setInterval(() => {
             setIsOnline(navigator.onLine);
-            setOfflineCount(transactionService.getOfflineCount());
+            setOfflineCount(0); // Remove legacy offline count
         }, 3000);
-
-        let unsubscribe = () => { };
-        if (profile?.business_id) {
-            unsubscribe = transactionService.subscribeToTransactions(profile.business_id, () => {
-                fetchLiveStats();
-            });
-        }
 
         return () => {
             clearInterval(interval);
-            unsubscribe();
+            // unsubscribe is removed due to legacy transaction service removal
         };
     }, [currentBranch, profile?.business_id]);
 
@@ -67,20 +61,25 @@ const DashboardHome: React.FC = () => {
             return;
         }
 
-        const tx: Omit<Transaction, 'status'> = {
-            business_id: profile.business_id,
-            branch_id: currentBranch.id,
-            staff_id: profile.user_id,
-            department_id: profile.department || 'general',
-            amount: amount,
-            payment_type: type.toLowerCase(),
-            payment_reference: `REF-${Math.floor(Math.random() * 9999)}`
-        };
+        try {
+            const data = await createOrderGateway(
+                [{ name: 'Manual Quick Sale', quantity: 1, price: amount }],
+                type.toLowerCase(),
+                profile.business_id,
+                currentBranch.id,
+                profile.user_id,
+                undefined,
+                'Walk-In',
+                undefined,
+                { reference: `REF-${Math.floor(Math.random() * 9999)}` }
+            );
 
-        const result = await transactionService.createTransaction(tx);
-        if (result.success) {
+            await confirmPaymentIntent(data.payment_intent_id);
+            toast.success('Transaction secured in cloud ledger.');
             fetchLiveStats();
             (e.target as HTMLFormElement).reset();
+        } catch (error: any) {
+            toast.error(error.message || 'Transaction failed.');
         }
     };
 

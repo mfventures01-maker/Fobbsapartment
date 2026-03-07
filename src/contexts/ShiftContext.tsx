@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
-import { Shift } from '../types/db';
-import { getActiveShift, submitShiftDeclaration as apiSubmitDeclaration } from '../lib/shiftService';
+import { Shift } from '../types/database';
+import { getActiveShift } from '../lib/shiftService'; // Note: if getActiveShift isn't moved yet we can leave it
+import { requestShift, endShift as apiEndShift, submitDeclaration as apiSubmitDeclaration, approveShift as apiApproveShift } from '../services/shiftService';
+import { subscribeToShiftTelemetry } from '../lib/realtimeTelemetry';
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
 export type ShiftState =
@@ -98,35 +100,48 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             });
         }
         resolveShift();
-        return () => { isMounted.current = false; };
+
+        const unsubscribeTelemetry = subscribeToShiftTelemetry(() => {
+            console.log('[SHIFT CONTEXT] Realtime update received, resolving shift state');
+            resolveShift();
+        });
+
+        return () => {
+            isMounted.current = false;
+            unsubscribeTelemetry();
+        };
     }, [resolveShift, user]);
 
     const startShift = async () => {
         if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
 
-        console.log('[SHIFT] Initiating request_shift RPC...');
-        const { data, error } = await (supabase as any).rpc('request_shift');
-
-        if (error || !data?.success) {
-            return { error: error || (data?.error ? { message: data.error } : { message: 'Failed to request shift' }) };
+        console.log('[SHIFT] Initiating request_shift RPC via service...');
+        try {
+            const data = await requestShift();
+            if (!data?.success) {
+                return { error: (data?.error ? { message: data.error } : { message: 'Failed to request shift' }) };
+            }
+            await resolveShift();
+            return { error: null };
+        } catch (error: any) {
+            return { error };
         }
-
-        await resolveShift();
-        return { error: null };
     };
 
     const endShift = async () => {
         if (!user || shiftState.status !== SHIFT_STATUS.OPEN) return { error: { message: 'No active shift to end' } };
 
-        console.log('[SHIFT] Initiating end_shift RPC...');
-        const { data, error } = await (supabase as any).rpc('end_shift');
-
-        if (error || !data?.success) {
-            return { error: error || (data?.error ? { message: data.error } : { message: 'Failed to end shift' }) };
+        console.log('[SHIFT] Initiating end_shift RPC via service...');
+        try {
+            const data = await apiEndShift();
+            if (!data?.success) {
+                return { error: (data?.error ? { message: data.error } : { message: 'Failed to end shift' }) };
+            }
+            await resolveShift();
+            return { error: null };
+        } catch (error: any) {
+            return { error };
         }
-
-        await resolveShift();
-        return { error: null };
     };
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
@@ -146,7 +161,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         try {
-            const data = await apiSubmitDeclaration(activeShift.id, { cash, pos, transfer });
+            const data = await apiSubmitDeclaration(cash, pos, transfer, activeShift.id);
             if (data?.success) {
                 await resolveShift();
                 return { error: null, data };
@@ -158,15 +173,16 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const approveShift = async (shiftId: string) => {
-        const { data, error } = await (supabase as any).rpc('approve_shift_close', {
-            p_shift_id: shiftId
-        });
-
-        if (!error && data?.success) {
-            await resolveShift();
-            return { error: null };
+        try {
+            const data = await apiApproveShift(shiftId);
+            if (data?.success) {
+                await resolveShift();
+                return { error: null };
+            }
+            return { error: (data?.error ? { message: data.error } : null) };
+        } catch (error: any) {
+            return { error };
         }
-        return { error: error || (data?.error ? { message: data.error } : null) };
     };
 
     const rejectShift = async (shiftId: string, reason: string) => {

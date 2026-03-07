@@ -7,7 +7,8 @@ import {
 import { HOTEL_CONFIG, MenuItem } from '@/config/cars.config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
-import { supabase } from '@/lib/supabaseClient';
+import { createOrderGateway } from '@/services/orderService';
+import { confirmPaymentIntent } from '@/services/paymentService';
 import toast from 'react-hot-toast';
 
 interface CartItem extends MenuItem {
@@ -78,7 +79,7 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
             return;
         }
 
-        if (shiftState.status !== 'active') {
+        if (shiftState.status !== 'open') {
             toast.error('No active shift. Terminal locked.');
             return;
         }
@@ -87,59 +88,27 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
         const loadingToast = toast.loading(`Processing ${paymentType} payment...`);
 
         try {
-            // A. Create Order
-            const { data: order, error: orderErr } = await supabase.from('orders').insert({
-                org_id: authority.businessId,
-                location_id: authority.branchId,
-                shift_id: shiftState.shift.id,
-                created_by: user?.id,
-                customer_name: customerName || 'Walk-in Guest',
-                subtotal: subtotal,
-                total: subtotal,
-                status: 'pending_payment',
-                metadata: {
-                    source: 'staff_terminal',
-                    items: cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity, price: i.price })),
-                    department: department
-                }
-            }).select().single();
+            const items = cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
 
-            if (orderErr) throw orderErr;
-
-            // B. Create Order Items
-            const orderItemsEntries = cart.map(item => ({
-                org_id: authority.businessId,
-                order_id: order.id,
-                name: item.name,
-                qty: item.quantity,
-                unit_price: item.price,
-                line_total: item.price * item.quantity
-            }));
-            const { error: itemsErr } = await supabase.from('order_items').insert(orderItemsEntries);
-            if (itemsErr) throw itemsErr;
-
-            // C. Create Payment Intent
-            const { data: intent, error: intentErr } = await supabase.from('payment_intents').insert({
-                order_id: order.id,
-                org_id: authority.businessId,
-                branch_id: authority.branchId,
-                staff_id: user?.id,
-                shift_id: shiftState.shift.id,
-                expected_amount: subtotal,
-                payment_type: paymentType,
-                status: 'pending'
-            }).select().single();
-
-            if (intentErr) throw intentErr;
+            const orderGatewayResult = await createOrderGateway(
+                items,
+                'staff_terminal',
+                authority.businessId!,
+                authority.branchId!,
+                user?.id,
+                undefined,
+                customerName || 'Walk-in Guest',
+                undefined,
+                { department: department }
+            );
 
             // D. Handle Instant Confirmation for Cash/POS
             if (paymentType === 'cash' || paymentType === 'pos') {
-                const { data: confirmData, error: confirmErr } = await (supabase as any).rpc('confirm_payment_intent', {
-                    p_intent_id: intent.id,
-                    p_external_reference: paymentType === 'pos' ? `POS-${Date.now()}` : null
-                });
+                const confirmData = await confirmPaymentIntent(
+                    orderGatewayResult.payment_intent_id,
+                    paymentType === 'pos' ? `POS-${Date.now()}` : undefined
+                );
 
-                if (confirmErr) throw confirmErr;
                 if (!confirmData.success) throw new Error(confirmData.error || 'Confirmation failed');
 
                 toast.success('Transaction Completed', { id: loadingToast });
@@ -184,8 +153,8 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
                                 key={cat}
                                 onClick={() => setCategory(cat)}
                                 className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${category === cat
-                                        ? 'bg-emerald-600 text-white shadow-lg'
-                                        : 'bg-white border border-slate-100 text-slate-400 hover:bg-slate-50'
+                                    ? 'bg-emerald-600 text-white shadow-lg'
+                                    : 'bg-white border border-slate-100 text-slate-400 hover:bg-slate-50'
                                     }`}
                             >
                                 {cat}

@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { transactionService } from '@/lib/TransactionService';
+import { getTransactions, transitionTransactionStatus } from '@/services/transactionService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { CheckCircle, AlertOctagon, Scale, RefreshCw, ShieldCheck } from 'lucide-react';
@@ -29,19 +28,11 @@ const Payments: React.FC = () => {
 
         const branchId = currentBranch === 'all' ? null : currentBranch.id;
 
-        let query = supabase
-            .from('transactions')
-            .select('*')
-            .eq('business_id', profile.business_id)
-            .order('created_at', { ascending: false });
-
-        if (branchId) query = query.eq('branch_id', branchId);
-
-        const { data, error } = await query;
-        if (error) {
-            toast.error('Failed to load ledger.');
-        } else {
+        try {
+            const data = await getTransactions(profile.business_id, branchId);
             setTransactions(data || []);
+        } catch (error) {
+            toast.error('Failed to load ledger.');
         }
         setLoading(false);
     };
@@ -49,19 +40,15 @@ const Payments: React.FC = () => {
     useEffect(() => {
         fetchPayments();
 
-        let unsubscribe = () => { };
-        if (profile?.business_id) {
-            unsubscribe = transactionService.subscribeToTransactions(profile.business_id, () => {
-                fetchPayments();
-            });
-        }
-        return () => unsubscribe();
+        // Polling as a fallback since Realtime is being refactored to focus on shifts
+        const interval = setInterval(fetchPayments, 5000);
+        return () => clearInterval(interval);
     }, [currentBranch, profile?.business_id]);
 
     const handleTransition = async (id: string, newStatus: 'verified' | 'reversed' | 'disputed', reason?: string) => {
         if (!profile?.user_id) return;
         try {
-            await transactionService.transitionStatus(id, newStatus, profile.user_id, reason);
+            await transitionTransactionStatus(id, newStatus, profile.user_id, reason);
             fetchPayments();
         } catch (err) {
             console.error(err);

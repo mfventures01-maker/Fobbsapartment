@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useShiftState } from './ShiftContext';
 import { getActiveShift } from '@/lib/shiftService';
+import { createOrderGateway } from '@/services/orderService';
 
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
@@ -74,53 +75,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error("Shift desync");
             }
 
-            // 1. Create Order
-            const { data: orderData, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    total_amount: total,
-                    status: 'pending', // Pending payment
-                    payment_method: paymentMethod,
-                    staff_id: activeShift.staff_id,
-                    shift_id: activeShift.id, // Link to shift for reconciliation
-                    business_id: activeShift.business_id,
-                    branch_id: activeShift.branch_id,
-                    created_at: new Date().toISOString(),
-                })
-                .select()
-                .single();
-
-            if (orderError) throw orderError;
-
-            // STEP 4 — PAYMENT INTENT PIPELINE
-            const { error: intentError } = await supabase
-                .from('payment_intents')
-                .insert({
-                    order_id: orderData.id,
-                    business_id: activeShift.business_id,
-                    branch_id: activeShift.branch_id,
-                    staff_id: activeShift.staff_id,
-                    shift_id: activeShift.id,
-                    expected_amount: total,
-                    payment_type: paymentMethod,
-                    status: 'pending'
-                });
-
-            if (intentError) throw intentError;
-
-            // 2. Create Order Items (Optional but good practice)
-            /* 
+            // 1. Map items
             const orderItems = cartItems.map(item => ({
-                order_id: orderData.id,
-                item_name: item.name,
-                unit_price: item.price,
+                name: item.name,
                 quantity: item.quantity,
-                total_price: item.price * item.quantity
+                price: item.price
             }));
-            */
 
-            // If order_items table exists:
-            // await supabase.from('order_items').insert(orderItems);
+            // 2. Create Order via Gateway
+            const gatewayResult = await createOrderGateway(
+                orderItems,
+                'cart_checkout',
+                activeShift.business_id,
+                activeShift.branch_id,
+                activeShift.staff_id,
+                undefined,
+                'Walk-In',
+                undefined,
+                { paymentMethod }
+            );
 
             toast.success("Order Created! Proceeding to Payment...");
 
@@ -128,7 +101,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             clearCart();
 
             // 4. Redirect to Payment Intent Page
-            navigate(`/payment-intent?orderId=${orderData.id}`);
+            navigate(`/payment-intent?orderId=${gatewayResult.order_id}`);
 
         } catch (error: any) {
             console.error("Checkout Failed:", error);

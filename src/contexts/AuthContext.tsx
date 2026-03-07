@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import { Profile } from '../types/database';
 
 export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
 
@@ -26,6 +27,7 @@ interface AuthContextType {
   locationId: string | null;
   departmentId: string | null;
   departmentName: string | null;
+  profile: Profile | null;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
 }
@@ -48,6 +50,7 @@ const AuthContext = createContext<AuthContextType>({
   locationId: null,
   departmentId: null,
   departmentName: null,
+  profile: null,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
 });
@@ -61,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [locationId, setLocationId] = useState<string | null>(null);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [departmentName, setDepartmentName] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const isMounted = useRef(true);
 
   const isOrgAdmin = currentRole === 'ceo' || currentRole === 'owner' || currentRole === 'super_admin';
@@ -75,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLocationId(null);
         setDepartmentId(null);
         setDepartmentName(null);
+        setProfile(null);
         setUser(null);
         setSession(null);
       }
@@ -108,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLocationId(null);
           setDepartmentId(null);
           setDepartmentName(null);
+          setProfile(null);
           setUser(currentSession.user);
           setSession(currentSession);
         }
@@ -126,6 +132,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLocationId(membership.branch_id);
         setDepartmentId(membership.department_id);
         setDepartmentName((membership.departments as any)?.name ?? null);
+        setProfile({
+          user_id: currentSession.user.id,
+          role: membership.role as any,
+          business_id: membership.business_id,
+          department: membership.department_id,
+          full_name: currentSession.user.user_metadata?.full_name || 'User',
+        });
         setUser(currentSession.user);
         setSession(currentSession);
       }
@@ -155,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLocationId(null);
           setDepartmentId(null);
           setDepartmentName(null);
+          setProfile(null);
           setUser(null);
           setSession(null);
         }
@@ -198,6 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       locationId,
       departmentId,
       departmentName,
+      profile,
       signOut,
       signInWithPassword
     }}>
