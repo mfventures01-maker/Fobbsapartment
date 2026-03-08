@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.shifts (
     staff_id UUID NOT NULL REFERENCES auth.users(id),
     
     start_time TIMESTAMPTZ NOT NULL DEFAULT now(),
-    end_time TIMESTAMPTZ,
+    ends_at TIMESTAMPTZ,
     
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
     

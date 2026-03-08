@@ -32,6 +32,7 @@ export interface Shift {
     branch_id: string;
     department_id: string;
     start_time: string;
+    ends_at?: string | null;
     status: ShiftStatus;
     created_at?: string;
 
@@ -51,7 +52,7 @@ export interface Shift {
     variance?: number;
     final_declaration_id?: string;
     manager_approval_id?: string;
-    closed_at?: string;
+    closed_at?: string | null;
 }
 
 export interface ShiftReconciliation {

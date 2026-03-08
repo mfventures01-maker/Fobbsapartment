@@ -9,7 +9,7 @@ BEGIN;
 --------------------------------------------------
 
 -- Ensure shifts table uses the expected column names and types
--- We consolidate on: staff_id, business_id, start_time, end_time, status
+-- We consolidate on: staff_id, business_id, start_time, ends_at, status
 DO $$ 
 BEGIN
     -- Rename staff_user_id to staff_id if it exists
@@ -24,9 +24,9 @@ BEGIN
         ALTER TABLE public.shifts RENAME COLUMN starts_at TO start_time;
     END IF;
 
-    -- Rename ends_at to end_time if it exists
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'shifts' AND column_name = 'ends_at') THEN
-        ALTER TABLE public.shifts RENAME COLUMN ends_at TO end_time;
+    -- Rename end_time to ends_at if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'shifts' AND column_name = 'end_time') THEN
+        ALTER TABLE public.shifts RENAME COLUMN end_time TO ends_at;
     END IF;
 END $$;
 
