@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 export async function createPublicOrder(
     businessId: string,
-    locationId: string,
+    _locationId: string,
     items: any[],
     customerName?: string,
     customerPhone?: string,
@@ -13,7 +13,7 @@ export async function createPublicOrder(
 
     const { data, error } = await supabase.rpc("create_public_order", {
         p_business_id: businessId,
-        p_location_id: locationId,
+        p_location_id: null, // Bypassing deprecated legacy location_id foreign key 
         p_items: items,
         p_customer_name: customerName || null,
         p_customer_phone: customerPhone || null,
@@ -27,7 +27,7 @@ export async function createPublicOrder(
 
 export async function createStaffOrder(
     businessId: string,
-    locationId: string,
+    _locationId: string,
     items: any[],
     metadata?: any,
     externalReference?: string
@@ -36,7 +36,7 @@ export async function createStaffOrder(
 
     const { data, error } = await supabase.rpc("create_staff_order", {
         p_business_id: businessId,
-        p_location_id: locationId,
+        p_location_id: null, // Bypassing deprecated legacy location_id foreign key
         p_items: items,
         p_metadata: metadata || {},
         p_external_reference: idemKey
