@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
 
+let isHydrating = false;
+
 export interface SystemState {
     active_shift: any | null;
     pending_orders_count: number;
@@ -29,7 +31,9 @@ export const useSystemStore = create<SystemState>((set) => ({
     error: null,
 
     hydrate: async (businessId: string) => {
-        if (!businessId) return;
+        if (!businessId || isHydrating) return;
+
+        isHydrating = true;
         set({ status: 'loading', error: null });
         try {
             console.log('[EDSS] Rehydrating system state from canonical DB...');
@@ -56,5 +60,6 @@ export const useSystemStore = create<SystemState>((set) => ({
             console.error('[EDSS] Rehydration failed:', error);
             set({ status: 'error', error: error.message });
         }
+        isHydrating = false;
     }
 }));
