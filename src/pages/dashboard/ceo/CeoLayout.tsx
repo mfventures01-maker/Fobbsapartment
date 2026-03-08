@@ -5,7 +5,7 @@ import { LayoutDashboard, Building2, Activity, Users, Settings, LogOut } from 'l
 import { BranchProvider } from '@/contexts/BranchContext';
 import { supabase } from '@/lib/supabaseClient';
 
-const CeoLayoutContent: React.FC = () => {
+const CeoLayoutContent: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -75,16 +75,16 @@ const CeoLayoutContent: React.FC = () => {
             </header>
 
             <main className="p-0 sm:p-6 max-w-7xl mx-auto">
-                <Outlet />
+                {children || <Outlet />}
             </main>
         </div>
     );
 };
 
-const CeoLayout: React.FC = () => {
+const CeoLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     return (
         <BranchProvider>
-            <CeoLayoutContent />
+            <CeoLayoutContent>{children}</CeoLayoutContent>
         </BranchProvider>
     );
 };

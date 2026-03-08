@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
 import FullScreenLoader from '@/components/FullScreenLoader';
+import { useSystemStore } from '@/store/systemStore';
 
 // Super Admin
 import SuperAdminDashboard from '@/pages/dashboard/super_admin/SuperAdminDashboard';
@@ -31,7 +32,17 @@ const DashboardEngine: React.FC = () => {
     if (authority.status === 'loading') return <FullScreenLoader />;
     if (authority.status === 'unauthorized') return <Navigate to="/unauthorized" replace />;
 
-    const { role } = authority;
+    const { role, businessId } = authority;
+    const { setupTelemetry, shutdownTelemetry } = useSystemStore();
+
+    React.useEffect(() => {
+        if (businessId) {
+            setupTelemetry(businessId);
+        }
+        return () => {
+            shutdownTelemetry();
+        };
+    }, [businessId, setupTelemetry, shutdownTelemetry]);
 
     // --- HIGH-INTEGRITY TERMINAL ROUTING ---
     return (

@@ -12,6 +12,7 @@ import {
 import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import toast from 'react-hot-toast';
 import { Shift, Transaction, InventoryItem, PaymentIntent } from '@/types/db';
+import { useSystemStore } from '@/store/systemStore';
 
 // --- SUB-COMPONENTS ---
 
@@ -81,6 +82,7 @@ const ReconciliationRow = ({ label, expected, declared }: { label: string, expec
 const ManagerCommandCenter: React.FC = () => {
     const { authority } = useAuth();
     const { shiftState, refreshShift, approveShift } = useShiftState();
+    const { status: systemStatus, pending_payments_count, pending_orders_count } = useSystemStore();
 
     // --- STATE ---
     const [stats, setStats] = useState({
@@ -315,8 +317,8 @@ const ManagerCommandCenter: React.FC = () => {
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard title="Revenue Today" value={`₦${stats.revenueToday.toLocaleString()}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
                     <StatCard title="Daily Orders" value={stats.ordersToday} icon={ShoppingBag} color={{ bg: 'bg-indigo-100', text: 'text-indigo-700' }} />
-                    <StatCard title="Open Orders" value={stats.openOrders} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
-                    <StatCard title="Operational Load" value={`${Math.min(100, (stats.openOrders / 10) * 100).toFixed(0)}%`} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
+                    <StatCard title="Open Orders (System Sync)" value={pending_orders_count} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
+                    <StatCard title="Pending Payments (Sync)" value={pending_payments_count} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
                 </section>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
