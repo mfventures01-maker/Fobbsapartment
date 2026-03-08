@@ -10,6 +10,7 @@ import {
     MapPin, Building2, Layers, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useSystemStore } from '@/store/systemStore';
 
 // --- SUB-COMPONENTS ---
 
@@ -57,21 +58,24 @@ const CEOControlTower: React.FC = () => {
     const { authority } = useAuth();
     const { shiftState } = useShiftState();
 
+    const {
+        status: systemStatus,
+        revenue_today,
+        revenue_hour,
+        pending_intents,
+        pending_orders_count,
+        recent_transactions
+    } = useSystemStore();
+
     // --- STATE ---
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         activeBranches: 0,
         activeStaff: 0,
-        activeShifts: 0,
         totalDepartments: 0,
-        revenueToday: 0,
-        revenueHour: 0,
-        pendingIntents: 0,
-        openOrders: 0
     });
 
     const [branchesPerformance, setBranchesPerformance] = useState<any[]>([]);
-    const [liveStream, setLiveStream] = useState<any[]>([]);
     const [staffList, setStaffList] = useState<any[]>([]);
     const [inventoryAlerts, setInventoryAlerts] = useState<any[]>([]);
     const [riskAlerts, setRiskAlerts] = useState<any[]>([]);
@@ -82,9 +86,6 @@ const CEOControlTower: React.FC = () => {
         setLoading(true);
 
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const lastHour = new Date(Date.now() - 3600000).toISOString();
-
             // 1. GLOBAL COMMAND STATS
             const { data: bCount } = await supabase.from('branches').select('id').eq('business_id', authority.businessId).eq('is_active', true);
             const { data: sCount } = await supabase.from('business_memberships').select('user_id').eq('business_id', authority.businessId).eq('status', 'active');
@@ -92,28 +93,16 @@ const CEOControlTower: React.FC = () => {
 
             const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
 
-            // 2. FINANCIAL INTELLIGENCE
-            const { data: txToday } = await supabase.from('transactions').select('amount, created_at').eq('business_id', authority.businessId).gte('created_at', today);
-            const { data: txHour } = await supabase.from('transactions').select('amount').eq('business_id', authority.businessId).gte('created_at', lastHour);
-            const { data: pendingIntents } = await supabase.from('payment_intents').select('id').eq('org_id', authority.businessId).eq('status', 'pending');
-            const { data: openOrders } = await supabase.from('orders').select('id').eq('org_id', authority.businessId).eq('status', 'open');
-
-            const revToday = txToday?.reduce((acc, t) => acc + Number(t.amount), 0) || 0;
-            const revHour = txHour?.reduce((acc, t) => acc + Number(t.amount), 0) || 0;
+            // 2. FINANCIAL INTELLIGENCE (Offloaded to EDSS via useSystemStore)
 
             setStats({
                 activeBranches: bCount?.length || 0,
                 activeStaff: sCount?.length || 0,
-                activeShifts: activeShiftsFromContext.length,
                 totalDepartments: dCount?.length || 0,
-                revenueToday: revToday,
-                revenueHour: revHour,
-                pendingIntents: pendingIntents?.length || 0,
-                openOrders: openOrders?.length || 0
             });
 
-            // 3. BRANCH PERFORMANCE GRID
             // Using a join-like map for real data
+            const today = new Date().toISOString().split('T')[0];
             const { data: branchData } = await supabase.from('branches').select('id, name').eq('business_id', authority.businessId);
             const branchPerf = await Promise.all((branchData || []).map(async b => {
                 const { data: bTx } = await supabase.from('transactions').select('amount').eq('branch_id', b.id).gte('created_at', today);
@@ -129,9 +118,7 @@ const CEOControlTower: React.FC = () => {
             }));
             setBranchesPerformance(branchPerf);
 
-            // 4. LIVE TRANSACTION STREAM
-            const { data: stream } = await supabase.from('transactions').select('*, branch:branches(name)').eq('business_id', authority.businessId).order('created_at', { ascending: false }).limit(6);
-            setLiveStream(stream || []);
+            // 4. LIVE TRANSACTION STREAM (Offloaded to EDSS)
 
             // 5. STAFF GOVERNANCE
             const { data: staffs } = await supabase.from('business_memberships').select('*, profiles(full_name, status)').eq('business_id', authority.businessId).limit(5);
@@ -160,16 +147,6 @@ const CEOControlTower: React.FC = () => {
 
     useEffect(() => {
         hydrate();
-
-        const channel = supabase.channel('ceo-control-tower')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_intents' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => hydrate())
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
     }, [hydrate]);
 
     // --- CEO CONTROLS ---
@@ -226,7 +203,7 @@ const CEOControlTower: React.FC = () => {
                             <div className="w-px h-8 bg-white/10" />
                             <div className="text-center">
                                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Open Shifts</p>
-                                <p className="text-xs font-black text-amber-400">{stats.activeShifts}</p>
+                                <p className="text-xs font-black text-amber-400">{'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0}</p>
                             </div>
                         </div>
 
@@ -248,7 +225,7 @@ const CEOControlTower: React.FC = () => {
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
                         title="Revenue Today"
-                        value={`₦${stats.revenueToday.toLocaleString()}`}
+                        value={`₦${revenue_today.toLocaleString()}`}
                         icon={Landmark}
                         color={{ bg: 'bg-emerald-50', text: 'text-emerald-600' }}
                         trend="+18.2%"
@@ -256,14 +233,14 @@ const CEOControlTower: React.FC = () => {
                     />
                     <StatCard
                         title="Revenue: Last Hour"
-                        value={`₦${stats.revenueHour.toLocaleString()}`}
+                        value={`₦${revenue_hour.toLocaleString()}`}
                         icon={Zap}
                         color={{ bg: 'bg-amber-50', text: 'text-amber-600' }}
                         subtitle="Real-time intake velocity"
                     />
                     <StatCard
                         title="Pending Verification"
-                        value={stats.pendingIntents}
+                        value={pending_intents.length}
                         icon={Clock}
                         color={{ bg: 'bg-rose-50', text: 'text-rose-600' }}
                         subtitle="Unresolved payment intents"
@@ -313,8 +290,8 @@ const CEOControlTower: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {stats.openOrders}</span>
-                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {stats.activeShifts}</span>
+                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {pending_orders_count}</span>
+                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0}</span>
                                 </div>
                             </div>
                             <div className="overflow-x-auto">
@@ -328,7 +305,7 @@ const CEOControlTower: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50 font-medium">
-                                        {liveStream.map(tx => (
+                                        {recent_transactions.slice(0, 6).map((tx: any) => (
                                             <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-10 py-6">
                                                     <p className="text-xs font-bold text-slate-800">{new Date(tx.created_at).toLocaleTimeString()}</p>
@@ -337,7 +314,7 @@ const CEOControlTower: React.FC = () => {
                                                 <td className="px-10 py-6">
                                                     <div className="flex items-center gap-2">
                                                         <MapPin className="w-3 h-3 text-slate-300" />
-                                                        <span className="text-sm font-bold text-slate-700">{tx.branch?.name || 'Main'}</span>
+                                                        <span className="text-sm font-bold text-slate-700">{tx.branch_name || 'Main'}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-10 py-6 text-right">

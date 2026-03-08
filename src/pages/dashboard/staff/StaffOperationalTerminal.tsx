@@ -9,9 +9,10 @@ import {
     Clock, Banknote, Smartphone, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { InventoryItem, Transaction, PaymentIntent } from '@/types/db';
+import { InventoryItem, PaymentIntent } from '@/types/database';
 import ShiftSettlementPanel from '@/components/ShiftSettlementPanel';
-import { SHIFT_STATUS } from '../../../constants/shiftStatus';
+import { SHIFT_STATUS } from '@/constants/shiftStatus';
+import { useSystemStore } from '@/store/systemStore';
 
 // --- TYPES ---
 interface CartItem {
@@ -26,9 +27,9 @@ interface CartItem {
 const StaffOperationalTerminal: React.FC = () => {
     const { user, authority } = useAuth();
     const { shiftState, startShift, endShift, refreshShift } = useShiftState();
+    const { recent_transactions: transactions } = useSystemStore();
 
     // --- STATE ---
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -45,17 +46,8 @@ const StaffOperationalTerminal: React.FC = () => {
         if (!authority.businessId) return;
 
         try {
-            // 2. Fetch Recent Transactions
-            const { data: txData } = await supabase
-                .from('transactions')
-                .select('*')
-                .eq('business_id', authority.businessId)
-                .order('created_at', { ascending: false })
-                .limit(10);
-
-            if (txData) setTransactions(txData);
-
             // 3. Fetch Inventory (Live Menu Source)
+            // Inventory updates could be moved to store, but for now we keep it here as it's not explicitly in system store prompt
             const { data: invData } = await supabase
                 .from('inventory')
                 .select('*')
@@ -74,20 +66,12 @@ const StaffOperationalTerminal: React.FC = () => {
             initialFetchDone.current = true;
         }
 
-        // --- REALTIME TELEMETRY ---
-        const channel = supabase.channel('operational-terminal-telemetry')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => hydrate())
+        const channel = supabase.channel('operational-terminal-inventory')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_intents' }, () => hydrate())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
-                refreshShift();
-                hydrate();
-            })
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [authority.businessId, hydrate, refreshShift]);
+    }, [authority.businessId, hydrate]);
 
     // --- CART LOGIC WITH INVENTORY GUARD ---
     const addToCart = (item: InventoryItem) => {

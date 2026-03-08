@@ -20,6 +20,9 @@ import AuthGate from '@/auth/AuthGate';
 import DashboardEngine from '@/pages/dashboard/DashboardEngine';
 import AccessDenied from '@/pages/auth/AccessDenied';
 import Unauthorized from '@/pages/auth/Unauthorized';
+import { setupTelemetry } from '@/lib/systemTelemetry';
+import { useSystemStore } from '@/store/systemStore';
+import { HOTEL_CONFIG } from '@/config/cars.config';
 
 // Public pages
 import RestaurantPublic from '@/pages/public/RestaurantPublic';
@@ -83,6 +86,13 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  React.useEffect(() => {
+    // Phase 5 - Inject Telemetry Into App Boot
+    const shutdown = setupTelemetry();
+    useSystemStore.getState().hydrate(HOTEL_CONFIG.org_id);
+    return shutdown;
+  }, []);
+
   return (
     <AuthProvider>
       <ShiftProvider>
