@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bed, Users, Square, Wifi, Wind, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Apartment } from '../types';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface Props {
   apartment: Apartment;
@@ -50,7 +51,7 @@ const ApartmentCard: React.FC<Props> = ({ apartment }) => {
 
         {/* Price Tag */}
         <div className="absolute bottom-5 right-5 bg-white/95 backdrop-blur shadow-2xl px-5 py-2.5 rounded-2xl z-10 flex flex-col items-end">
-          <span className="text-xl font-bold text-emerald-900 leading-none">₦{apartment.pricePerNight.toLocaleString()}</span>
+          <span className="text-xl font-bold text-emerald-900 leading-none">₦{safeNumber(apartment.pricePerNight)}</span>
           <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">/ Night</span>
         </div>
 

@@ -3,6 +3,7 @@ import { useShiftState } from '@/contexts/ShiftContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Lock, Calculator, AlertCircle, CheckCircle2, SendHorizonal } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface ShiftSettlementPanelProps {
     shiftId: string;
@@ -63,7 +64,7 @@ const ShiftSettlementPanel: React.FC<ShiftSettlementPanelProps> = ({ shiftId, on
         const variance = totalDeclared - totalSystem;
 
         if (variance !== 0) {
-            if (!window.confirm(`Warning: Variance detected (₦${variance.toLocaleString()}). Submit for manager investigation?`)) {
+            if (!window.confirm(`Warning: Variance detected (₦${safeNumber(variance)}). Submit for manager investigation?`)) {
                 setSubmitting(false);
                 return;
             }
@@ -102,7 +103,7 @@ const ShiftSettlementPanel: React.FC<ShiftSettlementPanelProps> = ({ shiftId, on
                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Physical Cash</label>
-                            <span className="text-[10px] font-bold text-slate-400">System: ₦{stats.system_cash.toLocaleString()}</span>
+                            <span className="text-[10px] font-bold text-slate-400">System: ₦{safeNumber(stats.system_cash)}</span>
                         </div>
                         <input
                             required
@@ -118,7 +119,7 @@ const ShiftSettlementPanel: React.FC<ShiftSettlementPanelProps> = ({ shiftId, on
                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">POS Machine Total</label>
-                            <span className="text-[10px] font-bold text-slate-400">System: ₦{stats.system_pos.toLocaleString()}</span>
+                            <span className="text-[10px] font-bold text-slate-400">System: ₦{safeNumber(stats.system_pos)}</span>
                         </div>
                         <input
                             required
@@ -134,7 +135,7 @@ const ShiftSettlementPanel: React.FC<ShiftSettlementPanelProps> = ({ shiftId, on
                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Verified Transfers</label>
-                            <span className="text-[10px] font-bold text-slate-400">System: ₦{stats.system_transfer.toLocaleString()}</span>
+                            <span className="text-[10px] font-bold text-slate-400">System: ₦{safeNumber(stats.system_transfer)}</span>
                         </div>
                         <input
                             required
@@ -153,7 +154,7 @@ const ShiftSettlementPanel: React.FC<ShiftSettlementPanelProps> = ({ shiftId, on
                             {variance === 0 ? 'Balance Perfect' : 'Variance Detected'}
                         </span>
                         <span className={variance === 0 ? 'text-emerald-700' : 'text-rose-700'}>
-                            ₦{variance.toLocaleString()}
+                            ₦{safeNumber(variance)}
                         </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 leading-tight">

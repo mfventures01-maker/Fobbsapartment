@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { createPublicOrder } from '@/services/orderService';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { safeNumber } from '@/lib/safeNumber';
 
 const BarPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
@@ -119,7 +120,7 @@ const BarPublic: React.FC = () => {
                         payment_method: paymentMethod,
                         notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
                         room_number: room || "N/A",
-                        summary: `${cart.length} drinks (₦${subtotal.toLocaleString()})`
+                        summary: `${cart.length} drinks (₦${safeNumber(subtotal)})`
                     },
                     channel as any,
                     'kitchen'
@@ -176,7 +177,7 @@ const BarPublic: React.FC = () => {
                                             <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
                                                 <div>
                                                     <div className="font-bold text-gray-900">{item.name}</div>
-                                                    <div className="text-emerald-700 font-medium">₦{item.price.toLocaleString()}</div>
+                                                    <div className="text-emerald-700 font-medium">₦{safeNumber(item.price)}</div>
                                                 </div>
                                                 <button
                                                     onClick={() => addToCart(item)}
@@ -268,7 +269,7 @@ const BarPublic: React.FC = () => {
                                             <div key={item.id} className="flex items-center justify-between text-sm">
                                                 <div className="flex-1">
                                                     <div className="font-medium text-gray-900">{item.name}</div>
-                                                    <div className="text-gray-500">₦{item.price.toLocaleString()} x {item.quantity}</div>
+                                                    <div className="text-gray-500">₦{safeNumber(item.price)} x {item.quantity}</div>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-100 rounded text-gray-500"><Minus className="w-3 h-3" /></button>
@@ -282,7 +283,7 @@ const BarPublic: React.FC = () => {
                                     <div className="border-t border-dashed border-gray-200 pt-4">
                                         <div className="flex justify-between items-center font-bold text-lg text-emerald-900">
                                             <span>Total</span>
-                                            <span>₦{subtotal.toLocaleString()}</span>
+                                            <span>₦{safeNumber(subtotal)}</span>
                                         </div>
                                     </div>
 

@@ -1,4 +1,5 @@
 import { Room, HOTEL_CONFIG } from '@/config/cars.config';
+import { safeNumber } from '@/lib/safeNumber';
 
 export interface BookingForm {
     guestName: string;
@@ -29,7 +30,7 @@ export function buildHotelBookingMessage(formData: BookingForm, room: Room): str
 *Nights:* ${nights}
 *Guests:* ${formData.guests}
 ------------------------
-*Total Estimate:* ₦${totalCost.toLocaleString()}
+*Total Estimate:* ₦${safeNumber(totalCost)}
 *Payment:* ${formData.paymentMethod || "Not Selected"}
 *Notes:* ${formData.notes || "None"}
 
@@ -50,7 +51,7 @@ export function buildRoomServiceMessage(payload: any): string {
 *Order Details:*
 ${itemsList}
 
-*Subtotal:* ₦${payload.subtotal.toLocaleString()}
+*Subtotal:* ₦${safeNumber(payload.subtotal)}
 *Payment:* ${payload.payment_method || "Bill to Room"}
 ------------------------
 *Notes:* ${payload.notes || "None"}
@@ -102,7 +103,7 @@ export function buildAddonMessage(payload: any): string {
 *Requested:*
 ${itemsList}
 
-${payload.subtotal > 0 ? `*Est. Cost:* ₦${payload.subtotal.toLocaleString()}` : ''}
+${payload.subtotal > 0 ? `*Est. Cost:* ₦${safeNumber(payload.subtotal)}` : ''}
 ------------------------
 *Notes:* ${payload.notes || "None"}
 
@@ -122,7 +123,7 @@ export function buildBarOrderMessage(payload: any): string {
 *Order Details:*
 ${itemsList}
 
-*Subtotal:* ₦${payload.subtotal.toLocaleString()}
+*Subtotal:* ₦${safeNumber(payload.subtotal)}
 *Payment:* ${payload.payment_method || "Bill to Room"}
 ------------------------
 *Notes:* ${payload.notes || "None"}

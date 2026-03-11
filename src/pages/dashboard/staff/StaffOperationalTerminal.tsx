@@ -13,6 +13,7 @@ import { InventoryItem, PaymentIntent } from '@/types/database';
 import ShiftSettlementPanel from '@/components/ShiftSettlementPanel';
 import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import { useSystemStore } from '@/store/systemStore';
+import { safeNumber } from '@/lib/safeNumber';
 
 // --- TYPES ---
 interface CartItem {
@@ -241,7 +242,7 @@ const StaffOperationalTerminal: React.FC = () => {
                             </div>
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">Revenue Today</p>
-                                <p className="text-xs font-black text-emerald-400">₦{shiftRevenue.toLocaleString()}</p>
+                                <p className="text-xs font-black text-emerald-400">₦{safeNumber(shiftRevenue)}</p>
                             </div>
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">Transactions</p>
@@ -312,7 +313,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                                 {item.current_stock <= 0 ? 'Out of Stock' : 'Saleable Asset'}
                                             </p>
                                             <h4 className="font-bold text-slate-900 text-sm mb-2">{item.name}</h4>
-                                            <p className="text-xl font-black text-slate-800">₦{Number(item.sale_price).toLocaleString()}</p>
+                                            <p className="text-xl font-black text-slate-800">₦{safeNumber(item.sale_price)}</p>
                                             <div className="mt-2 text-[9px] font-medium text-slate-400 uppercase tracking-tighter">
                                                 Stock: {item.current_stock} {item.unit}
                                             </div>
@@ -334,7 +335,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                         <div key={i.id} className="bg-white p-3 rounded-2xl border border-slate-100 flex items-center justify-between gap-2 shadow-sm">
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-bold text-slate-900 text-xs truncate">{i.name}</p>
-                                                <p className="text-[10px] text-slate-400">₦{i.price.toLocaleString()}</p>
+                                                <p className="text-[10px] text-slate-400">₦{safeNumber(i.price)}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <button onClick={() => updateQty(i.id, -1)} className="p-1 hover:bg-slate-50 rounded-lg"><Minus className="w-3 h-3 text-slate-400" /></button>
@@ -351,7 +352,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                     </div>
                                     <div className="flex justify-between items-center text-slate-900">
                                         <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Total</span>
-                                        <span className="text-2xl font-black">₦{total.toLocaleString()}</span>
+                                        <span className="text-2xl font-black">₦{safeNumber(total)}</span>
                                     </div>
                                     <button
                                         onClick={handleCreateOrder}
@@ -397,7 +398,7 @@ const StaffOperationalTerminal: React.FC = () => {
                             {activeIntent.status === 'pending' && !activeIntent.payment_type?.includes('_order') && (
                                 <div className="p-6 bg-emerald-900 rounded-2xl text-white text-center space-y-4">
                                     <p className="text-[10px] uppercase opacity-60">Settling via {activeIntent.payment_type}</p>
-                                    <h4 className="text-3xl font-black">₦{Number(activeIntent.expected_amount).toLocaleString()}</h4>
+                                    <h4 className="text-3xl font-black">₦{safeNumber(activeIntent.expected_amount)}</h4>
 
                                     <div className="flex gap-2">
                                         <button onClick={() => confirmPayment()} className="flex-1 bg-white text-emerald-900 py-3 rounded-xl font-black uppercase text-[10px] shadow-lg">
@@ -451,7 +452,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><Banknote className="w-4 h-4" /></div>
                                         <div>
-                                            <p className="font-black text-slate-900">₦{Number(tx.amount).toLocaleString()}</p>
+                                            <p className="font-black text-slate-900">₦{safeNumber(tx.amount)}</p>
                                             <p className="text-[10px] text-slate-400">{tx.payment_type}</p>
                                         </div>
                                     </div>
@@ -471,7 +472,7 @@ const StaffOperationalTerminal: React.FC = () => {
                     </div>
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Shift Revenue</p>
-                        <p className="text-sm font-black text-emerald-600">₦{shiftRevenue.toLocaleString()}</p>
+                        <p className="text-sm font-black text-emerald-600">₦{safeNumber(shiftRevenue)}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-500 text-xs font-bold">

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { CheckCircle, AlertOctagon, Scale, RefreshCw, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface TransactionRecord {
     id: string;
@@ -100,7 +101,7 @@ const Payments: React.FC = () => {
                                             {new Date(tx.created_at).toLocaleTimeString()}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <span className="text-lg font-black text-gray-900 tracking-tight">₦{Number(tx.amount).toLocaleString()}</span>
+                                            <span className="text-lg font-black text-gray-900 tracking-tight">₦{safeNumber(tx.amount)}</span>
                                         </td>
                                         <td className="px-6 py-4 text-xs font-black text-gray-900 uppercase tracking-widest">
                                             {tx.payment_type}

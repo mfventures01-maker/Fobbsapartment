@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBranch } from '@/contexts/BranchContext';
 import { supabase } from '@/lib/supabaseClient';
 import toast from 'react-hot-toast';
+import { safeNumber } from '@/lib/safeNumber';
 
 const DashboardHome: React.FC = () => {
     const { profile } = useAuth();
@@ -160,7 +161,7 @@ const DashboardHome: React.FC = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-black text-gray-900 tracking-tight capitalize">{tx.payment_type} RECORDED</p>
-                                                <p className="text-xs font-bold text-gray-500">₦{tx.amount.toLocaleString()} • Ref: {tx.payment_reference}</p>
+                                                <p className="text-xs font-bold text-gray-500">₦{safeNumber(tx.amount)} • Ref: {tx.payment_reference}</p>
                                                 <div className="text-[10px] font-medium text-gray-300 uppercase mt-1">ID: {tx.id.slice(0, 8)}... • {new Date(tx.created_at).toLocaleTimeString()}</div>
                                             </div>
                                         </div>

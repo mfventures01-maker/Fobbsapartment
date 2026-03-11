@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, CreditCard, Banknote, Smartphone, Trash2 } from 'lucide-react';
+import { safeNumber } from '@/lib/safeNumber';
 
 // Mock Items for now since we don't have a guaranteed 'menu' table structure yet
 // In production, fetch from 'products' table
@@ -50,7 +50,7 @@ const POSPage: React.FC = () => {
                                 <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">{item.category}</span>
                             </div>
                             <h3 className="font-bold text-gray-800 mb-1 group-hover:text-emerald-600 transition-colors">{item.name}</h3>
-                            <p className="text-emerald-600 font-mono font-bold">₦{item.price.toLocaleString()}</p>
+                            <p className="text-emerald-600 font-mono font-bold">₦{safeNumber(item.price)}</p>
                         </div>
                     ))}
                 </div>
@@ -79,11 +79,11 @@ const POSPage: React.FC = () => {
                             <div key={item.id} className="flex justify-between items-center">
                                 <div>
                                     <h4 className="font-bold text-gray-800 text-sm">{item.name}</h4>
-                                    <p className="text-xs text-gray-500">₦{item.price.toLocaleString()} x {item.quantity}</p>
+                                    <p className="text-xs text-gray-500">₦{safeNumber(item.price)} x {item.quantity}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <span className="font-mono font-bold text-gray-900 text-sm">
-                                        ₦{(item.price * item.quantity).toLocaleString()}
+                                        ₦{safeNumber(item.price * item.quantity)}
                                     </span>
                                     <button
                                         onClick={() => removeFromCart(item.id)}
@@ -100,7 +100,7 @@ const POSPage: React.FC = () => {
                 <div className="p-6 bg-gray-50 border-t border-gray-200">
                     <div className="flex justify-between items-center mb-6">
                         <span className="text-gray-500 font-medium">Total Amount</span>
-                        <span className="text-2xl font-black text-gray-900">₦{total.toLocaleString()}</span>
+                        <span className="text-2xl font-black text-gray-900">₦{safeNumber(total)}</span>
                     </div>
 
                     <button

@@ -13,6 +13,7 @@ import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import toast from 'react-hot-toast';
 import { Shift, InventoryItem } from '@/types/database';
 import { useSystemStore } from '@/store/systemStore';
+import { safeNumber } from '@/lib/safeNumber';
 
 // --- SUB-COMPONENTS ---
 
@@ -70,10 +71,10 @@ const ReconciliationRow = ({ label, expected, declared }: { label: string, expec
     return (
         <tr className="hover:bg-slate-50/50 transition-colors">
             <td className="px-6 py-4 font-bold text-slate-700 text-xs">{label}</td>
-            <td className="px-6 py-4 text-right font-mono text-xs">₦{Number(safeExpected).toLocaleString()}</td>
-            <td className="px-6 py-4 text-right font-mono text-xs">₦{Number(safeDeclared).toLocaleString()}</td>
+            <td className="px-6 py-4 text-right font-mono text-xs">₦{safeNumber(safeExpected)}</td>
+            <td className="px-6 py-4 text-right font-mono text-xs">₦{safeNumber(safeDeclared)}</td>
             <td className={`px-6 py-4 text-right font-mono text-xs font-black ${diff < 0 ? 'text-rose-600' : diff > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-                {diff === 0 ? '-' : `₦${diff.toLocaleString()}`}
+                {diff === 0 ? '-' : `₦${safeNumber(diff)}`}
             </td>
         </tr>
     );
@@ -146,7 +147,7 @@ const ManagerCommandCenter: React.FC = () => {
                 newAlerts.push({ type: 'security', message: `${pendingIntents.length} payments awaiting manual verification` });
             }
             transactions?.forEach((tx: any) => {
-                if (tx.amount > 100000) newAlerts.push({ type: 'security', message: `High value ${tx.payment_type} detected: ₦${tx.amount.toLocaleString()}` });
+                if (tx.amount > 100000) newAlerts.push({ type: 'security', message: `High value ${tx.payment_type} detected: ₦${safeNumber(tx.amount)}` });
             });
             if (pending.length > 0) {
                 newAlerts.push({ type: 'security', message: `${pending.length} Shift approvals pending verification` });
@@ -279,7 +280,7 @@ const ManagerCommandCenter: React.FC = () => {
 
                 {/* 2. LIVE OPERATIONS OVERVIEW */}
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Revenue Today" value={`₦${revenue_today.toLocaleString()}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
+                    <StatCard title="Revenue Today" value={`₦${safeNumber(revenue_today)}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
                     <StatCard title="Daily Orders" value={stats.ordersToday} icon={ShoppingBag} color={{ bg: 'bg-indigo-100', text: 'text-indigo-700' }} />
                     <StatCard title="Open Orders (System Sync)" value={pending_orders_count} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
                     <StatCard title="Pending Payments (Sync)" value={pending_payments_count} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
@@ -309,7 +310,7 @@ const ManagerCommandCenter: React.FC = () => {
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[9px] font-black rounded-full uppercase mb-2 inline-block">{intent.payment_type}</span>
-                                                    <h4 className="text-2xl font-black text-slate-800">₦{Number(intent.expected_amount).toLocaleString()}</h4>
+                                                    <h4 className="text-2xl font-black text-slate-800">₦{safeNumber(intent.expected_amount)}</h4>
                                                     <p className="text-xs text-slate-400 font-medium">{intent.order_data?.customer_name || 'Walk-in'} • {intent.order_data?.table_reference || 'Counter'}</p>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -374,9 +375,9 @@ const ManagerCommandCenter: React.FC = () => {
                                                             <ReconciliationRow label="Bank Transfer" expected={shift.expected_transfer} declared={shift.declared_transfer} />
                                                             <tr className="bg-white/50">
                                                                 <td className="px-6 py-5 font-black text-slate-900">Total Settlement</td>
-                                                                <td className="px-6 py-5 text-right font-black">₦{Number(shift.expected_total || 0).toLocaleString()}</td>
-                                                                <td className="px-6 py-5 text-right font-black text-indigo-600">₦{Number(shift.declared_total || 0).toLocaleString()}</td>
-                                                                <td className={`px-6 py-5 text-right font-black ${(shift.variance || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>₦{Number(shift.variance || 0).toLocaleString()}</td>
+                                                                <td className="px-6 py-5 text-right font-black">₦{safeNumber(shift.expected_total || 0)}</td>
+                                                                <td className="px-6 py-5 text-right font-black text-indigo-600">₦{safeNumber(shift.declared_total || 0)}</td>
+                                                                <td className={`px-6 py-5 text-right font-black ${(shift.variance || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>₦{safeNumber(shift.variance || 0)}</td>
                                                             </tr>
                                                         </tbody>
                                                     </table>
@@ -415,7 +416,7 @@ const ManagerCommandCenter: React.FC = () => {
                                                     <p className="text-[10px] text-slate-400 font-mono">TX-{tx.id.slice(0, 8)}</p>
                                                 </td>
                                                 <td className="px-10 py-6">
-                                                    <p className="text-sm font-black text-slate-900">₦{Number(tx.amount).toLocaleString()}</p>
+                                                    <p className="text-sm font-black text-slate-900">₦{safeNumber(tx.amount)}</p>
                                                 </td>
                                                 <td className="px-10 py-6">
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${tx.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700' :

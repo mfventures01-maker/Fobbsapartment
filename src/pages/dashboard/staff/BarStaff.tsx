@@ -3,6 +3,7 @@ import { Wine, AlertCircle, ShoppingBag, Bell, Loader2, ArrowRight } from 'lucid
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface Order {
     id: string;
@@ -90,7 +91,7 @@ const BarStaff: React.FC = () => {
                 />
                 <StatCard
                     title="Revenue Today"
-                    value={`₦${orders.reduce((acc, o) => acc + (o.status === 'paid' ? o.total : 0), 0).toLocaleString()}`}
+                    value={`₦${safeNumber(orders.reduce((acc, o) => acc + (o.status === 'paid' ? o.total : 0), 0))}`}
                     icon={<ShoppingBag className="w-6 h-6 text-emerald-600" />}
                     color="bg-emerald-50"
                 />
@@ -127,7 +128,7 @@ const BarStaff: React.FC = () => {
                                         {order.metadata?.table_number ? `Table ${order.metadata.table_number}` : order.customer_name || 'Guest'}
                                     </div>
                                     <div className="text-xs text-gray-500 font-medium flex items-center gap-2">
-                                        <span>₦{order.total.toLocaleString()}</span>
+                                        <span>₦{safeNumber(order.total)}</span>
                                         <span>•</span>
                                         <span>{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>

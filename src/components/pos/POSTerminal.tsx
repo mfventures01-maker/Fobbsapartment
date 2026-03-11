@@ -10,6 +10,7 @@ import { useShiftState } from '@/contexts/ShiftContext';
 import { createStaffOrder } from '@/services/orderService';
 import { confirmPaymentIntent } from '@/services/paymentService';
 import toast from 'react-hot-toast';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface CartItem extends MenuItem {
     quantity: number;
@@ -174,7 +175,7 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
                                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-1">{item.category}</p>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="font-black text-emerald-700">₦{item.price.toLocaleString()}</span>
+                                <span className="font-black text-emerald-700">₦{safeNumber(item.price)}</span>
                                 <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
                                     <Plus className="w-4 h-4" />
                                 </div>
@@ -209,7 +210,7 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
                         <div key={item.id} className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-50 group hover:border-slate-200 transition-all">
                             <div className="flex-1">
                                 <h4 className="font-bold text-slate-800 text-sm leading-none mb-1">{item.name}</h4>
-                                <p className="text-[10px] font-bold text-emerald-600">₦{item.price.toLocaleString()}</p>
+                                <p className="text-[10px] font-bold text-emerald-600">₦{safeNumber(item.price)}</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 bg-white border border-slate-100 rounded-lg text-slate-400 hover:border-orange-200 hover:text-orange-600">
@@ -241,11 +242,11 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
                     <div className="space-y-4">
                         <div className="flex justify-between items-center opacity-60">
                             <span className="text-xs uppercase font-black tracking-widest">Subtotal</span>
-                            <span className="font-mono">₦{subtotal.toLocaleString()}</span>
+                            <span className="font-mono">₦{safeNumber(subtotal)}</span>
                         </div>
                         <div className="flex justify-between items-center text-xl font-black">
                             <span>TOTAL</span>
-                            <span className="text-emerald-400 font-mono text-2xl">₦{subtotal.toLocaleString()}</span>
+                            <span className="text-emerald-400 font-mono text-2xl">₦{safeNumber(subtotal)}</span>
                         </div>
                     </div>
 

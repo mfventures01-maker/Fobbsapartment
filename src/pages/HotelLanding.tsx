@@ -5,6 +5,7 @@ import { getWhatsAppTargetNumber, buildHotelBookingMessage, openWhatsApp, openTe
 import { logLeadOrBooking } from '@/lib/logging';
 import { generateBookingId } from '@/lib/ids';
 import { Users, Wifi, Wind, MapPin, X, Send, Calendar, User, Phone, FileText, ChevronLeft, Bell, Star, ArrowRight, Utensils, Wine, Lock } from 'lucide-react';
+import { safeNumber } from '@/lib/safeNumber';
 
 
 const HotelLanding: React.FC = () => {
@@ -177,7 +178,7 @@ const HotelLanding: React.FC = () => {
 
                                     <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
                                         <div>
-                                            <span className="text-2xl font-bold text-emerald-900">₦{room.pricePerNight.toLocaleString()}</span>
+                                            <span className="text-2xl font-bold text-emerald-900">₦{safeNumber(room.pricePerNight)}</span>
                                             <span className="text-xs text-gray-400 font-medium"> / night</span>
                                         </div>
                                         <button
@@ -322,7 +323,7 @@ const HotelLanding: React.FC = () => {
                                         <img src={selectedRoom.images[0]} className="w-16 h-16 rounded-xl object-cover mr-4" alt="Room" />
                                         <div>
                                             <div className="font-bold text-emerald-900">{selectedRoom.name}</div>
-                                            <div className="text-xs text-emerald-700">₦{selectedRoom.pricePerNight.toLocaleString()} / night</div>
+                                            <div className="text-xs text-emerald-700">₦{safeNumber(selectedRoom.pricePerNight)} / night</div>
                                         </div>
                                     </div>
 
@@ -455,8 +456,8 @@ const HotelLanding: React.FC = () => {
                                         <div className="border-t border-emerald-100 pt-3">
                                             <p className="text-xs text-emerald-600 font-bold uppercase mb-1">Total Estimate</p>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-emerald-900 font-medium">{nights} Night{nights > 1 ? 's' : ''} x ₦{selectedRoom.pricePerNight.toLocaleString()}</span>
-                                                <span className="text-2xl font-bold text-emerald-900">₦{totalEst.toLocaleString()}</span>
+                                                <span className="text-emerald-900 font-medium">{nights} Night{nights > 1 ? 's' : ''} x ₦{safeNumber(selectedRoom.pricePerNight)}</span>
+                                                <span className="text-2xl font-bold text-emerald-900">₦{safeNumber(totalEst)}</span>
                                             </div>
                                         </div>
                                     </div>

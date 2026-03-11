@@ -10,7 +10,7 @@ import {
     MapPin, Building2, Layers, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useSystemStore } from '@/store/systemStore';
+import { safeNumber } from '@/lib/safeNumber';
 
 // --- SUB-COMPONENTS ---
 
@@ -48,7 +48,7 @@ const BranchRow = ({ branch }: { branch: any }) => (
             </div>
         </div>
         <div className="text-right">
-            <p className="text-sm font-black text-slate-900">₦{(branch.revenue || 0).toLocaleString()}</p>
+            <p className="text-sm font-black text-slate-900">₦{safeNumber(branch.revenue)}</p>
             <p className="text-[9px] font-black text-emerald-500 uppercase">Live Performance</p>
         </div>
     </div>
@@ -133,8 +133,8 @@ const CEOControlTower: React.FC = () => {
             const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
 
             const risks: { type: string; message: string }[] = [];
-            highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${v.amount.toLocaleString()})` }));
-            variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${(v.variance || 0).toLocaleString()} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
+            highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${safeNumber(v.amount)})` }));
+            variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${safeNumber(v.variance)} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
             setRiskAlerts(risks);
             setInventoryAlerts(lowStock || []);
 
@@ -225,7 +225,7 @@ const CEOControlTower: React.FC = () => {
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
                         title="Revenue Today"
-                        value={`₦${revenue_today.toLocaleString()}`}
+                        value={`₦${safeNumber(revenue_today)}`}
                         icon={Landmark}
                         color={{ bg: 'bg-emerald-50', text: 'text-emerald-600' }}
                         trend="+18.2%"
@@ -233,7 +233,7 @@ const CEOControlTower: React.FC = () => {
                     />
                     <StatCard
                         title="Revenue: Last Hour"
-                        value={`₦${revenue_hour.toLocaleString()}`}
+                        value={`₦${safeNumber(revenue_hour)}`}
                         icon={Zap}
                         color={{ bg: 'bg-amber-50', text: 'text-amber-600' }}
                         subtitle="Real-time intake velocity"
@@ -322,7 +322,7 @@ const CEOControlTower: React.FC = () => {
                                                         }`}>{tx.payment_type}</span>
                                                 </td>
                                                 <td className="px-10 py-6 text-right font-black text-slate-900 text-sm">
-                                                    ₦{Number(tx.amount).toLocaleString()}
+                                                    ₦{safeNumber(tx.amount)}
                                                 </td>
                                             </tr>
                                         ))}

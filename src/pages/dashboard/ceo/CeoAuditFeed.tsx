@@ -1,5 +1,6 @@
 import React from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { safeNumber } from '@/lib/safeNumber';
 
 // Phase 2: Replace mock data with supabase.from("audit_logs") + realtime
 
@@ -63,7 +64,7 @@ const CeoAuditFeed: React.FC = () => {
                                     {JSON.stringify(log.new_state || {})}
                                 </td>
                                 <td className="px-6 py-4 text-gray-400 text-xs">
-                                    {new Date(log.timestamp).toLocaleString()}
+                                    {new DatesafeNumber(log.timestamp)}
                                 </td>
                             </tr>
                         ))}

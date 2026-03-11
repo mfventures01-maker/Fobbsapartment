@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
+import { safeNumber } from '@/lib/safeNumber';
 
 const PaymentIntent: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -155,7 +156,7 @@ const PaymentIntent: React.FC = () => {
                 {/* Header */}
                 <div className="text-center space-y-2 mb-10">
                     <h1 className="text-4xl font-black tracking-tight">
-                        ₦{order.total.toLocaleString()}
+                        ₦{safeNumber(order.total)}
                     </h1>
                     <p className="text-slate-400 font-medium tracking-wide uppercase text-xs">
                         {tableNumber !== "N/A" ? `Table ${tableNumber}` : `Order #${(orderId || 'N/A').slice(0, 8)}`}

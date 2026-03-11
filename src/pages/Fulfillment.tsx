@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface Order {
     id: string;
@@ -170,7 +171,7 @@ const Fulfillment: React.FC = () => {
                                         <div>
                                             <span className="text-xs font-mono text-slate-500">#{order.id.slice(0, 8)}</span>
                                             <div className="text-2xl font-bold text-white mt-1">
-                                                ₦{order.total.toLocaleString()}
+                                                ₦{safeNumber(order.total)}
                                             </div>
                                         </div>
                                         <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full font-medium border border-emerald-500/20">
@@ -211,7 +212,7 @@ const Fulfillment: React.FC = () => {
                                 <div className="flex items-center gap-4">
                                     <div className="w-2 h-2 rounded-full bg-slate-600"></div>
                                     <span className="font-mono text-slate-500">#{order.id.slice(0, 8)}</span>
-                                    <span className="text-slate-300">₦{order.total.toLocaleString()}</span>
+                                    <span className="text-slate-300">₦{safeNumber(order.total)}</span>
                                 </div>
                                 <div className="text-slate-500 flex items-center gap-2">
                                     <span>Served {new Date(order.served_at!).toLocaleTimeString()}</span>

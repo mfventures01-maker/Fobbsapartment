@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useShiftState } from '@/contexts/ShiftContext';
 import { Banknote, CreditCard, Send, Calculator, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { safeNumber } from '@/lib/safeNumber';
 
 const ShiftDeclarationScreen: React.FC = () => {
     const { shiftState, submitDeclaration } = useShiftState();
@@ -99,7 +100,7 @@ const ShiftDeclarationScreen: React.FC = () => {
                                 <Calculator className="w-4 h-4" /> Total Declaration
                             </span>
                             <span className="text-2xl font-black text-amber-950 font-mono">
-                                ₦{totalDeclared.toLocaleString()}
+                                ₦{safeNumber(totalDeclared)}
                             </span>
                         </div>
                         <div className="h-px bg-amber-200/50 my-3" />

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
 import {
+import { safeNumber } from '@/lib/safeNumber';
     Layout, ShoppingBag,
     Users, Package,
     RefreshCw, Zap, MapPin
@@ -93,7 +94,7 @@ const StoreOperationsPanel: React.FC = () => {
                         <Zap className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Today's Revenue</p>
-                    <h3 className="text-2xl font-black text-slate-900">₦{stats.revenue.toLocaleString()}</h3>
+                    <h3 className="text-2xl font-black text-slate-900">₦{safeNumber(stats.revenue)}</h3>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl w-fit mb-4">

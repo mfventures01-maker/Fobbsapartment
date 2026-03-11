@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShift } from '@/hooks/useShift';
 import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle, ShieldCheck, Loader2, ArrowLeft, Landmark } from 'lucide-react';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface Order {
     id: string;
@@ -200,7 +201,7 @@ const ConfirmPayment: React.FC = () => {
                         </div>
                         <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-500">
                             <span>Amount</span>
-                            <span className="text-emerald-400">₦{order?.total.toLocaleString()}</span>
+                            <span className="text-emerald-400">₦{order?safeNumber(.total)}</span>
                         </div>
                     </div>
                     <button
@@ -240,7 +241,7 @@ const ConfirmPayment: React.FC = () => {
                         <p className="text-[10px] font-black text-slate-500 tracking-[0.3em] uppercase">Expected Amount</p>
                         <h2 className="text-5xl font-black tracking-tighter text-white">
                             <span className="text-2xl text-slate-600 mr-2">₦</span>
-                            {order?.total.toLocaleString()}
+                            {order?safeNumber(.total)}
                         </h2>
                     </div>
 

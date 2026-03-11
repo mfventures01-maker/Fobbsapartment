@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useShift } from '@/hooks/useShift';
 import { supabase } from '@/lib/supabaseClient';
 import { Clock, Wallet, DollarSign, Power, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { safeNumber } from '@/lib/safeNumber';
 
 
 const ShiftMonitor: React.FC = () => {
@@ -125,7 +126,7 @@ const ShiftMonitor: React.FC = () => {
                     <div className="bg-slate-50 p-4 rounded-lg">
                         <div className="flex justify-between mb-2 text-sm font-semibold text-slate-600">
                             <span>Expected Cash</span>
-                            <span>₦{totals.expected_cash.toLocaleString()}</span>
+                            <span>₦{safeNumber(totals.expected_cash)}</span>
                         </div>
                         <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Actual Count</label>
                         <input
@@ -141,7 +142,7 @@ const ShiftMonitor: React.FC = () => {
                     <div className="bg-slate-50 p-4 rounded-lg">
                         <div className="flex justify-between mb-2 text-sm font-semibold text-slate-600">
                             <span>Expected POS</span>
-                            <span>₦{totals.expected_pos.toLocaleString()}</span>
+                            <span>₦{safeNumber(totals.expected_pos)}</span>
                         </div>
                         <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Machine Total</label>
                         <input
@@ -157,7 +158,7 @@ const ShiftMonitor: React.FC = () => {
                     <div className="bg-slate-50 p-4 rounded-lg">
                         <div className="flex justify-between mb-2 text-sm font-semibold text-slate-600">
                             <span>Expected Transfer</span>
-                            <span>₦{totals.expected_transfer.toLocaleString()}</span>
+                            <span>₦{safeNumber(totals.expected_transfer)}</span>
                         </div>
                         <label className="block text-xs uppercase font-bold text-slate-400 mb-1">Verified Total</label>
                         <input
@@ -172,7 +173,7 @@ const ShiftMonitor: React.FC = () => {
                     {/* VARIANCE DISPLAY */}
                     <div className={`p-4 rounded-lg flex justify-between items-center font-bold ${variance === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
                         <span>Variance</span>
-                        <span>{variance > 0 ? '+' : ''}₦{variance.toLocaleString()}</span>
+                        <span>{variance > 0 ? '+' : ''}₦{safeNumber(variance)}</span>
                     </div>
 
                     {variance !== 0 && (
@@ -227,20 +228,20 @@ const ShiftMonitor: React.FC = () => {
                 <div className="bg-slate-800 p-4 rounded-xl">
                     <p className="text-slate-400 text-xs uppercase font-bold">Total Revenue</p>
                     <p className="text-2xl font-bold mt-1 text-emerald-400">
-                        ₦{(totals.expected_cash + totals.expected_pos + totals.expected_transfer).toLocaleString()}
+                        ₦{safeNumber(totals.expected_cash + totals.expected_pos + totals.expected_transfer)}
                     </p>
                 </div>
                 <div className="bg-slate-800 p-4 rounded-xl">
                     <p className="text-slate-400 text-xs uppercase font-bold flex items-center gap-1"><Wallet className="w-3 h-3" /> Cash</p>
-                    <p className="text-lg font-bold mt-1">₦{totals.expected_cash.toLocaleString()}</p>
+                    <p className="text-lg font-bold mt-1">₦{safeNumber(totals.expected_cash)}</p>
                 </div>
                 <div className="bg-slate-800 p-4 rounded-xl">
                     <p className="text-slate-400 text-xs uppercase font-bold flex items-center gap-1"><DollarSign className="w-3 h-3" /> POS</p>
-                    <p className="text-lg font-bold mt-1">₦{totals.expected_pos.toLocaleString()}</p>
+                    <p className="text-lg font-bold mt-1">₦{safeNumber(totals.expected_pos)}</p>
                 </div>
                 <div className="bg-slate-800 p-4 rounded-xl">
                     <p className="text-slate-400 text-xs uppercase font-bold">Transfer</p>
-                    <p className="text-lg font-bold mt-1">₦{totals.expected_transfer.toLocaleString()}</p>
+                    <p className="text-lg font-bold mt-1">₦{safeNumber(totals.expected_transfer)}</p>
                 </div>
             </div>
 
@@ -251,7 +252,7 @@ const ShiftMonitor: React.FC = () => {
                         <div key={tx.id} className="flex justify-between items-center text-sm bg-slate-800/50 p-2 rounded">
                             <span className="font-mono text-slate-500">#{tx.id.slice(0, 8)}</span>
                             <span className="capitalize text-slate-300">{tx.payment_type}</span>
-                            <span className="font-bold">₦{tx.amount.toLocaleString()}</span>
+                            <span className="font-bold">₦{safeNumber(tx.amount)}</span>
                         </div>
                     ))}
                     {transactions.length === 0 && <p className="text-slate-600 text-xs">No transactions yet.</p>}

@@ -2,6 +2,7 @@
 import React from 'react';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { Send, Edit2, AlertCircle } from 'lucide-react';
+import { safeNumber } from '@/lib/safeNumber';
 
 interface ConfirmSendPanelProps {
     typeLabel: string;
@@ -49,7 +50,7 @@ export const ConfirmSendPanel: React.FC<ConfirmSendPanelProps> = ({
                 {subtotal !== undefined && subtotal > 0 && (
                     <div className="border-t border-emerald-100 pt-3 flex justify-between items-center">
                         <span className="text-xs font-bold text-emerald-600 uppercase">Estimated Total</span>
-                        <span className="text-xl font-bold text-emerald-900">₦{subtotal.toLocaleString()}</span>
+                        <span className="text-xl font-bold text-emerald-900">₦{safeNumber(subtotal)}</span>
                     </div>
                 )}
 

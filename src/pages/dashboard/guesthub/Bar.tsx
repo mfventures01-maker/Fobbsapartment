@@ -4,6 +4,7 @@ import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
 import { Send, ArrowLeft, Plus, Minus, Wine } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { safeNumber } from '@/lib/safeNumber';
 
 const Bar: React.FC = () => {
     const { sendRequest } = useGuestHubRequest();
@@ -49,7 +50,7 @@ const Bar: React.FC = () => {
                 subtotal: subtotal,
                 payment_method: paymentMethod,
                 notes: `Delivery: ${delivery}. ${notes}`,
-                summary: `${cart.length} drinks (₦${subtotal.toLocaleString()})`
+                summary: `${cart.length} drinks (₦${safeNumber(subtotal)})`
             },
             channel,
             'kitchen' // Or bar if we had a specific routing key, kitchen handles F&B usually
@@ -97,7 +98,7 @@ const Bar: React.FC = () => {
                                         <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between shadow-sm">
                                             <div>
                                                 <div className="font-bold text-gray-900">{item.name}</div>
-                                                <div className="text-emerald-700 font-medium">₦{item.price.toLocaleString()}</div>
+                                                <div className="text-emerald-700 font-medium">₦{safeNumber(item.price)}</div>
                                             </div>
                                             <button
                                                 onClick={() => addToCart(item)}
@@ -134,7 +135,7 @@ const Bar: React.FC = () => {
                                         <div key={item.id} className="flex items-center justify-between text-sm">
                                             <div className="flex-1">
                                                 <div className="font-medium text-gray-900">{item.name}</div>
-                                                <div className="text-gray-500">₦{item.price.toLocaleString()} x {item.quantity}</div>
+                                                <div className="text-gray-500">₦{safeNumber(item.price)} x {item.quantity}</div>
                                             </div>
                                             <div className="flex items-center space-x-2">
                                                 <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-100 rounded"><Minus className="w-3 h-3" /></button>
@@ -148,7 +149,7 @@ const Bar: React.FC = () => {
                                 <div className="border-t pt-4">
                                     <div className="flex justify-between items-center font-bold text-lg">
                                         <span>Total</span>
-                                        <span>₦{subtotal.toLocaleString()}</span>
+                                        <span>₦{safeNumber(subtotal)}</span>
                                     </div>
                                 </div>
 
