@@ -3,6 +3,7 @@ import { useShiftState } from '@/contexts/ShiftContext';
 import { Banknote, CreditCard, Send, Calculator, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { safeNumber } from '@/lib/safeNumber';
+import { SHIFT_STATUS } from '@/constants/shiftStatus';
 
 const ShiftDeclarationScreen: React.FC = () => {
     const { shiftState, submitDeclaration } = useShiftState();
@@ -13,7 +14,7 @@ const ShiftDeclarationScreen: React.FC = () => {
         transfer: 0
     });
 
-    if (shiftState.status !== 'pending_declaration') return null;
+    if (shiftState.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) return null;
 
     const { shift } = shiftState;
 

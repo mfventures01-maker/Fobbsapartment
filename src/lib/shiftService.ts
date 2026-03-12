@@ -1,6 +1,6 @@
 
 import { supabase } from './supabaseClient';
-import { Shift } from '../types/db';
+import { Shift } from '../types/database';
 
 /**
  * ANTI-GRAVITY SHIFT AUTHORITY ENGINE
@@ -12,7 +12,7 @@ export async function getActiveShift(userId: string): Promise<Shift | null> {
         .from("shifts")
         .select("*")
         .eq("staff_id", userId)
-        .neq("status", "closed")
+        .eq("status", "open")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

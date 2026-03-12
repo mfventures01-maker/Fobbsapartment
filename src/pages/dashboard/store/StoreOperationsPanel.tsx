@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
-import {
+import { useSystemState } from '@/hooks/useSystemState';
 import { safeNumber } from '@/lib/safeNumber';
+import {
     Layout, ShoppingBag,
     Users, Package,
     RefreshCw, Zap, MapPin
@@ -19,38 +20,30 @@ const StoreOperationsPanel: React.FC = () => {
         lowStock: 0
     });
     const [loading, setLoading] = useState(true);
+    const { revenue, orders, refresh } = useSystemState();
 
     const hydrate = useCallback(async () => {
-        if (!authority.branchId) return;
+        if (!authority.businessId || !authority.branchId) return;
         setLoading(true);
         try {
-            const today = new Date().toISOString().split('T')[0];
+            // Trigger background refresh of system state
+            await refresh(authority.businessId, authority.branchId);
 
-            // 1. Revenue
-            const { data: tx } = await supabase.from('transactions')
-                .select('amount')
-                .eq('branch_id', authority.branchId)
-                .gte('created_at', today);
-
-            // 2. Orders
-            const { data: ord } = await supabase.from('orders')
-                .select('id')
-                .eq('location_id', authority.branchId)
-                .gte('created_at', today);
-
-            // 3. Active Staff (from context)
+            // Active Staff (from context)
             const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
             const branchStaff = activeShiftsFromContext.filter(s => s.branch_id === authority.branchId);
 
-            // 4. Low Stock
+            // 4. Low Stock (Currently derived from branch_performance or inventory log if added)
+            // For now, if inventory isn't in snapshot, we keep it scoped but ideally it moves to snapshot.
+            // Since Law 1 says all derived state from DB, we should eventually add low stock count to get_system_state.
             const { data: inv } = await supabase.from('inventory')
                 .select('id')
                 .eq('branch_id', authority.branchId)
                 .filter('current_stock', 'lt', 'min_stock');
 
             setStats({
-                revenue: tx?.reduce((acc, t) => acc + Number(t.amount), 0) || 0,
-                orders: ord?.length || 0,
+                revenue: revenue.today,
+                orders: orders.today_total,
                 staff: branchStaff.length,
                 lowStock: inv?.length || 0
             });
@@ -59,7 +52,7 @@ const StoreOperationsPanel: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [authority.branchId]);
+    }, [authority.businessId, authority.branchId, refresh, revenue.today, orders.today_total, shiftState]);
 
     useEffect(() => {
         hydrate();

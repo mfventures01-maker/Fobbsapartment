@@ -201,7 +201,7 @@ const ConfirmPayment: React.FC = () => {
                         </div>
                         <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-500">
                             <span>Amount</span>
-                            <span className="text-emerald-400">₦{order?safeNumber(.total)}</span>
+                            <span className="text-emerald-400">₦{safeNumber(order?.total)}</span>
                         </div>
                     </div>
                     <button
@@ -241,7 +241,7 @@ const ConfirmPayment: React.FC = () => {
                         <p className="text-[10px] font-black text-slate-500 tracking-[0.3em] uppercase">Expected Amount</p>
                         <h2 className="text-5xl font-black tracking-tighter text-white">
                             <span className="text-2xl text-slate-600 mr-2">₦</span>
-                            {order?safeNumber(.total)}
+                            {safeNumber(order?.total)}
                         </h2>
                     </div>
 

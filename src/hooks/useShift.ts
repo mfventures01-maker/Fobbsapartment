@@ -1,4 +1,5 @@
 import { useShiftState } from '@/contexts/ShiftContext';
+import { SHIFT_STATUS } from '../constants/shiftStatus';
 
 /**
  * Migration Hook: Redirects legacy useShift calls to the centralized ShiftContext.
@@ -7,8 +8,12 @@ import { useShiftState } from '@/contexts/ShiftContext';
 export function useShift() {
     const { shiftState, startShift, endShift, refreshShift } = useShiftState();
 
+    const currentShift = (shiftState.status === SHIFT_STATUS.OPEN || shiftState.status === SHIFT_STATUS.DECLARATION_SUBMITTED)
+        ? (shiftState as any).shift
+        : null;
+
     return {
-        currentShift: shiftState.status === 'active' ? shiftState.shift : null,
+        currentShift,
         loading: shiftState.status === 'loading',
         startShift,
         endShift,

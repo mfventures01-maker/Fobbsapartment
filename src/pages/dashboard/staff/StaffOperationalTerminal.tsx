@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { InventoryItem, PaymentIntent } from '@/types/database';
 import ShiftSettlementPanel from '@/components/ShiftSettlementPanel';
 import { SHIFT_STATUS } from '@/constants/shiftStatus';
-import { useSystemStore } from '@/store/systemStore';
+import { useSystemState } from '@/hooks/useSystemState';
 import { safeNumber } from '@/lib/safeNumber';
 
 // --- TYPES ---
@@ -28,7 +28,11 @@ interface CartItem {
 const StaffOperationalTerminal: React.FC = () => {
     const { user, authority } = useAuth();
     const { shiftState, startShift, endShift, refreshShift } = useShiftState();
-    const { recent_transactions: transactions } = useSystemStore();
+    const {
+        revenue,
+        recent_transactions: transactions,
+        refresh
+    } = useSystemState();
 
     // --- STATE ---
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -48,7 +52,6 @@ const StaffOperationalTerminal: React.FC = () => {
 
         try {
             // 3. Fetch Inventory (Live Menu Source)
-            // Inventory updates could be moved to store, but for now we keep it here as it's not explicitly in system store prompt
             const { data: invData } = await supabase
                 .from('inventory')
                 .select('*')
@@ -146,7 +149,6 @@ const StaffOperationalTerminal: React.FC = () => {
             toast.success('Order & Intent Synchronized', { id: loading });
 
             // Set the intent as active immediately for payment method selection
-            // The gateway creates a pending intent; we just need to fetch it or use the returned ID
             const { data: intentData, error: intentError } = await supabase
                 .from('payment_intents')
                 .select('*')
@@ -161,6 +163,7 @@ const StaffOperationalTerminal: React.FC = () => {
             setCustomerName('');
             setTableRef('');
             hydrate();
+            refresh(); // Trigger global system refresh
         } catch (err: any) {
             toast.error(err.message, { id: loading });
         }
@@ -179,6 +182,7 @@ const StaffOperationalTerminal: React.FC = () => {
 
             setActiveIntent({ ...activeIntent, payment_type: type });
             toast.success('Method Selected', { id: loading });
+            refresh();
         } catch (err: any) {
             toast.error(err.message, { id: loading });
         }
@@ -199,6 +203,7 @@ const StaffOperationalTerminal: React.FC = () => {
             toast.success('Transaction Verified', { id: loading });
             setActiveIntent(null);
             hydrate();
+            refresh();
         } catch (err: any) {
             toast.error(err.message, { id: loading });
         }
@@ -211,9 +216,7 @@ const StaffOperationalTerminal: React.FC = () => {
         );
     }, [inventory, searchQuery]);
 
-    const shiftRevenue = transactions
-        .filter(tx => tx.shift_id === (shiftState.status === SHIFT_STATUS.OPEN ? (shiftState as any).shift?.id : ''))
-        .reduce((acc, tx) => acc + Number(tx.amount), 0);
+    const shiftRevenue = revenue.shift_total;
 
     return (
         <div className="min-h-screen bg-slate-50 space-y-4 pb-20">
@@ -241,7 +244,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                 </p>
                             </div>
                             <div className="text-center">
-                                <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">Revenue Today</p>
+                                <p className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest">Revenue (Shift)</p>
                                 <p className="text-xs font-black text-emerald-400">₦{safeNumber(shiftRevenue)}</p>
                             </div>
                             <div className="text-center">
@@ -249,6 +252,13 @@ const StaffOperationalTerminal: React.FC = () => {
                                 <p className="text-xs font-black text-white">{transactions.length}</p>
                             </div>
                         </div>
+
+                        {shiftState.status === SHIFT_STATUS.REQUESTED && (
+                            <div className="flex items-center gap-2 px-6 py-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                                <Clock className="w-4 h-4 animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Awaiting Approval</span>
+                            </div>
+                        )}
 
                         {shiftState.status === 'no_shift' && (
                             <button onClick={startShift} className="bg-emerald-500 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg active:scale-95">
@@ -269,11 +279,11 @@ const StaffOperationalTerminal: React.FC = () => {
 
                 {/* Column 1: Order Terminal & Active Orders (8/12) */}
                 <div className="lg:col-span-8 space-y-6">
-                    {shiftState.status === SHIFT_STATUS.PENDING_DECLARATION && (
+                    {shiftState.status === SHIFT_STATUS.DECLARATION_SUBMITTED && (
                         <ShiftSettlementPanel shiftId={shiftState.shift.id} onSuccess={refreshShift} />
                     )}
 
-                    {shiftState.status === SHIFT_STATUS.AWAITING_APPROVAL && (
+                    {shiftState.status === SHIFT_STATUS.AWAITING_CLOSE_APPROVAL && (
                         <div className="bg-white rounded-[2rem] border-2 border-amber-200 p-12 text-center space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
                             <div className="p-6 bg-amber-50 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
                                 <Clock className="w-10 h-10 text-amber-600 animate-pulse" />
@@ -306,7 +316,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                         <button
                                             key={item.id}
                                             onClick={() => addToCart(item)}
-                                            disabled={shiftState.status !== SHIFT_STATUS.OPEN || item.current_stock <= 0}
+                                            disabled={shiftState.status !== "open" || item.current_stock <= 0}
                                             className="bg-slate-50 p-4 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/30 transition-all text-left disabled:opacity-50 relative group"
                                         >
                                             <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">
@@ -356,7 +366,7 @@ const StaffOperationalTerminal: React.FC = () => {
                                     </div>
                                     <button
                                         onClick={handleCreateOrder}
-                                        disabled={cart.length === 0 || shiftState.status !== SHIFT_STATUS.OPEN}
+                                        disabled={cart.length === 0 || shiftState.status !== 'open'}
                                         className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50"
                                     >
                                         Confirm Order

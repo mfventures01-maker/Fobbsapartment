@@ -1,11 +1,11 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export async function getInventory(businessId: string, branchId: string) {
+export async function getInventory(businessId: string, locationId: string) {
     const { data, error } = await supabase
         .from("inventory")
         .select("*")
         .eq("business_id", businessId)
-        .eq("branch_id", branchId);
+        .eq("branch_id", locationId);
 
     if (error) throw error;
     return data;

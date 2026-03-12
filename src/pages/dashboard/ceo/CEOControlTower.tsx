@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { safeNumber } from '@/lib/safeNumber';
+import { useSystemState } from '@/hooks/useSystemState';
 
 // --- SUB-COMPONENTS ---
 
@@ -57,17 +58,18 @@ const BranchRow = ({ branch }: { branch: any }) => (
 const CEOControlTower: React.FC = () => {
     const { authority } = useAuth();
     const { shiftState } = useShiftState();
-
     const {
-        status: systemStatus,
-        revenue_today,
-        revenue_hour,
-        pending_intents,
-        pending_orders_count,
-        recent_transactions
-    } = useSystemStore();
+        revenue,
+        orders,
+        payments,
+        open_shifts,
+        recent_transactions,
+        branch_performance,
+        loading: systemLoading,
+        refresh
+    } = useSystemState();
 
-    // --- STATE ---
+    // --- STATE (Governance Only) ---
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         activeBranches: 0,
@@ -75,12 +77,11 @@ const CEOControlTower: React.FC = () => {
         totalDepartments: 0,
     });
 
-    const [branchesPerformance, setBranchesPerformance] = useState<any[]>([]);
     const [staffList, setStaffList] = useState<any[]>([]);
     const [inventoryAlerts, setInventoryAlerts] = useState<any[]>([]);
     const [riskAlerts, setRiskAlerts] = useState<any[]>([]);
 
-    // --- HYDRATION ENGINE ---
+    // --- GOVERNANCE HYDRATION ---
     const hydrate = useCallback(async () => {
         if (!authority.businessId) return;
         setLoading(true);
@@ -91,50 +92,27 @@ const CEOControlTower: React.FC = () => {
             const { data: sCount } = await supabase.from('business_memberships').select('user_id').eq('business_id', authority.businessId).eq('status', 'active');
             const { data: dCount } = await supabase.from('departments').select('id').eq('business_id', authority.businessId);
 
-            const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
-
-            // 2. FINANCIAL INTELLIGENCE (Offloaded to EDSS via useSystemStore)
-
             setStats({
                 activeBranches: bCount?.length || 0,
                 activeStaff: sCount?.length || 0,
                 totalDepartments: dCount?.length || 0,
             });
 
-            // Using a join-like map for real data
-            const today = new Date().toISOString().split('T')[0];
-            const { data: branchData } = await supabase.from('branches').select('id, name').eq('business_id', authority.businessId);
-            const branchPerf = await Promise.all((branchData || []).map(async b => {
-                const { data: bTx } = await supabase.from('transactions').select('amount').eq('branch_id', b.id).gte('created_at', today);
-                const { data: bOrd } = await supabase.from('orders').select('id').eq('branch_id', b.id).gte('created_at', today);
-                const { data: bStaff } = await supabase.from('business_memberships').select('user_id').eq('branch_id', b.id).eq('status', 'active');
-                return {
-                    id: b.id,
-                    name: b.name,
-                    revenue: bTx?.reduce((acc, t) => acc + Number(t.amount), 0) || 0,
-                    order_count: bOrd?.length || 0,
-                    staff_count: bStaff?.length || 0
-                };
-            }));
-            setBranchesPerformance(branchPerf);
-
-            // 4. LIVE TRANSACTION STREAM (Offloaded to EDSS)
-
             // 5. STAFF GOVERNANCE
             const { data: staffs } = await supabase.from('business_memberships').select('*, profiles(full_name, status)').eq('business_id', authority.businessId).limit(5);
             setStaffList(staffs || []);
 
-            // 6. RISK & EXCEPTION MONITORING
+            // 6. RISK & EXCEPTION MONITORING (Static Analysis)
             const { data: highVal } = await supabase.from('transactions').select('id, amount, created_at, business_id').eq('business_id', authority.businessId).gt('amount', 100000).order('created_at', { ascending: false }).limit(3);
-
-            // Variances are now monitored through the active business shifts in context
-            const variances = activeShiftsFromContext.filter(s => Number(s.variance || 0) !== 0);
-
             const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
+
+            const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
+            const variances = activeShiftsFromContext.filter(s => Number(s.variance || 0) !== 0);
 
             const risks: { type: string; message: string }[] = [];
             highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${safeNumber(v.amount)})` }));
             variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${safeNumber(v.variance)} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
+
             setRiskAlerts(risks);
             setInventoryAlerts(lowStock || []);
 
@@ -143,7 +121,7 @@ const CEOControlTower: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [authority.businessId]);
+    }, [authority.businessId, shiftState]);
 
     useEffect(() => {
         hydrate();
@@ -152,14 +130,14 @@ const CEOControlTower: React.FC = () => {
     // --- CEO CONTROLS ---
     const handleDisableStaff = async (userId: string) => {
         if (!window.confirm('CRITICAL: Disable this staff account across the entire organization?')) return;
-        const loading = toast.loading('Revoking Authority...');
+        const opLoading = toast.loading('Revoking Authority...');
         try {
             const { data, error } = await (supabase as any).rpc('disable_staff', { p_user_id: userId });
             if (error || !data?.success) throw new Error(error?.message || data?.error);
-            toast.success('Staff Access Terminated', { id: loading });
+            toast.success('Staff Access Terminated', { id: opLoading });
             hydrate();
         } catch (err: any) {
-            toast.error(err.message, { id: loading });
+            toast.error(err.message, { id: opLoading });
         }
     };
 
@@ -203,7 +181,7 @@ const CEOControlTower: React.FC = () => {
                             <div className="w-px h-8 bg-white/10" />
                             <div className="text-center">
                                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Open Shifts</p>
-                                <p className="text-xs font-black text-amber-400">{'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0}</p>
+                                <p className="text-xs font-black text-amber-400">{open_shifts || 0}</p>
                             </div>
                         </div>
 
@@ -225,7 +203,7 @@ const CEOControlTower: React.FC = () => {
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
                         title="Revenue Today"
-                        value={`₦${safeNumber(revenue_today)}`}
+                        value={`₦${safeNumber(revenue.today)}`}
                         icon={Landmark}
                         color={{ bg: 'bg-emerald-50', text: 'text-emerald-600' }}
                         trend="+18.2%"
@@ -233,14 +211,14 @@ const CEOControlTower: React.FC = () => {
                     />
                     <StatCard
                         title="Revenue: Last Hour"
-                        value={`₦${safeNumber(revenue_hour)}`}
+                        value={`₦${safeNumber(revenue.last_hour)}`}
                         icon={Zap}
                         color={{ bg: 'bg-amber-50', text: 'text-amber-600' }}
                         subtitle="Real-time intake velocity"
                     />
                     <StatCard
                         title="Pending Verification"
-                        value={pending_intents.length}
+                        value={payments.pending_intents}
                         icon={Clock}
                         color={{ bg: 'bg-rose-50', text: 'text-rose-600' }}
                         subtitle="Unresolved payment intents"
@@ -273,7 +251,7 @@ const CEOControlTower: React.FC = () => {
                                 <button className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl">Expand Branch Analytics</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {branchesPerformance.map(branch => (
+                                {branch_performance.map(branch => (
                                     <BranchRow key={branch.id} branch={branch} />
                                 ))}
                             </div>
@@ -290,8 +268,8 @@ const CEOControlTower: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {pending_orders_count}</span>
-                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0}</span>
+                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {orders.open_orders}</span>
+                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {open_shifts || 0}</span>
                                 </div>
                             </div>
                             <div className="overflow-x-auto">

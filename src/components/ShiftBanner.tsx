@@ -36,8 +36,8 @@ const ShiftBanner: React.FC = () => {
     const isLoading = shiftState.status === 'loading';
     const hasShift = 'shift' in shiftState;
     const isActive = shiftState.status === SHIFT_STATUS.OPEN;
-    const isAwaiting = shiftState.status === SHIFT_STATUS.REQUESTED || shiftState.status === SHIFT_STATUS.AWAITING_APPROVAL;
-    const isPending = shiftState.status === SHIFT_STATUS.PENDING_DECLARATION;
+    const isAwaiting = shiftState.status === SHIFT_STATUS.REQUESTED || shiftState.status === SHIFT_STATUS.AWAITING_CLOSE_APPROVAL;
+    const isPending = shiftState.status === SHIFT_STATUS.DECLARATION_SUBMITTED;
 
     const bgColor = isActive ? 'bg-emerald-600' :
         (isAwaiting || isPending) ? 'bg-amber-600' :
@@ -58,12 +58,12 @@ const ShiftBanner: React.FC = () => {
                                 <Clock className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
                                 <span>Awaiting Manager Approval</span>
                             </>
-                        ) : shiftState.status === SHIFT_STATUS.PENDING_DECLARATION ? (
+                        ) : shiftState.status === SHIFT_STATUS.DECLARATION_SUBMITTED ? (
                             <>
                                 <Lock className="w-3.5 h-3.5 text-amber-200" />
                                 <span>Shift Ended — Enter Declaration</span>
                             </>
-                        ) : shiftState.status === SHIFT_STATUS.AWAITING_APPROVAL ? (
+                        ) : shiftState.status === SHIFT_STATUS.AWAITING_CLOSE_APPROVAL ? (
                             <>
                                 <ShieldCheck className="w-3.5 h-3.5 text-blue-200 animate-pulse" />
                                 <span>Waiting for Manager Review</span>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useShiftState } from '../../contexts/ShiftContext';
+import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import OpenShiftScreen from '../../pages/dashboard/staff/OpenShiftScreen';
 import ShiftDeclarationScreen from '../../pages/dashboard/staff/ShiftDeclarationScreen';
@@ -52,13 +53,13 @@ const AwaitingOpeningScreen = () => (
 
 const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: boolean }> = ({ children }) => {
     const { shiftState, refreshShift } = useShiftState();
-    const { authorityStatus, currentRole } = useAuth();
+    const { authority, authorityStatus, currentRole } = useAuth();
 
     React.useEffect(() => {
-        if (authorityStatus !== 'authorized') return;
+        if (authority.status !== 'authorized' || !authority.branchId) return;
 
         // Auto-refresh shift state on any DB change
-        const unsubscribe = subscribeToOperationalTelemetry({
+        const unsubscribe = subscribeToOperationalTelemetry(authority.branchId, {
             onShiftUpdate: () => {
                 console.log('[TELEMETRY] Shift change detected in Protected Route. Refreshing...');
                 refreshShift();
@@ -66,7 +67,7 @@ const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: bool
         });
 
         return unsubscribe;
-    }, [authorityStatus, refreshShift]);
+    }, [authority.status, authority.branchId, refreshShift]);
 
     // No shift enforcement needed for specialized roles
     if (authorityStatus === 'authorized' && currentRole && ['super_admin', 'ceo', 'owner'].includes(currentRole)) {
@@ -85,15 +86,15 @@ const ShiftProtectedRoute: React.FC<{ children: React.ReactNode, required?: bool
         return <OpenShiftScreen />;
     }
 
-    if (shiftState.status === 'requested') {
+    if (shiftState.status === SHIFT_STATUS.REQUESTED) {
         return <AwaitingOpeningScreen />;
     }
 
-    if (shiftState.status === 'pending_declaration') {
+    if (shiftState.status === SHIFT_STATUS.DECLARATION_SUBMITTED) {
         return <ShiftDeclarationScreen />;
     }
 
-    if (shiftState.status === 'awaiting_approval') {
+    if (shiftState.status === SHIFT_STATUS.AWAITING_CLOSE_APPROVAL) {
         return <AwaitingApprovalScreen />;
     }
 

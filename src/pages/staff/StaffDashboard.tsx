@@ -5,7 +5,8 @@ import { LayoutDashboard, Clock } from 'lucide-react';
 import ShiftMonitor from '@/components/ShiftMonitor';
 
 import { getActiveShift } from '@/lib/shiftService';
-import { Shift } from '@/types/db';
+import { Shift } from '@/types/database';
+import { SHIFT_STATUS } from '@/constants/shiftStatus';
 
 const StaffDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -40,7 +41,7 @@ const StaffDashboard: React.FC = () => {
 
                         {shift && (
                             <div className="space-y-6">
-                                {shift.status === 'open' && (
+                                {shift.status === SHIFT_STATUS.OPEN && (
                                     <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl flex items-center justify-between">
                                         <div>
                                             <h3 className="font-bold text-emerald-900">Shift Active</h3>
@@ -52,7 +53,7 @@ const StaffDashboard: React.FC = () => {
                                     </div>
                                 )}
 
-                                {shift.status === 'pending_declaration' && (
+                                {shift.status === SHIFT_STATUS.DECLARATION_SUBMITTED && (
                                     <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-center justify-between">
                                         <div>
                                             <h3 className="font-bold text-amber-900">Closing Shift</h3>

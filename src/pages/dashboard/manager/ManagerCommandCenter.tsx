@@ -12,7 +12,7 @@ import {
 import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import toast from 'react-hot-toast';
 import { Shift, InventoryItem } from '@/types/database';
-import { useSystemStore } from '@/store/systemStore';
+import { useSystemState } from '@/hooks/useSystemState';
 import { safeNumber } from '@/lib/safeNumber';
 
 // --- SUB-COMPONENTS ---
@@ -84,23 +84,21 @@ const ManagerCommandCenter: React.FC = () => {
     const { authority } = useAuth();
     const { shiftState, approveShift } = useShiftState();
     const {
-        revenue_today,
+        revenue,
+        orders,
+        payments,
+        open_shifts,
+        alerts,
         recent_transactions: transactions,
-        pending_intents: pendingIntents,
-        pending_payments_count,
-        pending_orders_count
-    } = useSystemStore();
+        refresh
+    } = useSystemState();
+
+    const pendingIntents = payments.intents_list || [];
 
     // --- STATE ---
-    const [stats] = useState({
-        ordersToday: 0,
-        activeStaffCount: 0
-    });
-
     const [pendingShifts, setPendingShifts] = useState<Shift[]>([]);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [activeShifts, setActiveShifts] = useState<Shift[]>([]);
-    const [alerts, setAlerts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // --- HYDRATION ---
@@ -109,21 +107,14 @@ const ManagerCommandCenter: React.FC = () => {
         setLoading(true);
 
         try {
-            // 1. Stats
-            // 1. Stats (Orders mapped via EDSS, but ordToday requires local query if needed; omitting unused vars for now)
-
-            // 2. Settlement Feed (EDSS)
-            // 3. Pending Payment Queue (EDSS)
+            // Trigger background refresh of system state
+            refresh(authority.businessId, authority.branchId || '');
 
             // 4. Pending Shifts (Operational Gate Monitoring)
-            // We monitor two states: 
-            // - 'requested': Staff wants to open a shift (Gate A)
-            // - 'awaiting_approval': Staff has declared totals and wants to close (Gate B)
-            // Now derived from ShiftContext
             const businessShifts = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
             const pending = businessShifts.filter(s =>
                 s.status === SHIFT_STATUS.REQUESTED ||
-                s.status === SHIFT_STATUS.AWAITING_APPROVAL
+                s.status === SHIFT_STATUS.AWAITING_CLOSE_APPROVAL
             );
             setPendingShifts(pending);
 
@@ -131,35 +122,19 @@ const ManagerCommandCenter: React.FC = () => {
             const { data: invList } = await supabase
                 .from('inventory')
                 .select('*')
-                .eq('business_id', authority.businessId)
+                .eq('branch_id', authority.branchId)
                 .order('current_stock', { ascending: true });
             setInventory(invList || []);
 
             // activeShifts is now derived from ShiftContext for the entire business
             setActiveShifts('activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : []);
 
-            // 6. Alert Logic
-            const newAlerts = [];
-            if (invList?.some(i => i.current_stock < i.min_stock)) {
-                newAlerts.push({ type: 'inventory', message: 'Critical low stock detected' });
-            }
-            if (pendingIntents && pendingIntents.length > 5) {
-                newAlerts.push({ type: 'security', message: `${pendingIntents.length} payments awaiting manual verification` });
-            }
-            transactions?.forEach((tx: any) => {
-                if (tx.amount > 100000) newAlerts.push({ type: 'security', message: `High value ${tx.payment_type} detected: ₦${safeNumber(tx.amount)}` });
-            });
-            if (pending.length > 0) {
-                newAlerts.push({ type: 'security', message: `${pending.length} Shift approvals pending verification` });
-            }
-            setAlerts(newAlerts);
-
         } catch (err) {
             console.error('[MANAGER] Hydrate error:', err);
         } finally {
             setLoading(false);
         }
-    }, [authority.businessId]);
+    }, [authority.businessId, shiftState, refresh]);
 
     useEffect(() => {
         hydrate();
@@ -254,18 +229,18 @@ const ManagerCommandCenter: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${('activeBusinessShifts' in shiftState && shiftState.activeBusinessShifts.length > 0) ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${open_shifts > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Service State</p>
-                                <p className={`text-xs font-black uppercase ${('activeBusinessShifts' in shiftState && shiftState.activeBusinessShifts.length > 0) ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                    {('activeBusinessShifts' in shiftState && shiftState.activeBusinessShifts.length > 0) ? 'Live' : 'Offline'}
+                                <p className={`text-xs font-black uppercase ${open_shifts > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                    {open_shifts > 0 ? 'Live' : 'Offline'}
                                 </p>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Active Terminals</p>
                                 <p className="text-xs font-black text-slate-800">
-                                    {'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts.length : 0}
+                                    {open_shifts || 0}
                                 </p>
                             </div>
                         </div>
@@ -280,10 +255,10 @@ const ManagerCommandCenter: React.FC = () => {
 
                 {/* 2. LIVE OPERATIONS OVERVIEW */}
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Revenue Today" value={`₦${safeNumber(revenue_today)}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
-                    <StatCard title="Daily Orders" value={stats.ordersToday} icon={ShoppingBag} color={{ bg: 'bg-indigo-100', text: 'text-indigo-700' }} />
-                    <StatCard title="Open Orders (System Sync)" value={pending_orders_count} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
-                    <StatCard title="Pending Payments (Sync)" value={pending_payments_count} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
+                    <StatCard title="Revenue Today" value={`₦${safeNumber(revenue.today)}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
+                    <StatCard title="Daily Orders" value={orders.today_total} icon={ShoppingBag} color={{ bg: 'bg-indigo-100', text: 'text-indigo-700' }} />
+                    <StatCard title="Open Orders (System Sync)" value={orders.open_orders} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
+                    <StatCard title="Pending Payments (Sync)" value={payments.pending_intents} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
                 </section>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -358,7 +333,7 @@ const ManagerCommandCenter: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            {shift.status === SHIFT_STATUS.AWAITING_APPROVAL && (
+                                            {shift.status === SHIFT_STATUS.AWAITING_CLOSE_APPROVAL && (
                                                 <div className="bg-slate-50 rounded-[2.5rem] border border-slate-100 overflow-hidden">
                                                     <table className="w-full text-left">
                                                         <thead>

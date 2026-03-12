@@ -1,6 +1,6 @@
 
 export type PaymentStatus = 'pending' | 'confirmed' | 'voided';
-export type ShiftStatus = 'requested' | 'open' | 'pending_declaration' | 'awaiting_approval' | 'closed' | 'rejected';
+export type ShiftStatus = 'requested' | 'open' | 'pending_declaration' | 'awaiting_close_approval' | 'closed' | 'rejected';
 
 export interface Profile {
     user_id: string;

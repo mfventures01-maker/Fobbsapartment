@@ -9,6 +9,7 @@ import DebugAuth from '@/pages/auth/DebugAuth';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ShiftProvider } from '@/contexts/ShiftContext';
+import { SystemStateProvider } from '@/contexts/SystemStateProvider';
 import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from 'react-hot-toast';
 import FullScreenLoader from '@/components/FullScreenLoader';
@@ -89,17 +90,18 @@ const App: React.FC = () => {
   React.useEffect(() => {
     // Phase 5 - Inject Telemetry Into App Boot
     const shutdown = setupTelemetry();
-    useSystemStore.getState().hydrate(HOTEL_CONFIG.org_id);
     return shutdown;
   }, []);
 
   return (
     <AuthProvider>
-      <ShiftProvider>
-        <CartProvider>
-          <AppContent />
-        </CartProvider>
-      </ShiftProvider>
+      <SystemStateProvider>
+        <ShiftProvider>
+          <CartProvider>
+            <AppContent />
+          </CartProvider>
+        </ShiftProvider>
+      </SystemStateProvider>
     </AuthProvider>
   );
 };

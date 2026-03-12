@@ -1,4 +1,3 @@
-import { supabase } from './supabaseClient';
 import { useSystemStore } from '../store/systemStore';
 import { HOTEL_CONFIG } from '../config/cars.config';
 
@@ -8,28 +7,29 @@ export function scheduleHydrate() {
     if (hydrateTimer) return;
 
     hydrateTimer = setTimeout(() => {
-        useSystemStore.getState().hydrate(HOTEL_CONFIG.org_id);
+        useSystemStore.getState().refresh(HOTEL_CONFIG.org_id);
         hydrateTimer = null;
-    }, 300);
+    }, 500);
 }
 
+/**
+ * Global System Telemetry (SSOT Phase 2)
+ * Orchestrates realtime synchronization across all terminals.
+ */
 export function setupTelemetry() {
-    console.log('[TELEMETRY] Booting Global System State Engine (SSSE)...');
+    console.log('[SSOT] Booting High-Res Telemetry Engine...');
 
-    const channel = supabase
-        .channel('carss-global-sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'operational_events' }, () => scheduleHydrate())
-        .subscribe();
+    const unsubscribe = useSystemStore.getState().subscribe(HOTEL_CONFIG.org_id);
 
-    // Phase 4 — defensive polling loop
+    // Defensive Heartbeat (Bank-grade persistence)
     const heartbeat = setInterval(() => {
         scheduleHydrate();
-    }, 20000);
+    }, 45000); // 45s heartbeat to ensure sync if websockets flake
 
     return () => {
-        console.log('[TELEMETRY] Dismantling Global System State Engine...');
+        console.log('[SSOT] Dismantling Telemetry Engine...');
         clearInterval(heartbeat);
-        supabase.removeChannel(channel);
+        unsubscribe();
         if (hydrateTimer) {
             clearTimeout(hydrateTimer);
             hydrateTimer = null;

@@ -12,8 +12,8 @@ export type ShiftState =
     | { status: 'no_shift'; activeBusinessShifts: Shift[] }
     | { status: typeof SHIFT_STATUS.REQUESTED; shift: Shift; activeBusinessShifts: Shift[] }
     | { status: typeof SHIFT_STATUS.OPEN; shift: Shift; activeBusinessShifts: Shift[] }
-    | { status: typeof SHIFT_STATUS.PENDING_DECLARATION; shift: Shift; activeBusinessShifts: Shift[] }
-    | { status: typeof SHIFT_STATUS.AWAITING_APPROVAL; shift: Shift; activeBusinessShifts: Shift[] }
+    | { status: typeof SHIFT_STATUS.DECLARATION_SUBMITTED; shift: Shift; activeBusinessShifts: Shift[] }
+    | { status: typeof SHIFT_STATUS.AWAITING_CLOSE_APPROVAL; shift: Shift; activeBusinessShifts: Shift[] }
     | { status: 'error'; error: string };
 
 interface ShiftContextType {
@@ -46,13 +46,21 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const isManagement = role === 'super_admin' || role === 'ceo' || role === 'owner' || role === 'manager';
             let businessShifts: Shift[] = [];
 
-            // STEP 1 — Managers/CEOs resolve all open shifts in the business
-            if (isManagement && authority.businessId) {
-                const { data: allShifts } = await supabase
+            // STEP 1 — Managers/CEOs resolve open shifts. 
+            // Phase 3: Scoped to Branch for non-CEOs.
+            if (isManagement && authority.businessId && authority.branchId) {
+                let query = supabase
                     .from('shifts')
                     .select('*')
                     .eq('business_id', authority.businessId)
                     .neq('status', SHIFT_STATUS.CLOSED);
+
+                // If not high-authority (super_admin/ceo), lock to branch.
+                if (role !== 'super_admin' && role !== 'ceo' && role !== 'owner') {
+                    query = query.eq('branch_id', authority.branchId);
+                }
+
+                const { data: allShifts } = await query;
                 businessShifts = allShifts || [];
             }
 
@@ -73,11 +81,11 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     case SHIFT_STATUS.OPEN:
                         setShiftState({ status: SHIFT_STATUS.OPEN, shift, activeBusinessShifts: businessShifts });
                         break;
-                    case SHIFT_STATUS.PENDING_DECLARATION:
-                        setShiftState({ status: SHIFT_STATUS.PENDING_DECLARATION, shift, activeBusinessShifts: businessShifts });
+                    case SHIFT_STATUS.DECLARATION_SUBMITTED:
+                        setShiftState({ status: SHIFT_STATUS.DECLARATION_SUBMITTED, shift, activeBusinessShifts: businessShifts });
                         break;
-                    case SHIFT_STATUS.AWAITING_APPROVAL:
-                        setShiftState({ status: SHIFT_STATUS.AWAITING_APPROVAL, shift, activeBusinessShifts: businessShifts });
+                    case SHIFT_STATUS.AWAITING_CLOSE_APPROVAL:
+                        setShiftState({ status: SHIFT_STATUS.AWAITING_CLOSE_APPROVAL, shift, activeBusinessShifts: businessShifts });
                         break;
                     case SHIFT_STATUS.CLOSED:
                         setShiftState({ status: 'no_shift', activeBusinessShifts: businessShifts });
@@ -94,25 +102,22 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     useEffect(() => {
         isMounted.current = true;
-        if (user) {
-            console.log('[SHIFT CONTEXT]', {
-                authUser: user.id,
-            });
-        }
         resolveShift();
 
-        const unsubscribeTelemetry = subscribeToOperationalTelemetry({
-            onShiftUpdate: () => {
-                console.log('[SHIFT CONTEXT] Realtime shift update received, resolving state');
-                resolveShift();
-            }
-        });
+        if (authority.branchId) {
+            const unsubscribeTelemetry = subscribeToOperationalTelemetry(authority.branchId, {
+                onShiftUpdate: () => {
+                    console.log('[SHIFT CONTEXT] Realtime shift update received, resolving state');
+                    resolveShift();
+                }
+            });
 
-        return () => {
-            isMounted.current = false;
-            unsubscribeTelemetry();
-        };
-    }, [resolveShift, user]);
+            return () => {
+                isMounted.current = false;
+                unsubscribeTelemetry();
+            };
+        }
+    }, [resolveShift, user, authority.branchId]);
 
     const startShift = async () => {
         if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
@@ -149,7 +154,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
         // STEP 5 — DECLARATION GUARD
         const activeShift = await getActiveShift(user!.id);
-        if (!activeShift || activeShift.status !== 'pending_declaration') {
+        if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
             return { error: { message: 'No shift pending declaration or session desync' } };
         }
 

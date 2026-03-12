@@ -82,10 +82,10 @@ export function HardenedStaffTerminal() {
                 message="Your request to open a shift has been sent. Please wait for a manager to authorize your terminal access."
             />;
 
-        case SHIFT_STATUS.PENDING_DECLARATION:
+        case SHIFT_STATUS.DECLARATION_SUBMITTED:
             return <ShiftDeclarationScreen />;
 
-        case SHIFT_STATUS.AWAITING_APPROVAL:
+        case SHIFT_STATUS.AWAITING_CLOSE_APPROVAL:
             return <AwaitingApprovalScreen />;
 
         case SHIFT_STATUS.OPEN:
