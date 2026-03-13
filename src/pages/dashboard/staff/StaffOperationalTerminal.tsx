@@ -118,16 +118,22 @@ const StaffOperationalTerminal: React.FC = () => {
 
     // --- ACTIONS ---
     const handleCreateOrder = async () => {
-        if (!user || cart.length === 0 || shiftState.status !== SHIFT_STATUS.OPEN) return;
+        const { staffId } = useAuth(); // Local resolve for the handler
+        if (!staffId || cart.length === 0 || shiftState.status !== SHIFT_STATUS.OPEN) {
+            if (!staffId) toast.error("Operational Identity not resolved.");
+            return;
+        }
 
         const loading = toast.loading('Creating Synchronous Order...');
         try {
+            console.log("[TERMINAL] Creating order with resolved staff identity:", staffId);
+
             // 1. Create Order & Intent via Universal Gateway
             const { data: gatewayResult, error: gatewayError } = await (supabase as any).rpc('create_order_gateway', {
                 p_source: 'staff_terminal',
                 p_business_id: authority.businessId,
                 p_location_id: authority.branchId,
-                p_staff_id: user.id,
+                p_staff_id: staffId,
                 p_customer_name: customerName || 'Walk-in',
                 p_table_id: tableRef || 'Counter',
                 p_items: cart.map(i => ({
@@ -139,7 +145,8 @@ const StaffOperationalTerminal: React.FC = () => {
                 p_metadata: {
                     terminal_mode: 'staff',
                     customer_name: customerName,
-                    table_reference: tableRef
+                    table_reference: tableRef,
+                    resolved_staff_id: staffId
                 }
             });
 

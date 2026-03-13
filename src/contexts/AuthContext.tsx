@@ -28,6 +28,7 @@ interface AuthContextType {
   departmentId: string | null;
   departmentName: string | null;
   profile: Profile | null;
+  staffId: string | null;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
 }
@@ -51,6 +52,7 @@ const AuthContext = createContext<AuthContextType>({
   departmentId: null,
   departmentName: null,
   profile: null,
+  staffId: null,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
 });
@@ -65,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [departmentName, setDepartmentName] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [staffId, setStaffId] = useState<string | null>(null);
   const isMounted = useRef(true);
 
   const isOrgAdmin = currentRole === 'ceo' || currentRole === 'owner' || currentRole === 'super_admin';
@@ -141,6 +144,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         setUser(currentSession.user);
         setSession(currentSession);
+
+        // RESOLVE STAFF IDENTITY (DETERMINISTIC PATCH)
+        const { data: staff } = await supabase
+          .from('staff_profiles')
+          .select('id')
+          .eq('user_id', currentSession.user.id)
+          .single();
+
+        if (staff && isMounted.current) {
+          console.log('[AUTH] Operational Staff Resolved:', staff.id);
+          setStaffId(staff.id);
+        }
       }
     } catch (err) {
       console.error("[AUTH] Forensic resolution failure:", err);
@@ -213,6 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       departmentId,
       departmentName,
       profile,
+      staffId,
       signOut,
       signInWithPassword
     }}>

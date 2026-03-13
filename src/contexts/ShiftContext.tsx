@@ -29,12 +29,12 @@ interface ShiftContextType {
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
 export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { authority, user } = useAuth();
+    const { authority, user, staffId } = useAuth();
     const [shiftState, setShiftState] = useState<ShiftState>({ status: 'loading' });
     const isMounted = useRef(true);
 
     const resolveShift = useCallback(async () => {
-        if (authority.status !== 'authorized' || !user) {
+        if (authority.status !== 'authorized' || !user || !staffId) {
             if (isMounted.current) setShiftState({ status: 'loading' });
             return;
         }
@@ -65,7 +65,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
 
             // STEP 2 — Resolve personal shift for terminal control
-            const shift = await getActiveShift(user.id);
+            const shift = await getActiveShift(staffId);
 
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
@@ -120,13 +120,13 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [resolveShift, user, authority.branchId]);
 
     const startShift = async () => {
-        if (authority.status !== 'authorized' || !user) return { error: { message: 'Not authorized' } };
+        if (authority.status !== 'authorized' || !staffId) return { error: { message: 'Not authorized or staff identity unresolved' } };
 
-        console.log('[SHIFT] Initiating request_shift RPC via service...');
+        console.log('[SHIFT] Initiating requestShift via service with resolved ID:', staffId);
         try {
-            const data = await requestShift();
-            if (!data?.success) {
-                return { error: (data?.error ? { message: data.error } : { message: 'Failed to request shift' }) };
+            const result = await requestShift(staffId, authority.businessId!, authority.branchId!);
+            if (!result?.success) {
+                return { error: { message: 'Failed to request shift' } };
             }
             await resolveShift();
             return { error: null };
@@ -153,16 +153,18 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
         // STEP 5 — DECLARATION GUARD
-        const activeShift = await getActiveShift(user!.id);
+        if (!staffId) return { error: { message: 'Staff identity unresolved' } };
+
+        const activeShift = await getActiveShift(staffId);
         if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
             return { error: { message: 'No shift pending declaration or session desync' } };
         }
 
         // PHASE 3 — DECLARATION SUBMISSION LOCK
-        if (activeShift.staff_id !== user!.id) {
+        if (activeShift.staff_id !== staffId) {
             console.error('[SHIFT] Ownership mismatch detected!', {
                 activeStaff: activeShift.staff_id,
-                authUser: user!.id
+                resolvedStaff: staffId
             });
             throw new Error('Shift ownership mismatch');
         }

@@ -7,12 +7,12 @@ import { Shift } from '../types/database';
  * The database is the single source of truth for shift state.
  */
 
-export async function getActiveShift(userId: string): Promise<Shift | null> {
+export async function getActiveShift(staffId: string): Promise<Shift | null> {
     const { data, error } = await supabase
         .from("shifts")
         .select("*")
-        .eq("staff_id", userId)
-        .eq("status", "open")
+        .eq("staff_id", staffId)
+        .in("status", ["open", "requested", "pending_declaration", "awaiting_close_approval"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
