@@ -120,11 +120,17 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [resolveShift, user, authority.branchId]);
 
     const startShift = async () => {
-        if (authority.status !== 'authorized' || !staffId) return { error: { message: 'Not authorized or staff identity unresolved' } };
+        if (authority.status !== 'authorized' || !staffId) {
+            return { error: { message: 'Not authorized or staff identity unresolved' } };
+        }
 
-        console.log('[SHIFT] Initiating requestShift via service with resolved ID:', staffId);
+        if (!authority.businessId || !authority.branchId) {
+            return { error: { message: 'Business context missing (Org/Branch ID unresolved)' } };
+        }
+
+        console.log('[SHIFT] Initiating startShift via deterministic service...');
         try {
-            const result = await requestShift(staffId, authority.businessId!, authority.branchId!);
+            const result = await requestShift(authority.businessId, authority.branchId);
             if (!result?.success) {
                 return { error: { message: 'Failed to request shift' } };
             }

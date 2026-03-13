@@ -1,13 +1,34 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export async function requestShift(staffId: string, businessId: string, locationId: string) {
-    console.log("Resolved staff identity for shift:", staffId);
+export async function requestShift(businessId: string, locationId: string) {
+    console.log("[SHIFT SERVICE] Initiating deterministic identity resolution...");
 
-    // Using direct insert to bypass the broken request_shift RPC which uses auth.uid()
+    // 1. Resolve Authenticated User (Hard Guard)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        throw new Error("User not authenticated. Shift creation aborted.");
+    }
+
+    // 2. Resolve Staff Profile (Operational Identity Mapping)
+    const { data: staff, error: staffError } = await supabase
+        .from("staff_profiles")
+        .select("id, role, full_name")
+        .eq("user_id", user.id)
+        .single();
+
+    if (staffError || !staff) {
+        console.error("[SHIFT SERVICE] Staff identity resolution failed:", staffError);
+        throw new Error("Staff profile not found. Shift creation aborted.");
+    }
+
+    const staff_id = staff.id;
+    console.log("[SHIFT SERVICE] Resolved staff identity:", staff_id);
+
+    // 3. Create Shift with Deterministic Payload
     const { data, error } = await supabase
         .from("shifts")
         .insert({
-            staff_id: staffId,
+            staff_id: staff_id,
             business_id: businessId,
             branch_id: locationId,
             status: "requested",
@@ -17,9 +38,10 @@ export async function requestShift(staffId: string, businessId: string, location
         .single();
 
     if (error) {
-        console.error("[SHIFT SERVICE] Direct insert failed:", error);
+        console.error("[SHIFT SERVICE] Database rejection during shift creation:", error);
         throw error;
     }
+
     return { success: true, data };
 }
 
