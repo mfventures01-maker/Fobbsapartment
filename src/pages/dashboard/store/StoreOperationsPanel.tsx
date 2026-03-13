@@ -20,7 +20,7 @@ const StoreOperationsPanel: React.FC = () => {
         lowStock: 0
     });
     const [loading, setLoading] = useState(true);
-    const { revenue, orders, refresh } = useSystemState();
+    const { revenue, orders, active_terminals, refresh } = useSystemState();
 
     const hydrate = useCallback(async () => {
         if (!authority.businessId || !authority.branchId) return;
@@ -29,9 +29,8 @@ const StoreOperationsPanel: React.FC = () => {
             // Trigger background refresh of system state
             await refresh(authority.businessId, authority.branchId);
 
-            // Active Staff (from context)
-            const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
-            const branchStaff = activeShiftsFromContext.filter(s => s.branch_id === authority.branchId);
+            // Terminal Presence (Anti-Gravity Realtime Upgrade)
+            const staffCount = active_terminals;
 
             // 4. Low Stock (Currently derived from branch_performance or inventory log if added)
             // For now, if inventory isn't in snapshot, we keep it scoped but ideally it moves to snapshot.
@@ -44,7 +43,7 @@ const StoreOperationsPanel: React.FC = () => {
             setStats({
                 revenue: revenue.today,
                 orders: orders.today_total,
-                staff: branchStaff.length,
+                staff: staffCount,
                 lowStock: inv?.length || 0
             });
         } catch (err) {

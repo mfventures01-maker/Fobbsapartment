@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useSystemStore } from '../store/systemStore';
+import { presenceService } from '../services/presenceService';
 
 export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { authority } = useAuth();
+    const { authority, staffId } = useAuth();
     const { hydrate, subscribe } = useSystemStore();
+    const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const isGlobalRole = authority.role && ['ceo', 'owner', 'super_admin'].includes(authority.role);
@@ -15,20 +17,47 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 branch: authority.branchId || 'GLOBAL'
             });
 
-            hydrate(authority.businessId, authority.branchId || '');
+            hydrate(authority.businessId, authority.branchId || undefined);
+
+            // REALTIME TERMINAL PRESENCE (Anti-Gravity Upgrade)
+            if (staffId) {
+                const terminal_type = (['ceo', 'owner', 'super_admin'].includes(authority.role || '')) ? 'ceo_terminal' :
+                    (authority.role === 'manager') ? 'manager_terminal' : 'staff_terminal';
+
+                presenceService.registerPresence({
+                    staff_id: staffId,
+                    business_id: authority.businessId,
+                    branch_id: authority.branchId || '00000000-0000-0000-0000-000000000000', // System default for global
+                    terminal_type
+                });
+
+                // Start 20s Heartbeat
+                if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+                heartbeatRef.current = setInterval(() => {
+                    presenceService.sendHeartbeat(staffId, terminal_type);
+                }, 20000);
+            }
 
             // Subscribe only if branchId is present (for realtime operational filters)
-            // Global roles might need a different subscription strategy or they subscribe to multiple.
-            // For now, if branchId is missing, we skip filtered subscriptions or subscribe to business-level.
             if (authority.branchId) {
                 const unsubscribe = subscribe(authority.businessId, authority.branchId);
                 return () => {
-                    console.log('[SYSTEM PROVIDER] Cleaning up Telemetry');
+                    console.log('[SYSTEM PROVIDER] Cleaning up Telemetry & Presence');
+                    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+                    if (staffId) {
+                        const terminal_type = (['ceo', 'owner', 'super_admin'].includes(authority.role || '')) ? 'ceo_terminal' :
+                            (authority.role === 'manager') ? 'manager_terminal' : 'staff_terminal';
+                        presenceService.disconnect(staffId, terminal_type);
+                    }
                     unsubscribe();
                 };
             }
         }
-    }, [authority, hydrate, subscribe]);
+
+        return () => {
+            if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+        };
+    }, [authority, staffId, hydrate, subscribe]);
 
     return <>{children}</>;
 };

@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('staff_profiles')
           .select('id')
           .eq('user_id', currentSession.user.id)
-          .single();
+          .maybeSingle();
 
         if (staff && isMounted.current) {
           console.log('[AUTH] Operational Staff Resolved:', staff.id);

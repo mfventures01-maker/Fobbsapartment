@@ -23,6 +23,7 @@ export interface SystemSnapshot {
         intents_list: any[];
     };
     open_shifts: number;
+    active_terminals: number;
     recent_transactions: any[];
     branch_performance: any[];
     alerts: any[];
@@ -35,8 +36,8 @@ export interface SystemState {
     lastUpdated: string | null;
     error: string | null;
 
-    hydrate: (businessId: string, locationId: string) => Promise<void>;
-    refresh: (businessId: string, locationId: string) => Promise<void>;
+    hydrate: (businessId: string, locationId?: string) => Promise<void>;
+    refresh: (businessId: string, locationId?: string) => Promise<void>;
     subscribe: (businessId: string, locationId: string) => () => void;
 }
 
@@ -49,8 +50,8 @@ export const useSystemStore = create<SystemState>((set, get) => ({
     lastUpdated: null,
     error: null,
 
-    hydrate: async (businessId: string, locationId: string) => {
-        if (!businessId || !locationId || isOperationInProgress) return;
+    hydrate: async (businessId: string, locationId?: string) => {
+        if (!businessId || isOperationInProgress) return;
         isOperationInProgress = true;
 
         set({ loading: true, error: null });
@@ -89,7 +90,7 @@ export const useSystemStore = create<SystemState>((set, get) => ({
         }
     },
 
-    refresh: async (businessId: string, locationId: string) => {
+    refresh: async (businessId: string, locationId?: string) => {
         return get().hydrate(businessId, locationId);
     },
 
@@ -180,6 +181,15 @@ export const useSystemStore = create<SystemState>((set, get) => ({
                     event: '*',
                     schema: 'public',
                     table: 'payment_intents',
+                    filter: `branch_id=eq.${locationId}`
+                }, () => get().refresh(businessId, locationId))
+                .subscribe(),
+
+            supabase.channel(`branch-presence-${locationId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'terminal_sessions',
                     filter: `branch_id=eq.${locationId}`
                 }, () => get().refresh(businessId, locationId))
                 .subscribe()

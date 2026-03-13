@@ -88,6 +88,7 @@ const ManagerCommandCenter: React.FC = () => {
         orders,
         payments,
         open_shifts,
+        active_terminals,
         alerts,
         recent_transactions: transactions,
         refresh
@@ -229,18 +230,18 @@ const ManagerCommandCenter: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${open_shifts > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                        <div className={`flex items-center gap-6 px-6 py-2.5 rounded-[1.5rem] border ${active_terminals > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Service State</p>
-                                <p className={`text-xs font-black uppercase ${open_shifts > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                    {open_shifts > 0 ? 'Live' : 'Offline'}
+                                <p className={`text-xs font-black uppercase ${active_terminals > 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                    {active_terminals > 0 ? 'Live' : 'Offline'}
                                 </p>
                             </div>
                             <div className="w-px h-8 bg-slate-200" />
                             <div className="text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Active Terminals</p>
                                 <p className="text-xs font-black text-slate-800">
-                                    {open_shifts || 0}
+                                    {active_terminals || 0}
                                 </p>
                             </div>
                         </div>

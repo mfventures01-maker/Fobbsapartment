@@ -19,6 +19,7 @@ export function useSystemState() {
         revenue: { today: 0, last_hour: 0, shift_total: 0 },
         payments: { pending_intents: 0, intents_list: [] },
         open_shifts: 0,
+        active_terminals: 0,
         recent_transactions: [],
         branch_performance: [],
         alerts: []
