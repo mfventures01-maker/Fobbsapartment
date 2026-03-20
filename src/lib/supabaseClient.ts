@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import { forbiddenQuery } from './forbidden';
+import { blockDirectAccess } from './forbidden';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 const baseClient = createClient(supabaseUrl, supabaseKey);
+
+export const db = new Proxy({}, {
+    get() {
+        blockDirectAccess();
+    }
+});
 
 // 🔒 LOCK DOWN - NO DIRECT TABLE OR CHANNEL ACCESS (Step 3: Realtime Violation Fix)
 export const supabase = new Proxy(baseClient, {
@@ -15,8 +21,8 @@ export const supabase = new Proxy(baseClient, {
         }
 
         // BLOCK ALL DIRECT TABLE ACCESS (Step 1)
-        if (prop === 'from') {
-            return forbiddenQuery;
+        if (prop === 'from' || prop === 'insert' || prop === 'update' || prop === 'delete') {
+            blockDirectAccess();
         }
 
         // BLOCK ALL DIRECT CHANNEL ACCESS (Step 3)
@@ -37,3 +43,4 @@ export const supabase = new Proxy(baseClient, {
         return undefined;
     }
 });
+

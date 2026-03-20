@@ -6,8 +6,12 @@ export class AntiGravityViolation extends Error {
     }
 }
 
+export function blockDirectAccess() {
+    throw new Error("🚫 Direct DB access is forbidden. Use RPC.");
+}
+
 export const forbiddenQuery = () => {
-    throw new AntiGravityViolation('table access');
+    blockDirectAccess();
 };
 
 // For runtime protection of array methods
@@ -21,3 +25,4 @@ export const protectedArray = <T>(arr: T[]): T[] => {
         }
     });
 };
+
