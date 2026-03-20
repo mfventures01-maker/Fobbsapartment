@@ -9,42 +9,34 @@ export const TERMINAL_RPC_ACCESS: Record<TerminalType, string[]> = {
         'get_my_identity',
         'get_my_branches',
         'get_system_state',
+        'get_qr_menu',
         'create_qr_order_gateway',
-        'get_order_status'
+        'get_order_status',
+        'create_payment_intent'
     ],
     staff: [
-        'open_staff_shift',
-        'end_shift',
-        'submit_shift_declaration',
-        'get_active_shift',
-        'get_shift_by_id',
-        'get_active_inventory',
-        'universal_order_gateway',
-        'get_intent_by_id',
-        'set_intent_payment_method',
-        'confirm_payment_intent',
-        'register_terminal'
+        'get_system_state',
+        'log_inventory_movement'
     ],
     kitchen: [
         'get_kitchen_snapshot',
-        'update_preparation_status'
+        'update_order_status'
     ],
     store: [
-        'get_inventory_levels',
-        'record_inventory_in',
-        'record_inventory_out'
+        'get_inventory_snapshot',
+        'log_stock_receipt'
     ],
     manager: [
-        'get_shift_by_id',
-        'approve_shift_open',
-        'approve_shift_close',
-        'reject_shift_open',
-        'approve_shift_declaration'
+        'approve_shift',
+        'update_inventory',
+        'get_manager_snapshot',
+        'reject_shift'
     ],
     ceo: [
-        'get_staff_list',
-        'get_audit_logs',
-        'get_platform_businesses'
+        'disable_staff',
+        'update_branch',
+        'get_ceo_snapshot',
+        'get_system_snapshot'
     ]
 };
 

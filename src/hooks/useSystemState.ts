@@ -29,17 +29,17 @@ export function useSystemState() {
         alerts: []
     };
 
-    // 🔄 AUTOMATIC SYNCHRONIZATION (Rule 4: Zero-Drift Mirror)
+    // 🔄 AUTOMATIC SYNCHRONIZATION (Step 2: Deterministic Heartbeat Engine)
     useEffect(() => {
         if (!authority.businessId) return;
 
         // Immediate hydrate
         refresh(authority.businessId, authority.branchId || '');
 
-        // ⏱️ Mirror Pulse: 5-second polling for High-Authority / Operational Monitoring
+        // ⏱️ Mirror Pulse: 4-second polling (Controlled Truth Refresh Loop)
         const interval = setInterval(() => {
-            refresh(authority.businessId, authority.branchId || '');
-        }, 5000);
+            refresh(authority.businessId || '', authority.branchId || '');
+        }, 4000);
 
         return () => clearInterval(interval);
     }, [authority.businessId, authority.branchId, refresh]);
@@ -47,6 +47,7 @@ export function useSystemState() {
     return {
         ...defaults,
         ...(state || {}),
+        ceo_snapshot: state?.ceo_snapshot || null,
         loading,
         lastUpdated,
         refresh,
