@@ -90,17 +90,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    console.log('[AUTH] Initializing RPC Authority Resolution for:', currentSession.user.id);
+    // 🛡️ STEP 1: AUTHENTICATED (Temporal Integrity Gate)
+    console.log('[AUTH] Initial Session Check');
     setAuthorityStatus('loading');
 
     try {
-      // ✅ Step 2: Resolve Identity ONLY via RPC (Purification Protocol)
+      // 🔐 STEP 2: IDENTITY RESOLUTION (RPC Master Control)
+      // This is the ONLY path to system readiness.
       const identity = await callRPC<any>('public', 'get_my_identity', {
         _idempotency_key: crypto.randomUUID()
       });
 
       if (!identity || !identity.role) {
-        console.log('[AUTH] No identity resolved via RPC. Setting status = unauthorized');
+        console.error('[AUTH] ❌ Identity Resolution Failure: No role assigned.');
         if (isMounted.current) {
           setAuthorityStatus('unauthorized');
           setUser(currentSession.user);
@@ -109,11 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      console.log('[AUTH] Identity Resolved via RPC:', identity.role);
+      console.log(`[AUTH] ✅ Identity Resolved via RPC: ${identity.role}`);
 
+      // 🦾 STEP 3: SYSTEM READINESS (State Derivation)
       if (isMounted.current) {
-        setAuthorityStatus('authorized');
-        setCurrentRole(identity.role as UserRole);
         setOrgId(identity.business_id);
         setLocationId(identity.branch_id);
         setDepartmentId(identity.department_id);
@@ -130,9 +131,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(currentSession.user);
         setSession(currentSession);
+
+        // Final Gate Unlock
+        setCurrentRole(identity.role as UserRole);
+        setAuthorityStatus('authorized');
+        console.log('[AUTH] 🔓 Authority Gate: OPEN. Downstream SSOT hydration allowed.');
       }
     } catch (err) {
-      console.error("[AUTH] Forensic resolution failure:", err);
+      console.error("[AUTH] 💥 Forensic resolution failure:", err);
       if (isMounted.current) {
         setAuthorityStatus('unauthorized');
       }

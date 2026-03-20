@@ -31,7 +31,10 @@ export function useSystemState() {
 
     // 🔄 AUTOMATIC SYNCHRONIZATION (Step 2: Deterministic Heartbeat Engine)
     useEffect(() => {
-        if (!authority.businessId) return;
+        // 🔒 IDENTITY GATE: No identity → No heartbeat
+        if (authority.status !== 'authorized' || !authority.businessId) return;
+
+        console.log('[SSOT] 🛰️ Booting High-Res Telemetry Engine...');
 
         // Immediate hydrate
         refresh(authority.businessId, authority.branchId || '');
@@ -42,7 +45,7 @@ export function useSystemState() {
         }, 4000);
 
         return () => clearInterval(interval);
-    }, [authority.businessId, authority.branchId, refresh]);
+    }, [authority.status, authority.businessId, authority.branchId, refresh]);
 
     return {
         ...defaults,

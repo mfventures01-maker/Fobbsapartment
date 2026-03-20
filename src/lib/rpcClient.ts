@@ -21,6 +21,12 @@ export async function callRPC<T>(
     functionName: string,
     payload: Record<string, any>
 ): Promise<T> {
+    // 🛡️ STEP 0: SESSION GUARD (Temporal Integrity)
+    // Prevents "trying to work" before authentication exists.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+        throw new Error(`[ANTI-GRAVITY] RPC BLOCKED: Unauthenticated request to ${functionName}. Identity must resolve first.`);
+    }
 
     // 🚨 ANTI-GRAVITY CHECKPOINT — TERMINAL ACCESS FIREWALL (MANDATORY)
     enforceTerminalAccess(terminal, functionName);
