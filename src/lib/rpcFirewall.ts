@@ -24,6 +24,7 @@ export const TERMINAL_RPC_ACCESS: Record<TerminalType, string[]> = {
     ],
     store: [
         'get_inventory_snapshot',
+        'get_inventory_levels',
         'log_stock_receipt'
     ],
     manager: [

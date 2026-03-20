@@ -12,48 +12,33 @@ import { useAuth } from '../contexts/AuthContext';
  * All metrics must be read directly from the state object.
  */
 export function useSystemState() {
-    const { state, loading, lastUpdated, refresh, error } = useSystemStore();
+    const state = useSystemStore();
     const { authority } = useAuth();
 
-    // Default values to prevent runtime crashes (Anti-Gravity SSOT Rule)
+    // Default values matching precise backend mirror
     const defaults = {
-        shift: null,
-        orders: { open_orders: 0, pending_payment: 0, today_total: 0 },
-        revenue: { today: 0, last_hour: 0, shift_total: 0, shift_cash: 0, shift_pos: 0, shift_transfer: 0 },
-        payments: { pending_intents: 0, intents_list: [] },
-        open_shifts: 0,
-        active_terminals: 0,
-        recent_transactions: [],
-        branch_performance: [],
-        inventory_alerts: [],
-        alerts: []
+        business_id: null,
+        location_id: null,
+        user_id: null,
+        orders: [],
+        kitchen: [],
+        inventory: [],
+        shifts: [],
+        timestamp: null
     };
 
-    // 🔄 AUTOMATIC SYNCHRONIZATION (Step 2: Deterministic Heartbeat Engine)
-    useEffect(() => {
-        // 🔒 IDENTITY GATE: No identity → No heartbeat
-        if (authority.status !== 'authorized' || !authority.businessId) return;
-
-        console.log('[SSOT] 🛰️ Booting High-Res Telemetry Engine...');
-
-        // Immediate hydrate
-        refresh(authority.businessId, authority.branchId || '');
-
-        // ⏱️ Mirror Pulse: 4-second polling (Controlled Truth Refresh Loop)
-        const interval = setInterval(() => {
-            refresh(authority.businessId || '', authority.branchId || '');
-        }, 4000);
-
-        return () => clearInterval(interval);
-    }, [authority.status, authority.businessId, authority.branchId, refresh]);
+    // Note: Hydration loop moved exclusively to SystemStateProvider
+    // as part of gated hydration protocol to enforce LAW 2.
 
     return {
         ...defaults,
         ...(state || {}),
-        ceo_snapshot: state?.ceo_snapshot || null,
-        loading,
-        lastUpdated,
-        refresh,
-        error
+        ceo_snapshot: null,
+        loading: false, // Replaced by global or context level Loading states
+        lastUpdated: state.timestamp,
+        error: null,
+        // Mocking refresh to avoid breaking existing signatures while protocol takes over
+        refresh: async () => { console.warn("Manual refresh requested, ignored by Anti-Gravity rule."); }
     };
 }
+

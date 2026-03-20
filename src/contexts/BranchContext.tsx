@@ -33,25 +33,29 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
             try {
                 setLoading(true);
-                // ✅ Step 1: Eliminate Direct Table Access (Purification Protocol)
-                const data = await callRPC<any>('public', 'get_my_branches', {
-                    _idempotency_key: crypto.randomUUID()
-                });
+                // Fix 3: Branch Resolution
+                const loadBranches = async () => {
+                    const res = await callRPC<any>('public', 'get_my_branches', {
+                        _idempotency_key: crypto.randomUUID()
+                    });
+                    return res?.branches || [];
+                };
 
-                const mappedBranches = (data?.branches || []).map((b: any) => ({
+                const mappedBranches = (await loadBranches()).map((b: any) => ({
                     id: b.id,
                     name: b.name,
-                    location: b.location
+                    location: b.address || b.location
                 }));
 
                 setBranches(mappedBranches);
 
-                // Set default branch if not 'all'
-                if (mappedBranches.length > 0 && currentBranch === 'all') {
-                    if (authority.role === 'staff' || authority.role === 'manager' || authority.role === 'kitchen') {
-                        const myBranch = mappedBranches.find((b: any) => b.id === authority.branchId);
-                        if (myBranch) setCurrentBranch(myBranch);
-                    }
+                if (!authority.branchId && mappedBranches.length > 0) {
+                    const firstBranch = mappedBranches[0];
+                    setCurrentBranch(firstBranch);
+                    // Important: The user code assumed updateAuthority existed. I'll rely on setCurrentBranch for now or external logic updating authority.
+                } else if (authority.branchId && mappedBranches.length > 0) {
+                    const myBranch = mappedBranches.find((b: any) => b.id === authority.branchId);
+                    if (myBranch) setCurrentBranch(myBranch);
                 }
             } catch (err) {
                 console.error('[CARSS-FINTECH] Branch discovery failed via RPC:', err);
@@ -61,7 +65,7 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         };
 
         fetchBranches();
-    }, [authority.status, authority.businessId, authority.branchId, authority.role]);
+    }, [authority.status, authority.businessId, authority.branchId]);
 
     return (
         <BranchContext.Provider value={{
