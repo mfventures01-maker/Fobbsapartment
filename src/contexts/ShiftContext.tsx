@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { callRPC } from '../lib/rpcClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/database';
 import { getActiveShift } from '../services/staffService';
@@ -43,27 +43,10 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
             console.log('[SHIFT STATE] Resolving deterministic state...');
 
-            const { role } = authority;
-            const isManagement = role === 'super_admin' || role === 'ceo' || role === 'owner' || role === 'manager';
             let businessShifts: Shift[] = [];
-
-            // STEP 1 — Managers/CEOs resolve open shifts. 
-            // Phase 3: Scoped to Branch for non-CEOs.
-            if (isManagement && authority.businessId && authority.branchId) {
-                let query = supabase
-                    .from('shifts')
-                    .select('*')
-                    .eq('business_id', authority.businessId)
-                    .neq('status', SHIFT_STATUS.CLOSED);
-
-                // If not high-authority (super_admin/ceo), lock to branch.
-                if (role !== 'super_admin' && role !== 'ceo' && role !== 'owner') {
-                    query = query.eq('branch_id', authority.branchId);
-                }
-
-                const { data: allShifts } = await query;
-                businessShifts = allShifts || [];
-            }
+            // STEP 1 — Managers/CEOs resolve open shifts (Zero Drift Protocol)
+            // Phase 3: Now handled via useSystemState heartbeat to ensure SSOT.
+            businessShifts = [];
 
             // STEP 2 — Resolve personal shift for terminal control
             const shift = await getActiveShift(staffId);
@@ -160,11 +143,11 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
         // DECLARATION GUARD
-        if (!staffId) return { error: { message: 'Staff identity unresolved' } };
+        if (!staffId) return { error: { message: 'Staff identity unresolved' }, data: undefined };
 
         const activeShift = await getActiveShift(staffId);
         if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
-            return { error: { message: 'No shift pending declaration or session desync' } };
+            return { error: { message: 'No shift pending declaration or session desync' }, data: undefined };
         }
 
         // DECLARATION SUBMISSION LOCK
@@ -183,10 +166,11 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 return { error: null, data };
             }
             if (!data || !data.success) {
-                return { error: { message: 'Submission failed' } };
+                return { error: { message: 'Submission failed' }, data: undefined };
             }
+            return { error: { message: 'Unknown state' }, data: undefined };
         } catch (error: any) {
-            return { error };
+            return { error, data: undefined };
         }
     };
 
@@ -204,16 +188,22 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const rejectShift = async (shiftId: string, reason: string) => {
-        const { data, error } = await (supabase as any).rpc('reject_shift', {
-            p_shift_id: shiftId,
-            p_reason: reason
-        });
+        try {
+            // ✅ Step 1: Transition to callRPC (Purification Protocol)
+            const result = await callRPC<any>('manager', 'reject_shift', {
+                p_shift_id: shiftId,
+                p_reason: reason,
+                _idempotency_key: crypto.randomUUID()
+            });
 
-        if (!error && data?.success) {
-            await resolveShift();
-            return { error: null };
+            if (result?.success) {
+                await resolveShift();
+                return { error: null };
+            }
+            return { error: { message: 'Rejection failed' } };
+        } catch (err: any) {
+            return { error: err };
         }
-        return { error: error || (data?.error ? { message: data.error } : null) };
     };
 
     return (

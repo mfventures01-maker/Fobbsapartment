@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from './AuthContext';
 
 export interface Branch {
@@ -26,46 +26,42 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     useEffect(() => {
         const fetchBranches = async () => {
-            // Ensure supabase client and business_id are available before proceeding
-            if (!supabase || !authority.businessId) {
+            if (authority.status !== 'authorized' || !authority.businessId) {
                 setLoading(false);
                 return;
             }
 
             try {
                 setLoading(true);
-                const { data, error } = await supabase
-                    .from('branches')
-                    .select('id, name, city')
-                    .eq('business_id', authority.businessId);
+                // ✅ Step 1: Eliminate Direct Table Access (Purification Protocol)
+                const data = await callRPC<any>('public', 'get_my_branches', {
+                    _idempotency_key: crypto.randomUUID()
+                });
 
-                if (error) throw error;
-
-                const mappedBranches = (data || []).map(b => ({
+                const mappedBranches = (data?.branches || []).map((b: any) => ({
                     id: b.id,
                     name: b.name,
-                    location: b.city
+                    location: b.location
                 }));
 
                 setBranches(mappedBranches);
 
                 // Set default branch if not 'all'
                 if (mappedBranches.length > 0 && currentBranch === 'all') {
-                    // we keep 'all' as default for CEO, but could auto-select first for staff
-                    if (authority.role === 'staff' || authority.role === 'manager') {
-                        const myBranch = mappedBranches.find(b => b.id === authority.branchId);
+                    if (authority.role === 'staff' || authority.role === 'manager' || authority.role === 'kitchen') {
+                        const myBranch = mappedBranches.find((b: any) => b.id === authority.branchId);
                         if (myBranch) setCurrentBranch(myBranch);
                     }
                 }
             } catch (err) {
-                console.error('[CARSS-FINTECH] Branch discovery failed:', err);
+                console.error('[CARSS-FINTECH] Branch discovery failed via RPC:', err);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchBranches();
-    }, [authority.businessId]);
+    }, [authority.status, authority.businessId, authority.branchId, authority.role]);
 
     return (
         <BranchContext.Provider value={{

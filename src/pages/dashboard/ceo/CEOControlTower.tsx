@@ -64,6 +64,7 @@ const CEOControlTower: React.FC = () => {
         open_shifts,
         recent_transactions,
         branch_performance,
+        ceo_snapshot,
         refresh: systemRefresh
     } = useSystemState();
 
@@ -82,33 +83,33 @@ const CEOControlTower: React.FC = () => {
     // --- GOVERNANCE HYDRATION ---
     const hydrate = useCallback(async () => {
         if (!authority.businessId) return;
-        setLoading(true);
-
         try {
-            const data = await callRPC<any>('ceo', 'get_ceo_snapshot', {
-                p_business_id: authority.businessId
-            });
-
-            setStats({
-                activeBranches: data.branch_count || 0,
-                activeStaff: data.staff_count || 0,
-                totalDepartments: data.dept_count || 0,
-            });
-
-            setStaffList(data.top_staff || []);
-            setInventoryAlerts(data.critical_inventory || []);
-            setRiskAlerts(data.system_alerts || []);
-
+            // ✅ Step 1: Purify CEO Terminal (Zero Drift Protocol)
+            await systemRefresh(authority.businessId, authority.branchId || '');
         } catch (err: any) {
-            console.error('[CEO DASHBOARD] Hydrate error:', err.message);
-        } finally {
-            setLoading(false);
+            console.error('[CEO TOWER] Re-sync failed:', err.message);
         }
-    }, [authority.businessId]);
+    }, [authority.businessId, authority.branchId, systemRefresh]);
 
     useEffect(() => {
         hydrate();
+        const heartbeat = setInterval(hydrate, 10000); // 10s CEO pulse
+        return () => clearInterval(heartbeat);
     }, [hydrate]);
+
+    // Update local states when ceo_snapshot from useSystemState changes
+    useEffect(() => {
+        if (ceo_snapshot) {
+            setStats({
+                activeBranches: ceo_snapshot.branch_count || 0,
+                activeStaff: ceo_snapshot.staff_count || 0,
+                totalDepartments: ceo_snapshot.dept_count || 0,
+            });
+            setStaffList(ceo_snapshot.top_staff || []);
+            setInventoryAlerts(ceo_snapshot.critical_inventory || []);
+            setRiskAlerts(ceo_snapshot.system_alerts || []);
+        }
+    }, [ceo_snapshot]);
 
     // --- CEO CONTROLS ---
     const handleDisableStaff = async (userId: string) => {

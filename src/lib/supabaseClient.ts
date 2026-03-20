@@ -6,20 +6,28 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_P
 
 const baseClient = createClient(supabaseUrl, supabaseKey);
 
-// 🔒 LOCK DOWN - NO DIRECT TABLE ACCESS
+// 🔒 LOCK DOWN - NO DIRECT TABLE OR CHANNEL ACCESS (Step 3: Realtime Violation Fix)
 export const supabase = new Proxy(baseClient, {
     get(target, prop) {
-        // Allow auth and channel operations (these are safe)
-        if (prop === 'auth' || prop === 'channel' || prop === 'removeChannel') {
+        // Allow auth operations (Sign In/Out/Session)
+        if (prop === 'auth') {
             return target[prop as keyof typeof target];
         }
 
-        // BLOCK ALL TABLE ACCESS
+        // BLOCK ALL DIRECT TABLE ACCESS (Step 1)
         if (prop === 'from') {
             return forbiddenQuery;
         }
 
-        // Allow RPC calls only
+        // BLOCK ALL DIRECT CHANNEL ACCESS (Step 3)
+        if (prop === 'channel' || prop === 'removeChannel' || prop === 'getSubscriptions') {
+            return () => {
+                console.error(`[ANTI-GRAVITY VIOLATION] Direct Supabase.channel access is forbidden. Use RPC-only communication.`);
+                throw new Error('AntiGravityViolation: Direct realtime access is prohibited under the Drift Zero Protocol.');
+            };
+        }
+
+        // Allow RPC calls (must move through rpcClient.ts for firewall)
         if (prop === 'rpc') {
             return target.rpc.bind(target);
         }

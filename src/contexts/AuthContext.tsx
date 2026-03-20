@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import { callRPC } from '../lib/rpcClient';
 import { Profile } from '../types/database';
 
 export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner' | 'kitchen';
@@ -89,73 +90,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    console.log('[AUTH] Initializing Authority Resolution for:', currentSession.user.id);
+    console.log('[AUTH] Initializing RPC Authority Resolution for:', currentSession.user.id);
     setAuthorityStatus('loading');
 
     try {
-      const { data: membership, error } = await supabase
-        .from('business_memberships')
-        .select(`
-          role,
-          business_id,
-          branch_id,
-          department_id,
-          departments(name)
-        `)
-        .eq('user_id', currentSession.user.id)
-        .maybeSingle();
+      // ✅ Step 2: Resolve Identity ONLY via RPC (Purification Protocol)
+      const identity = await callRPC<any>('public', 'get_my_identity', {
+        _idempotency_key: crypto.randomUUID()
+      });
 
-      if (error) throw error;
-
-      if (!membership) {
-        console.log('[AUTH] No membership found. Setting status = unauthorized');
+      if (!identity || !identity.role) {
+        console.log('[AUTH] No identity resolved via RPC. Setting status = unauthorized');
         if (isMounted.current) {
           setAuthorityStatus('unauthorized');
-          setCurrentRole(null);
-          setOrgId(null);
-          setLocationId(null);
-          setDepartmentId(null);
-          setDepartmentName(null);
-          setProfile(null);
           setUser(currentSession.user);
           setSession(currentSession);
         }
         return;
       }
 
-      console.log('[AUTH] Authority Resolved:', membership.role);
-      console.log('[IDENTITY]', {
-        role: membership.role,
-        userId: currentSession.user.id,
-      });
+      console.log('[AUTH] Identity Resolved via RPC:', identity.role);
+
       if (isMounted.current) {
         setAuthorityStatus('authorized');
-        setCurrentRole(membership.role as UserRole);
-        setOrgId(membership.business_id);
-        setLocationId(membership.branch_id);
-        setDepartmentId(membership.department_id);
-        setDepartmentName((membership.departments as any)?.name ?? null);
+        setCurrentRole(identity.role as UserRole);
+        setOrgId(identity.business_id);
+        setLocationId(identity.branch_id);
+        setDepartmentId(identity.department_id);
+        setDepartmentName(identity.department_name);
+        setStaffId(identity.staff_id);
+
         setProfile({
           user_id: currentSession.user.id,
-          role: membership.role as any,
-          business_id: membership.business_id,
-          department: membership.department_id,
+          role: identity.role as any,
+          business_id: identity.business_id,
+          department: identity.department_id,
           full_name: currentSession.user.user_metadata?.full_name || 'User',
         });
+
         setUser(currentSession.user);
         setSession(currentSession);
-
-        // RESOLVE STAFF IDENTITY (DETERMINISTIC PATCH)
-        const { data: staff } = await supabase
-          .from('staff_profiles')
-          .select('id')
-          .eq('user_id', currentSession.user.id)
-          .maybeSingle();
-
-        if (staff && isMounted.current) {
-          console.log('[AUTH] Operational Staff Resolved:', staff.id);
-          setStaffId(staff.id);
-        }
       }
     } catch (err) {
       console.error("[AUTH] Forensic resolution failure:", err);

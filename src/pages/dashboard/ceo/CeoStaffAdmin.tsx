@@ -190,6 +190,7 @@ const CeoStaffAdmin: React.FC = () => {
                                             >
                                                 <option value="manager">Manager</option>
                                                 <option value="staff">Staff</option>
+                                                <option value="kitchen">Kitchen</option>
                                                 <option value="viewer">Viewer</option>
                                                 {user.role === 'owner' && <option value="owner">Owner</option>}
                                             </select>
@@ -259,6 +260,7 @@ const CeoStaffAdmin: React.FC = () => {
                                         onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                                     >
                                         <option value="staff">Staff</option>
+                                        <option value="kitchen">Kitchen</option>
                                         <option value="manager">Manager</option>
                                         <option value="viewer">Viewer</option>
                                     </select>
