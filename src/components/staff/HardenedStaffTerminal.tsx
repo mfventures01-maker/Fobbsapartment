@@ -42,9 +42,7 @@ export function HardenedStaffTerminal() {
 
     React.useEffect(() => {
         if (user) {
-            console.log('[SHIFT CONTEXT]', {
-                authUser: user.id,
-            });
+            // Deterministic shift context tracking
         }
     }, [user]);
 

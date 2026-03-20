@@ -3,8 +3,8 @@ import React, { createContext, useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useShiftState } from './ShiftContext';
-import { getActiveShift } from '../lib/shiftService';
-import { createStaffOrder } from '../services/orderService';
+import { getActiveShift } from '../services/staffService';
+import { createStaffOrder } from '../services/staffService';
 
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
@@ -34,7 +34,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { shiftState } = useShiftState();
     const navigate = useNavigate();
 
-    const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    let total = 0;
+    cartItems.forEach(item => { total += (item.price * item.quantity); });
 
     const addToCart = (item: CartItem) => {
         setCartItems(prev => {
@@ -86,6 +87,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const gatewayResult = await createStaffOrder(
                 activeShift.business_id,
                 activeShift.branch_id,
+                activeShift.staff_id,
                 orderItems,
                 { source: 'cart_checkout', customer_name: 'Walk-In', paymentMethod }
             );

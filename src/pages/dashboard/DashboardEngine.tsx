@@ -24,6 +24,7 @@ import { HardenedStaffTerminal } from '@/components/staff/HardenedStaffTerminal'
 
 // Store / Branch
 import StoreOperationsPanel from '@/pages/dashboard/store/StoreOperationsPanel';
+import KitchenTerminal from '@/pages/dashboard/kitchen/KitchenTerminal';
 
 const DashboardEngine: React.FC = () => {
     const { authority } = useAuth();
@@ -91,8 +92,18 @@ const DashboardEngine: React.FC = () => {
             <Route
                 path="store"
                 element={
-                    <ProtectedRoute allowedRoles={['ceo', 'manager']}>
+                    <ProtectedRoute allowedRoles={['ceo', 'manager', 'kitchen']}>
                         <DashboardLayout><StoreOperationsPanel /></DashboardLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* 6. Kitchen Terminal */}
+            <Route
+                path="kitchen"
+                element={
+                    <ProtectedRoute allowedRoles={['kitchen', 'manager', 'ceo']}>
+                        <DashboardLayout><KitchenTerminal /></DashboardLayout>
                     </ProtectedRoute>
                 }
             />

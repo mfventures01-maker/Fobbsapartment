@@ -1,20 +1,31 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { forbiddenQuery } from './forbidden';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl) throw new Error("Missing VITE_SUPABASE_URL environment variable.");
-if (!supabaseAnonKey) throw new Error("Missing VITE_SUPABASE_ANON_KEY environment variable.");
-if (supabaseAnonKey.includes('<PUBLIC_ANON_KEY_FROM_SUPABASE>')) {
-    throw new Error("CRITICAL: .env file has placeholder VITE_SUPABASE_ANON_KEY. Please update it with the real key.");
-}
+const baseClient = createClient(supabaseUrl, supabaseKey);
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
+// 🔒 LOCK DOWN - NO DIRECT TABLE ACCESS
+export const supabase = new Proxy(baseClient, {
+    get(target, prop) {
+        // Allow auth and channel operations (these are safe)
+        if (prop === 'auth' || prop === 'channel' || prop === 'removeChannel') {
+            return target[prop as keyof typeof target];
+        }
+
+        // BLOCK ALL TABLE ACCESS
+        if (prop === 'from') {
+            return forbiddenQuery;
+        }
+
+        // Allow RPC calls only
+        if (prop === 'rpc') {
+            return target.rpc.bind(target);
+        }
+
+        // Block everything else by default
+        console.warn(`[ANTI-GRAVITY] Access to supabase.${String(prop)} blocked`);
+        return undefined;
     }
 });
-
-export { supabase };

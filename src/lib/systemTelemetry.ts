@@ -18,8 +18,12 @@ export function scheduleHydrate() {
  */
 export function setupTelemetry() {
     console.log('[SSOT] Booting High-Res Telemetry Engine...');
+    console.log('[SSOT] Initialized 45s Re-anchor Interval for deterministic drift correction');
 
-    const unsubscribe = useSystemStore.getState().subscribe(HOTEL_CONFIG.org_id);
+    const unsubscribe = useSystemStore.getState().subscribe(
+        HOTEL_CONFIG.org_id,
+        HOTEL_CONFIG.location_id
+    );
 
     // Defensive Heartbeat (Bank-grade persistence)
     const heartbeat = setInterval(() => {

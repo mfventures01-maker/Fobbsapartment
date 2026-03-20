@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
+import { callEdgeFunction } from '@/lib/callEdgeFunction';
 import { toast } from 'react-hot-toast';
 import { Plus, Shield, Mail, Users, Filter, Loader2 } from 'lucide-react';
 
@@ -39,19 +40,15 @@ const CeoStaffAdmin: React.FC = () => {
     const fetchStaff = async () => {
         if (!orgId) return;
         try {
-            console.log('[DASHBOARD] Fetching staff list...');
             setLoading(true);
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('business_id', orgId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setStaff(data as StaffMember[]);
-        } catch (err) {
-            console.error('[DASHBOARD] Fetch staff error:', err);
-            toast.error('Failed to load staff list');
+            // Authority confirmed: transitioned to callRPC protocol
+            const data = await callRPC<StaffMember[]>('ceo', 'get_staff_list', {
+                p_business_id: orgId,
+                _idempotency_key: crypto.randomUUID()
+            });
+            setStaff(data || []);
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to load staff list');
         } finally {
             setLoading(false);
         }
@@ -60,29 +57,20 @@ const CeoStaffAdmin: React.FC = () => {
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isCreating || !orgId) return;
-
         try {
-            console.log('[MUTATION] Start: Invite Staff', newUser.email);
             setIsCreating(true);
-            const { data, error } = await supabase.functions.invoke('create-staff-user', {
-                body: {
-                    ...newUser,
-                    business_id: orgId,
-                    branch_id: orgId
-                }
+            // Edge Authority confirmed: transitioned to callEdgeFunction protocol
+            const data = await callEdgeFunction<{ error?: string }>('ceo', 'create-staff-user', {
+                ...newUser,
+                business_id: orgId,
+                branch_id: orgId
             });
-
-            if (error) throw new Error(error.message || 'Invitation failed');
             if (data?.error) throw new Error(data.error);
-
             toast.success('Staff invitation sent successfully!');
             setShowModal(false);
             setNewUser({ email: '', full_name: '', role: 'staff', department: '' });
             fetchStaff();
-            console.log('[MUTATION] End: Invite Staff Success');
-
         } catch (err: any) {
-            console.error('[MUTATION] Invite error:', err);
             toast.error(err.message || 'Failed to invite staff');
         } finally {
             setIsCreating(false);
@@ -91,23 +79,15 @@ const CeoStaffAdmin: React.FC = () => {
 
     const handleDeactivate = async (userId: string) => {
         if (isUpdating) return;
-        if (!confirm('Are you sure you want to deactivate this user? They will lose access immediately.')) return;
-
+        if (!confirm('Deactivate this user? They will lose access immediately.')) return;
         try {
-            console.log('[MUTATION] Start: Deactivate User', userId);
             setIsUpdating(true);
-            const { error } = await supabase.functions.invoke('deactivate-user', {
-                body: { user_id: userId }
-            });
-
-            if (error) throw error;
-
+            // Edge Authority confirmed: following protocol M2
+            await callEdgeFunction('ceo', 'deactivate-user', { user_id: userId });
             toast.success('User deactivated');
             fetchStaff();
-            console.log('[MUTATION] End: Deactivate Success');
-        } catch (err) {
-            console.error('[MUTATION] Deactivate error:', err);
-            toast.error('Failed to deactivate user');
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to deactivate user');
         } finally {
             setIsUpdating(false);
         }
@@ -116,18 +96,13 @@ const CeoStaffAdmin: React.FC = () => {
     const handleRoleUpdate = async (userId: string, newRole: string) => {
         if (isUpdating) return;
         try {
-            console.log('[MUTATION] Start: Update Role', userId, newRole);
             setIsUpdating(true);
-            const { error } = await supabase.functions.invoke('update-user-role', {
-                body: { user_id: userId, role: newRole }
-            });
-            if (error) throw error;
+            // Edge Authority confirmed: following protocol M3
+            await callEdgeFunction('ceo', 'update-user-role', { user_id: userId, role: newRole });
             toast.success('Role updated');
             fetchStaff();
-            console.log('[MUTATION] End: Update Role Success');
-        } catch (err) {
-            console.error('[MUTATION] Role update error:', err);
-            toast.error('Failed to update role');
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to update role');
         } finally {
             setIsUpdating(false);
         }

@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabaseClient";
+import { callRPC } from "../lib/rpcClient";
 
 export async function signUp(email: string, password: string, fullName: string, businessName: string, category: string) {
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -7,29 +8,19 @@ export async function signUp(email: string, password: string, fullName: string, 
   const user = data.user;
   if (!user) throw new Error("Signup failed");
 
-  // Create a record in the businesses table
-  const { data: business, error: businessError } = await supabase
-    .from("businesses")
-    .insert({ name: businessName, category })
-    .select()
-    .single();
-
-  if (businessError) {
-    console.error("Business creation error:", businessError);
-    // Continue anyway or throw depending on business requirements
-  }
-
-  // Create a record in the profiles table
-  const { error: profileError } = await supabase.from("profiles").insert({
-    user_id: user.id,
-    business_id: business?.id,
-    full_name: fullName,
-    role: "owner"
+  // 1. CNS-Monitored Business Creation (Pure Determinism)
+  const business = await callRPC<any>('public', 'bootstrap_organization', {
+    p_name: businessName,
+    p_category: category
   });
 
-  if (profileError) {
-    console.error("Profile creation error:", profileError);
-  }
+  // 2. CNS-Monitored Profile Creation
+  await callRPC('public', 'create_profile', {
+    p_user_id: user.id,
+    p_business_id: business?.id,
+    p_full_name: fullName,
+    p_role: "owner"
+  });
 
   return user;
 }

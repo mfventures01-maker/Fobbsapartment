@@ -2,8 +2,9 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/database';
-import { getActiveShift } from '../lib/shiftService'; // Note: if getActiveShift isn't moved yet we can leave it
-import { requestShift, endShift as apiEndShift, submitDeclaration as apiSubmitDeclaration, approveShift as apiApproveShift } from '../services/shiftService';
+import { getActiveShift } from '../services/staffService';
+import { requestShift, endShift as apiEndShift, submitDeclaration as apiSubmitDeclaration } from '../services/staffService';
+import { approveShift as apiApproveShift } from '../services/managerService';
 import { subscribeToOperationalTelemetry } from '../lib/realtimeTelemetry';
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
@@ -40,7 +41,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         try {
-            console.log('[SHIFT CONTEXT] Resolving via ANTI-GRAVITY engine...');
+            console.log('[SHIFT STATE] Resolving deterministic state...');
 
             const { role } = authority;
             const isManagement = role === 'super_admin' || role === 'ceo' || role === 'owner' || role === 'manager';
@@ -107,7 +108,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (authority.branchId) {
             const unsubscribeTelemetry = subscribeToOperationalTelemetry(authority.branchId, {
                 onShiftUpdate: () => {
-                    console.log('[SHIFT CONTEXT] Realtime shift update received, resolving state');
+                    console.log('[SHIFT STATE] Realtime shift update received, resolving...');
                     resolveShift();
                 }
             });
@@ -130,7 +131,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         console.log('[SHIFT] Initiating startShift via deterministic service...');
         try {
-            const result = await requestShift(authority.businessId, authority.branchId);
+            const result = await requestShift(authority.businessId, authority.branchId, staffId);
             if (!result?.success) {
                 return { error: { message: 'Failed to request shift' } };
             }
@@ -147,8 +148,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.log('[SHIFT] Initiating end_shift RPC via service...');
         try {
             const data = await apiEndShift();
-            if (!data?.success) {
-                return { error: (data?.error ? { message: data.error } : { message: 'Failed to end shift' }) };
+            if (!data || !data.success) {
+                return { error: { message: 'Failed to end shift' } };
             }
             await resolveShift();
             return { error: null };
@@ -158,7 +159,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
-        // STEP 5 — DECLARATION GUARD
+        // DECLARATION GUARD
         if (!staffId) return { error: { message: 'Staff identity unresolved' } };
 
         const activeShift = await getActiveShift(staffId);
@@ -166,7 +167,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return { error: { message: 'No shift pending declaration or session desync' } };
         }
 
-        // PHASE 3 — DECLARATION SUBMISSION LOCK
+        // DECLARATION SUBMISSION LOCK
         if (activeShift.staff_id !== staffId) {
             console.error('[SHIFT] Ownership mismatch detected!', {
                 activeStaff: activeShift.staff_id,
@@ -181,7 +182,9 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 await resolveShift();
                 return { error: null, data };
             }
-            return { error: (data?.error ? { message: data.error } : { message: 'Submission failed' }) };
+            if (!data || !data.success) {
+                return { error: { message: 'Submission failed' } };
+            }
         } catch (error: any) {
             return { error };
         }
@@ -194,7 +197,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 await resolveShift();
                 return { error: null };
             }
-            return { error: (data?.error ? { message: data.error } : null) };
+            return { error: { message: 'Approval failed' } };
         } catch (error: any) {
             return { error };
         }

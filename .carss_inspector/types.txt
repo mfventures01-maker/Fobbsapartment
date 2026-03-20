@@ -1,0 +1,266 @@
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:7:interface CreateStaffRequest {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\App.tsx:60:<Route path="/services/:type" element={<ServiceRequestPublic />} />
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\AuthGate.tsx:6:interface AuthGateProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\getAuthedProfile.ts:55:role_type: typeof profile?.role,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\routeRules.ts:3:* Single source of truth for user role types and route resolution
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\routeRules.ts:6:export type Role = 'owner' | 'ceo' | 'manager' | 'staff';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\routeRules.ts:8:export interface Profile {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AntiGravity\AntiGravitySuggestion.tsx:4:interface SuggestionProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AntiGravity\AntiGravitySuggestion.tsx:6:type: 'critical' | 'fraud' | 'routine';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AntiGravity\AntiGravitySuggestion.tsx:10:const AntiGravitySuggestion: React.FC<SuggestionProps> = ({ label, type, onAction }) => {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AntiGravity\AntiGravitySuggestion.tsx:12:switch (type) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AntiGravity\AntiGravitySuggestion.tsx:20:switch (type) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ApartmentCard.tsx:4:import { Apartment } from '../types';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ApartmentCard.tsx:7:interface Props {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ApartmentCard.tsx:49:{apartment.type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:6:interface Props {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:76:type="email"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:91:type="password"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:106:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ConfirmSendPanel.tsx:7:interface ConfirmSendPanelProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ConfirmSendPanel.tsx:8:typeLabel: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ConfirmSendPanel.tsx:20:typeLabel, requestId, roomNumber, summaryLines, subtotal, notes, onEdit, onSendWhatsApp, onSendTelegram
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ConfirmSendPanel.tsx:42:<p className="font-bold uppercase text-xs text-emerald-500">{typeLabel}</p>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\dashboard\LiveOperationsPanel.tsx:5:interface LiveOperationsPanelProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\dashboard\TerminalRadar.tsx:4:interface TerminalRadarProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\dashboard\TerminalRadar.tsx:50:{t.terminal_type.replace('_', ' ')}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\Layout.tsx:6:interface LayoutProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\Layout.tsx:57:{HOTEL_CONFIG.business_type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\pos\POSTerminal.tsx:15:interface CartItem extends MenuItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\pos\POSTerminal.tsx:19:interface POSTerminalProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\pos\POSTerminal.tsx:138:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\pos\POSTerminal.tsx:256:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\RoomNumberGate.tsx:5:interface RoomNumberGateProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\RoomNumberGate.tsx:51:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\RoomNumberGate.tsx:65:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:59:const cash = data.filter(t => t.payment_type === 'cash').reduce((sum, t) => sum + Number(t.amount), 0);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:60:const pos = data.filter(t => t.payment_type === 'pos').reduce((sum, t) => sum + Number(t.amount), 0);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:61:const transfer = data.filter(t => t.payment_type === 'transfer' || t.payment_type === 'wallet').reduce((sum, t) => sum + Number(t.amount), 0);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:133:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:149:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:165:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:254:<span className="capitalize text-slate-300">{tx.payment_type}</span>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:8:interface ShiftSettlementPanelProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:33:.select('amount, payment_type')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:39:const method = tx.payment_type?.toLowerCase();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:110:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:126:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:142:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\StatCard.tsx:4:interface StatCardProps {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:2:export interface Room {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:6:type: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:16:export interface MenuItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:23:export interface Review {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:30:export interface ServiceItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:38:export interface ServiceSection {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:44:export interface RestaurantSection {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:53:export interface DeploymentConfig {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:59:business_type: "hotel" | "restaurant" | "lounge";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:129:business_type: "hotel",
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:152:type: 'Studio',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:165:type: '1-Bedroom',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\config\cars.config.ts:178:type: '2-Bedroom',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\constants.tsx:2:import { Apartment, MenuItem } from './types';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\constants.tsx:9:type: 'Studio',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\constants.tsx:22:type: '1-Bedroom',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\constants.tsx:35:type: '2-Bedroom',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:4:import { Profile } from '../types/database';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:6:export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:8:export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:10:export interface Authority {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:19:interface AuthContextType {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:6:export interface Branch {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:12:interface BranchContextType {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\CartContext.tsx:11:export interface CartItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\CartContext.tsx:19:export interface CartContextType {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\DemoContext.tsx:6:export interface DemoEvent {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\DemoContext.tsx:19:interface DemoContextType {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\RoleContext.tsx:4:export type UserRole = 'super_admin' | 'ceo' | 'manager' | 'staff';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\RoleContext.tsx:6:interface RoleContextType {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:4:import { Shift } from '../types/database';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:10:export type ShiftState =
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:13:| { status: typeof SHIFT_STATUS.REQUESTED; shift: Shift; activeBusinessShifts: Shift[] }
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:14:| { status: typeof SHIFT_STATUS.OPEN; shift: Shift; activeBusinessShifts: Shift[] }
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:15:| { status: typeof SHIFT_STATUS.DECLARATION_SUBMITTED; shift: Shift; activeBusinessShifts: Shift[] }
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:16:| { status: typeof SHIFT_STATUS.AWAITING_CLOSE_APPROVAL; shift: Shift; activeBusinessShifts: Shift[] }
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:19:interface ShiftContextType {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\SystemStateProvider.tsx:24:const terminal_type = (['ceo', 'owner', 'super_admin'].includes(authority.role || '')) ? 'ceo_terminal' :
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\SystemStateProvider.tsx:33:terminal_type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\SystemStateProvider.tsx:40:presenceService.sendHeartbeat(staffId, terminal_type);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\SystemStateProvider.tsx:51:const terminal_type = (['ceo', 'owner', 'super_admin'].includes(authority.role || '')) ? 'ceo_terminal' :
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\SystemStateProvider.tsx:53:presenceService.disconnect(staffId, terminal_type);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\actionLockEngine.ts:3:interface ActionLockEngine {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\inventoryEngine.ts:4:export interface InventoryItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\inventoryEngine.ts:12:interface InventoryEngine {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:4:export interface PaymentIntent {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:12:payment_type: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:17:interface PaymentEngine {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\useRevenueFeed.ts:4:export interface RevenueMetrics {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:4:type TimeRange = '09:00-10:00' | '16:00-17:00' | '20:00-21:00' | 'other';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:5:type NetworkType = '3g' | '4g' | 'wifi' | 'slow-2g';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:7:interface NetworkConditions {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:8:type: NetworkType;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:28:type: connection?.effectiveType || '3g',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:36:if (this.conditions.type === '3g' || this.conditions.type === 'slow-2g' || this.conditions.saveData) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:47:if (this.conditions.type === 'slow-2g') {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:109:type: 'critical',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\antigravity\AntiGravityEngine.ts:117:type: 'fraud',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\channelRouting.ts:4:export interface BookingForm {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\channelRouting.ts:24:*Room:* ${room.name} (${room.type})
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\channelRouting.ts:139:*Type:* ${payload.type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\channelRouting.ts:158:*Type:* ${payload.type || "Pickup"}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\ids.ts:16:type: "RS" | "HK" | "IS" | "AD",
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\ids.ts:20:return generateId(`${prefix}-${type}`);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:4:export interface LogPayload {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:10:business_type?: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:18:business_type: payload.business_type || HOTEL_CONFIG.business_type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:67:export interface GuestHubLogPayload {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:68:type: "room_service" | "housekeeping" | "issue" | "addon";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:82:business_type: HOTEL_CONFIG.business_type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:86:type: payload.type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\realtimeTelemetry.ts:3:export interface OperationalCallbacks {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\shiftService.ts:3:import { Shift } from '../types/database';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\auth\Login.tsx:59:type="email"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\auth\Login.tsx:80:type="password"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\auth\Login.tsx:91:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:9:interface Order {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:81:setSelectedPayment(intentData.payment_type);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:132:payment_type: selectedPayment,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:276:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:112:const risks: { type: string; message: string }[] = [];
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:113:highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${safeNumber(v.amount)})` }));
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:114:variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${safeNumber(v.variance)} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:299:<span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${tx.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:300:}`}>{tx.payment_type}</span>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:326:<div className={`p-2 rounded-lg ${alert.type === 'variance' ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:7:interface StaffMember {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:261:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:271:type="email"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:310:type="button"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:317:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:57:const type = formData.get('type') as any;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:70:{ source: type.toLowerCase(), customer_name: 'Walk-In', reference: `REF-${Math.floor(Math.random() * 9999)}` }
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:118:<select name="type" className="w-full bg-gray-50 border-none rounded-xl p-3 font-bold text-gray-900">
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:127:<input name="amount" type="number" step="0.01" defaultValue="5000" className="w-full bg-gray-50 border-none rounded-xl p-3 font-black text-xl text-gray-900" />
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:130:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:163:<p className="text-sm font-black text-gray-900 tracking-tight capitalize">{tx.payment_type} RECORDED</p>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Disputes.tsx:6:interface Dispute {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:11:const { user } = useAuth(); // Potentially use profile name if available, but AuthContext types are strict
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:16:const [type, setType] = useState('Restaurant Table');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:28:type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:34:summary: `${type} for ${guests} on ${date} @ ${time}`
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:53:value={type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:68:type="date"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Reservations.tsx:78:type="time"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Restaurant.tsx:65:}, {} as Record<string, typeof HOTEL_CONFIG.hotel.room_service.menu>);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\useGuestHub.ts:15:_type: 'CLEANING_REQUEST' | 'RESTAURANT_ORDER' | 'BAR_ORDER' | 'RESERVATION_REQUEST', // specific type unused in logic, but good for docs
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:14:import { Shift, InventoryItem } from '@/types/database';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:296:<span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[9px] font-black rounded-full uppercase mb-2 inline-block">{intent.payment_type}</span>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:406:<span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${tx.payment_type === 'cash' ? 'bg-emerald-50 text-emerald-700' :
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:407:tx.payment_type === 'pos' ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:409:{tx.payment_type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:436:<div className={`p-2 rounded-lg ${alert.type === 'inventory' ? 'bg-rose-500/20 text-rose-500' : 'bg-amber-500/20 text-amber-500'}`}>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:6:interface OutboxItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Payments.tsx:10:interface TransactionRecord {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Payments.tsx:13:payment_type: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Payments.tsx:107:{tx.payment_type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:8:interface Order {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:8:interface Order {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\ShiftDeclarationScreen.tsx:58:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\ShiftDeclarationScreen.tsx:73:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\ShiftDeclarationScreen.tsx:88:type="number"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\ShiftDeclarationScreen.tsx:117:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:12:import { InventoryItem, PaymentIntent } from '@/types/database';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:64:<p className="text-[10px] text-slate-300 font-medium leading-relaxed">{alert.message || alert.event_type}</p>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:177:await supabase.from('payment_intents').update({ payment_type: method }).eq('id', activeIntent.id);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:221:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\StaffAdmin.tsx:115:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\StaffAdmin.tsx:134:type="email"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\StaffAdmin.tsx:211:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:7:interface Business {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:246:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:261:type="email"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:273:type="button"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:280:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:9:interface Order {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:72:business_type: HOTEL_CONFIG.business_type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:163:{room.type}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:335:type="date"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:346:type="date"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:361:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:376:type="tel"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\HotelLanding.tsx:424:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:100:payment_type: paymentMethod,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:99:business_type: 'bar',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:210:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:224:type="tel"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:237:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:250:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:126:}, {} as Record<string, typeof HOTEL_CONFIG.hotel.room_service.menu>);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:181:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:195:type="tel"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:208:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:221:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:14:const { type } = useParams<{ type: string }>();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:55:switch (type) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:64:payload = { ...payload, type: resType, date, guests };
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:69:payload = { ...payload, pickup_location: pickup, destination, type: 'Transport' };
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:85:type === 'reservations' || type === 'transport' ? 'frontdesk' : 'frontdesk'
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:90:switch (type) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:110:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:140:type="date"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:149:type="time"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:176:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:186:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:196:type="datetime-local"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:212:type="datetime-local"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:237:if (!type) return 'Service';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:238:return type.charAt(0).toUpperCase() + type.slice(1);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:259:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:270:type="tel"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\ServiceRequestPublic.tsx:280:type="text"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:7:interface ServiceRequest {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:9:type: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:16:interface Notification {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:165:<h3 className="font-bold text-gray-900 text-lg capitalize">{req.type}</h3>
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\StaffDashboard.tsx:8:import { Shift } from '@/types/database';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\StaffLogin.tsx:62:type="email"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\StaffLogin.tsx:75:type="password"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\StaffLogin.tsx:85:type="submit"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:3:export interface PresenceRegistration {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:7:terminal_type: 'staff_terminal' | 'manager_terminal' | 'ceo_terminal';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:20:console.log('[PRESENCE] Registering terminal session...', params.terminal_type);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:28:terminal_type: params.terminal_type,
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:33:onConflict: 'staff_id,terminal_type'
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:53:.match({ staff_id: staffId, terminal_type: terminalType });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:70:.match({ staff_id: staffId, terminal_type: terminalType });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\sessionStore.ts:4:interface SessionState {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:4:export interface SystemSnapshot {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:34:export interface SystemState {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\useStore.ts:3:import { BookingData, CartItem, MenuItem } from '../types';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\useStore.ts:5:interface AppState {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:2:export type PaymentStatus = 'pending' | 'confirmed' | 'voided';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:3:export type ShiftStatus = 'requested' | 'open' | 'pending_declaration' | 'awaiting_close_approval' | 'closed' | 'rejected';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:5:export interface Profile {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:13:export interface PaymentIntent {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:21:payment_type: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:28:export interface Shift {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:58:export interface ShiftReconciliation {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:76:export interface Transaction {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:86:payment_type: string;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:92:export interface Order {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:107:export interface OrderItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types\database.ts:118:export interface InventoryItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:2:export type RoomType = 'Studio' | '1-Bedroom' | '2-Bedroom' | 'Penthouse';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:4:export interface Apartment {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:8:type: RoomType;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:18:export interface MenuItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:29:export interface CartItem extends MenuItem {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:33:export interface BookingData {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\types.ts:42:export interface GuestDetails {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\vite-env.d.ts:1:/// <reference types="vite/client" />
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:7:'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:6:'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:6:'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:7:'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:6:'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

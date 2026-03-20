@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabaseClient';
 import { HOTEL_CONFIG } from '@/config/cars.config';
+import { callRPC } from './rpcClient';
 
 export interface LogPayload {
     customer_name: string;
@@ -28,36 +28,24 @@ export async function logLeadOrBooking(payload: LogPayload) {
         created_at: new Date().toISOString()
     };
 
-    if (supabase) {
-        try {
-            const { error } = await supabase.from('orders_or_leads').insert([logData]);
-            if (error) {
-                console.error("Supabase Log Error:", error.message);
-                fallbackLog(logData);
-            } else {
-                console.log("Logged to Supabase successfully.");
-            }
-        } catch (err) {
-            console.error("Supabase Log Exception:", err);
-            fallbackLog(logData);
-        }
-    } else {
+    try {
+        await callRPC('public', 'log_guest_event', { p_payload: logData });
+        console.log("Logged via RPC successfully.");
+    } catch (err) {
+        console.error("RPC Log Exception:", err);
         fallbackLog(logData);
     }
 }
 
 function fallbackLog(data: any) {
-    console.log("Supabase not available. Local Logging:", data);
+    console.log("RPC failure. Local Logging:", data);
     try {
         const key = 'carss_bookings_log';
         const logs = JSON.parse(localStorage.getItem(key) || '[]');
         logs.push(data);
-
-        // Cap at 200 entries
         if (logs.length > 200) {
             logs.splice(0, logs.length - 200);
         }
-
         localStorage.setItem(key, JSON.stringify(logs));
     } catch (e) {
         console.error("LocalStorage write failed", e);
@@ -96,20 +84,11 @@ export async function logGuestHubEvent(payload: GuestHubLogPayload) {
         created_at: new Date().toISOString()
     };
 
-    if (supabase) {
-        try {
-            const { error } = await supabase.from('orders_or_leads').insert([logData]);
-            if (error) {
-                console.error("Supabase Log Error:", error.message);
-                fallbackGuestHubLog(logData);
-            } else {
-                console.log("Logged GuestHub event to Supabase successfully.");
-            }
-        } catch (err) {
-            console.error("Supabase Log Exception:", err);
-            fallbackGuestHubLog(logData);
-        }
-    } else {
+    try {
+        await callRPC('public', 'log_guest_event', { p_payload: logData });
+        console.log("Logged GuestHub event via RPC successfully.");
+    } catch (err) {
+        console.error("RPC GuestHub Log Exception:", err);
         fallbackGuestHubLog(logData);
     }
 }

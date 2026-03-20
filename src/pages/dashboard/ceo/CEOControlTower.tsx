@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { useShiftState } from '@/contexts/ShiftContext';
 import {
     Activity, ShieldCheck, Zap, Target, ShieldAlert,
     Clock, RefreshCw, AlertTriangle,
@@ -57,7 +57,6 @@ const BranchRow = ({ branch }: { branch: any }) => (
 
 const CEOControlTower: React.FC = () => {
     const { authority } = useAuth();
-    const { shiftState } = useShiftState();
     const {
         revenue,
         orders,
@@ -65,8 +64,7 @@ const CEOControlTower: React.FC = () => {
         open_shifts,
         recent_transactions,
         branch_performance,
-        loading: systemLoading,
-        refresh
+        refresh: systemRefresh
     } = useSystemState();
 
     // --- STATE (Governance Only) ---
@@ -87,41 +85,26 @@ const CEOControlTower: React.FC = () => {
         setLoading(true);
 
         try {
-            // 1. GLOBAL COMMAND STATS
-            const { data: bCount } = await supabase.from('branches').select('id').eq('business_id', authority.businessId).eq('is_active', true);
-            const { data: sCount } = await supabase.from('business_memberships').select('user_id').eq('business_id', authority.businessId).eq('status', 'active');
-            const { data: dCount } = await supabase.from('departments').select('id').eq('business_id', authority.businessId);
-
-            setStats({
-                activeBranches: bCount?.length || 0,
-                activeStaff: sCount?.length || 0,
-                totalDepartments: dCount?.length || 0,
+            const data = await callRPC<any>('ceo', 'get_ceo_snapshot', {
+                p_business_id: authority.businessId
             });
 
-            // 5. STAFF GOVERNANCE
-            const { data: staffs } = await supabase.from('business_memberships').select('*, profiles(full_name, status)').eq('business_id', authority.businessId).limit(5);
-            setStaffList(staffs || []);
+            setStats({
+                activeBranches: data.branch_count || 0,
+                activeStaff: data.staff_count || 0,
+                totalDepartments: data.dept_count || 0,
+            });
 
-            // 6. RISK & EXCEPTION MONITORING (Static Analysis)
-            const { data: highVal } = await supabase.from('transactions').select('id, amount, created_at, business_id').eq('business_id', authority.businessId).gt('amount', 100000).order('created_at', { ascending: false }).limit(3);
-            const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
+            setStaffList(data.top_staff || []);
+            setInventoryAlerts(data.critical_inventory || []);
+            setRiskAlerts(data.system_alerts || []);
 
-            const activeShiftsFromContext = 'activeBusinessShifts' in shiftState ? shiftState.activeBusinessShifts : [];
-            const variances = activeShiftsFromContext.filter(s => Number(s.variance || 0) !== 0);
-
-            const risks: { type: string; message: string }[] = [];
-            highVal?.forEach(v => risks.push({ type: 'security', message: `ALERT: Large Transaction detected (₦${safeNumber(v.amount)})` }));
-            variances?.forEach(v => risks.push({ type: 'variance', message: `SHIFT: ₦${safeNumber(v.variance)} mismatch detected (ID: ${v.id.slice(0, 8)})` }));
-
-            setRiskAlerts(risks);
-            setInventoryAlerts(lowStock || []);
-
-        } catch (err) {
-            console.error('[CEO DASHBOARD] Hydrate error:', err);
+        } catch (err: any) {
+            console.error('[CEO DASHBOARD] Hydrate error:', err.message);
         } finally {
             setLoading(false);
         }
-    }, [authority.businessId, shiftState]);
+    }, [authority.businessId]);
 
     useEffect(() => {
         hydrate();
@@ -132,10 +115,13 @@ const CEOControlTower: React.FC = () => {
         if (!window.confirm('CRITICAL: Disable this staff account across the entire organization?')) return;
         const opLoading = toast.loading('Revoking Authority...');
         try {
-            const { data, error } = await (supabase as any).rpc('disable_staff', { p_user_id: userId });
-            if (error || !data?.success) throw new Error(error?.message || data?.error);
+            await callRPC('ceo', 'disable_staff', {
+                p_user_id: userId,
+                _idempotency_key: crypto.randomUUID()
+            });
             toast.success('Staff Access Terminated', { id: opLoading });
             hydrate();
+            systemRefresh(authority.businessId || '', '');
         } catch (err: any) {
             toast.error(err.message, { id: opLoading });
         }
@@ -181,7 +167,7 @@ const CEOControlTower: React.FC = () => {
                             <div className="w-px h-8 bg-white/10" />
                             <div className="text-center">
                                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Open Shifts</p>
-                                <p className="text-xs font-black text-amber-400">{open_shifts || 0}</p>
+                                <p className="text-xs font-black text-amber-400">{open_shifts ?? 0}</p>
                             </div>
                         </div>
 
@@ -203,7 +189,7 @@ const CEOControlTower: React.FC = () => {
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
                         title="Revenue Today"
-                        value={`₦${safeNumber(revenue.today)}`}
+                        value={`₦${safeNumber(revenue?.today)}`}
                         icon={Landmark}
                         color={{ bg: 'bg-emerald-50', text: 'text-emerald-600' }}
                         trend="+18.2%"
@@ -211,14 +197,14 @@ const CEOControlTower: React.FC = () => {
                     />
                     <StatCard
                         title="Revenue: Last Hour"
-                        value={`₦${safeNumber(revenue.last_hour)}`}
+                        value={`₦${safeNumber(revenue?.last_hour)}`}
                         icon={Zap}
                         color={{ bg: 'bg-amber-50', text: 'text-amber-600' }}
                         subtitle="Real-time intake velocity"
                     />
                     <StatCard
                         title="Pending Verification"
-                        value={payments.pending_intents}
+                        value={payments?.pending_intents ?? 0}
                         icon={Clock}
                         color={{ bg: 'bg-rose-50', text: 'text-rose-600' }}
                         subtitle="Unresolved payment intents"
@@ -268,8 +254,8 @@ const CEOControlTower: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {orders.open_orders}</span>
-                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {open_shifts || 0}</span>
+                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase">Orders: {orders?.open_orders ?? 0}</span>
+                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full uppercase">Shifts: {open_shifts ?? 0}</span>
                                 </div>
                             </div>
                             <div className="overflow-x-auto">

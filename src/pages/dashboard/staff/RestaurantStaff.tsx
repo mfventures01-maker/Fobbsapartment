@@ -70,6 +70,9 @@ const RestaurantStaff: React.FC = () => {
 
     const activeOrders = orders.filter(o => o.status === 'open' || o.status === 'pending');
 
+    let revenueTotal = 0;
+    orders.forEach(o => { if (o.status === 'paid') revenueTotal += o.total; });
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -91,7 +94,7 @@ const RestaurantStaff: React.FC = () => {
                 />
                 <StatCard
                     title="Revenue Today"
-                    value={`₦${safeNumber(orders.reduce((acc, o) => acc + (o.status === 'paid' ? o.total : 0), 0))}`}
+                    value={`₦${safeNumber(revenueTotal)}`}
                     icon={<DollarSign className="w-6 h-6 text-emerald-600" />}
                     color="bg-emerald-50"
                 />

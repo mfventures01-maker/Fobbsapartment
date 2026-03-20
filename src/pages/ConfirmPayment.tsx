@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShift } from '@/hooks/useShift';
 import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle, ShieldCheck, Loader2, ArrowLeft, Landmark } from 'lucide-react';
@@ -47,17 +47,17 @@ const ConfirmPayment: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            if (!supabase) throw new Error('Supabase not initialized');
+            // Fetch order + pending intent via a single RPC — no direct table access
+            const orderData = await callRPC<Order & { pending_intent_id?: string; pending_intent_payment_type?: string; pending_intent_reference?: string }>(
+                'staff',
+                'get_order_with_intent',
+                {
+                    p_order_id: orderId,
+                    _idempotency_key: crypto.randomUUID()
+                }
+            );
 
-            const { data: orderData, error: orderError } = await supabase
-                .from("orders")
-                .select("*")
-                .eq("id", orderId)
-                .single();
-
-            if (orderError) throw new Error("Order not found");
             if (!orderData) throw new Error("Order does not exist");
-
             setOrder(orderData);
 
             if (orderData.status !== 'open') {
@@ -68,18 +68,10 @@ const ConfirmPayment: React.FC = () => {
                 throw new Error(`Order already processed (Status: ${orderData.status})`);
             }
 
-            // Fetch Pending Intent
-            const { data: intentData } = await supabase
-                .from('payment_intents')
-                .select('*')
-                .eq('order_id', orderId)
-                .eq('status', 'pending')
-                .maybeSingle();
-
-            if (intentData) {
-                setIntentId(intentData.id);
-                setSelectedPayment(intentData.payment_type);
-                if (intentData.external_reference) setReceiptId(intentData.external_reference);
+            if (orderData.pending_intent_id) {
+                setIntentId(orderData.pending_intent_id);
+                setSelectedPayment(orderData.pending_intent_payment_type || null);
+                if (orderData.pending_intent_reference) setReceiptId(orderData.pending_intent_reference);
             } else if (orderData.payment_intent) {
                 setSelectedPayment(orderData.payment_intent);
             }
@@ -114,39 +106,26 @@ const ConfirmPayment: React.FC = () => {
         setError(null);
 
         try {
-            if (!supabase) throw new Error('System offline');
-
             let finalIntentId = intentId;
 
-            // JIT Intent creation if missing
+            // JIT Intent creation if missing — via RPC only (no direct table writes)
             if (!finalIntentId) {
-                const { data: newIntent, error: createError } = await supabase
-                    .from('payment_intents')
-                    .insert({
-                        order_id: order.id,
-                        org_id: order.org_id,
-                        branch_id: order.location_id,
-                        staff_id: user.id,
-                        shift_id: currentShift?.id || null, // Optional for CEO/Manager if not in a shift
-                        expected_amount: order.total,
-                        payment_type: selectedPayment,
-                        status: 'pending',
-                        external_reference: receiptId || null
-                    })
-                    .select()
-                    .single();
-
-                if (createError) throw createError;
-                finalIntentId = newIntent.id;
+                const intentData = await callRPC<{ intent_id: string }>('staff', 'create_payment_intent', {
+                    p_order_id: order.id,
+                    p_payment_type: selectedPayment,
+                    p_external_reference: receiptId || null,
+                    p_shift_id: currentShift?.id || null,
+                    _idempotency_key: crypto.randomUUID()
+                });
+                finalIntentId = intentData.intent_id;
             }
 
-            // ATOMIC SETTLEMENT
-            const { error: rpcError } = await supabase.rpc('confirm_payment_intent', {
+            // ATOMIC SETTLEMENT — through firewall
+            await callRPC<{ success: boolean }>('staff', 'confirm_payment_intent', {
                 p_intent_id: finalIntentId,
-                p_external_reference: receiptId || null
+                p_external_reference: receiptId || null,
+                _idempotency_key: crypto.randomUUID()
             });
-
-            if (rpcError) throw rpcError;
 
             setSuccess(true);
         } catch (err: any) {

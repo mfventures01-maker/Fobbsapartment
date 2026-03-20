@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
 import {
@@ -13,7 +13,13 @@ import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import toast from 'react-hot-toast';
 import { Shift, InventoryItem } from '@/types/database';
 import { useSystemState } from '@/hooks/useSystemState';
+import { useSystemStore } from '@/store/systemStore';
+import { LiveOperationsPanel } from '@/components/dashboard/LiveOperationsPanel';
+import { TerminalRadar } from '@/components/dashboard/TerminalRadar';
 import { safeNumber } from '@/lib/safeNumber';
+import { getInventoryLevels } from '@/services/storeService';
+import { confirmPaymentIntent } from '@/services/staffService';
+import { approveShiftOpen, rejectShiftOpen } from '@/services/managerService';
 
 // --- SUB-COMPONENTS ---
 
@@ -94,7 +100,9 @@ const ManagerCommandCenter: React.FC = () => {
         refresh
     } = useSystemState();
 
-    const pendingIntents = payments.intents_list || [];
+    const { state: systemState } = useSystemStore();
+
+    const pendingIntents = payments?.intents_list || [];
 
     // --- STATE ---
     const [pendingShifts, setPendingShifts] = useState<Shift[]>([]);
@@ -120,11 +128,8 @@ const ManagerCommandCenter: React.FC = () => {
             setPendingShifts(pending);
 
             // 5. Inventory and Shift Alignment
-            const { data: invList } = await supabase
-                .from('inventory')
-                .select('*')
-                .eq('branch_id', authority.branchId)
-                .order('current_stock', { ascending: true });
+            // Authority: Mirroring backend-calculated stock levels only
+            const invList = await getInventoryLevels(authority.branchId || '');
             setInventory(invList || []);
 
             // activeShifts is now derived from ShiftContext for the entire business
@@ -135,7 +140,7 @@ const ManagerCommandCenter: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [authority.businessId, shiftState, refresh]);
+    }, [authority.businessId, authority.branchId, shiftState, refresh]);
 
     useEffect(() => {
         hydrate();
@@ -144,34 +149,30 @@ const ManagerCommandCenter: React.FC = () => {
     // --- ACTIONS ---
     const handlePaymentApprove = async (id: string) => {
         const ref = window.prompt('Enter Reference (Optional):');
-        const loading = toast.loading('Confirming Settlement...');
+        const loadingProgress = toast.loading('Confirming Settlement...');
         try {
-            const { data, error } = await (supabase as any).rpc('confirm_payment_intent', {
-                p_intent_id: id,
-                p_external_reference: ref || ''
-            });
-            if (error || !data?.success) throw new Error(error?.message || data?.error || 'Failed');
-            toast.success('Payment Verified', { id: loading });
+            await confirmPaymentIntent(id, ref || '');
+            toast.success('Payment Verified', { id: loadingProgress });
             hydrate();
         } catch (err: any) {
-            toast.error(err.message, { id: loading });
+            toast.error(err.message, { id: loadingProgress });
         }
     };
 
     const handlePaymentReject = async (id: string) => {
         const reason = window.prompt('Enter rejection reason:');
         if (!reason) return;
-        const loading = toast.loading('Rejecting Intent...');
+        const loadingProgress = toast.loading('Rejecting Intent...');
         try {
-            const { data, error } = await (supabase as any).rpc('reject_payment_intent', {
+            await callRPC('manager', 'reject_payment_intent', {
                 p_intent_id: id,
-                p_reason: reason
+                p_reason: reason,
+                _idempotency_key: crypto.randomUUID()
             });
-            if (error || !data?.success) throw new Error(error?.message || data?.error || 'Failed');
-            toast.success('Payment Rejected', { id: loading });
+            toast.success('Payment Rejected', { id: loadingProgress });
             hydrate();
         } catch (err: any) {
-            toast.error(err.message, { id: loading });
+            toast.error(err.message, { id: loadingProgress });
         }
     };
 
@@ -187,24 +188,26 @@ const ManagerCommandCenter: React.FC = () => {
     };
 
     const handleShiftOpen = async (shiftId: string) => {
-        const loading = toast.loading('Opening Shift...');
-        const { data, error } = await (supabase as any).rpc('approve_shift_open', { p_shift_id: shiftId });
-        if (error || !data?.success) toast.error(error?.message || data?.error || 'Failed to open', { id: loading });
-        else {
-            toast.success('Shift Opened', { id: loading });
+        const loadingProgress = toast.loading('Opening Shift...');
+        try {
+            await approveShiftOpen(shiftId);
+            toast.success('Shift Opened', { id: loadingProgress });
             hydrate();
+        } catch (err: any) {
+            toast.error(err.message, { id: loadingProgress });
         }
     };
 
     const handleShiftRejectOpen = async (shiftId: string) => {
         const reason = window.prompt('Reason for rejection:');
         if (!reason) return;
-        const loading = toast.loading('Rejecting Request...');
-        const { data, error } = await (supabase as any).rpc('reject_shift_open', { p_shift_id: shiftId, p_reason: reason });
-        if (error || !data?.success) toast.error(error?.message || data?.error || 'Failed to reject', { id: loading });
-        else {
-            toast.success('Shift Request Rejected', { id: loading });
+        const loadingProgress = toast.loading('Rejecting Request...');
+        try {
+            await rejectShiftOpen(shiftId, reason);
+            toast.success('Shift Request Rejected', { id: loadingProgress });
             hydrate();
+        } catch (err: any) {
+            toast.error(err.message, { id: loadingProgress });
         }
     };
 
@@ -254,12 +257,15 @@ const ManagerCommandCenter: React.FC = () => {
 
             <main className="max-w-[1600px] mx-auto px-6 space-y-8">
 
+                {/* 1.5 REALTIME TELEMETRY PANEL (Anti-Gravity Upgrade) */}
+                <LiveOperationsPanel state={systemState} />
+
                 {/* 2. LIVE OPERATIONS OVERVIEW */}
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Revenue Today" value={`₦${safeNumber(revenue.today)}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
-                    <StatCard title="Daily Orders" value={orders.today_total} icon={ShoppingBag} color={{ bg: 'bg-indigo-100', text: 'text-indigo-700' }} />
-                    <StatCard title="Open Orders (System Sync)" value={orders.open_orders} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
-                    <StatCard title="Pending Payments (Sync)" value={payments.pending_intents} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
+                    <StatCard title="Revenue Today" value={`₦${safeNumber(revenue?.today)}`} icon={Landmark} color={{ bg: 'bg-emerald-100', text: 'text-emerald-700' }} trend="+12.5%" />
+                    <StatCard title="Daily Orders" value={orders?.today_total ?? 0} icon={ShoppingBag} color={{ bg: 'bg-indigo-100', text: 'text-indigo-700' }} />
+                    <StatCard title="Open Orders (System Sync)" value={orders?.open_orders ?? 0} icon={Clock} color={{ bg: 'bg-amber-100', text: 'text-amber-700' }} />
+                    <StatCard title="Pending Payments (Sync)" value={payments?.pending_intents ?? 0} icon={Users} color={{ bg: 'bg-rose-100', text: 'text-rose-700' }} />
                 </section>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -455,29 +461,8 @@ const ManagerCommandCenter: React.FC = () => {
                             </button>
                         </section>
 
-                        {/* 5. STAFF ACCOUNTABILITY PANEL */}
-                        <section className="bg-white rounded-[3rem] shadow-xl border border-slate-100 p-8 space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-rose-50 rounded-2xl"><Users className="w-5 h-5 text-rose-600" /></div>
-                                <h2 className="text-lg font-bold text-slate-900 tracking-tight">Staff Snapshot</h2>
-                            </div>
-                            <div className="space-y-4">
-                                {activeShifts.map(shift => (
-                                    <div key={shift.id} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-emerald-200 transition-all flex justify-between items-center group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-slate-300 border border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-500 group-hover:border-emerald-100 transition-all text-xs">
-                                                {shift.staff_id.slice(0, 2).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-slate-800">Staff-ID: {shift.staff_id.slice(0, 8)}</p>
-                                                <p className="text-[9px] text-emerald-600 font-black uppercase">Active {new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {activeShifts.length === 0 && <p className="text-center py-4 text-slate-400 text-[10px] font-black uppercase">Terminals Offline</p>}
-                            </div>
-                        </section>
+                        {/* 5. AUTONOMOUS TERMINAL DISCOVERY (RADAR) */}
+                        <TerminalRadar terminals={systemState?.active_terminal_list || []} />
                     </div>
                 </div>
             </main>

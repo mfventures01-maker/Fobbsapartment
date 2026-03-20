@@ -1,5 +1,6 @@
 
 import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
     getWhatsAppTargetNumber, openWhatsApp, openTelegram
@@ -36,24 +37,12 @@ export const useGuestHubRequest = () => {
 
         // 1. Create Notification (Best Effort)
         try {
-            if (supabase) {
-                const { error } = await supabase.from('user_notifications').insert([
-                    {
-                        user_id: user.id,
-                        title: title,
-                        message: notificationMessage,
-                        read_at: null // Unread
-                        // metadata: fullPayload // If column exists, strictly user_notifications usually just has title/message/created_at
-                    }
-                ]);
-
-                if (error) {
-                    console.warn('Notification insert failed:', error);
-                    toast.success('Request prepared (notification failed)');
-                } else {
-                    toast.success('Request sent to your dashboard history');
-                }
-            }
+            await callRPC('public', 'push_user_notification', {
+                p_user_id: user.id,
+                p_title: title,
+                p_message: notificationMessage
+            });
+            toast.success('Request sent to your dashboard history');
         } catch (err) {
             console.error('Notification error:', err);
         }

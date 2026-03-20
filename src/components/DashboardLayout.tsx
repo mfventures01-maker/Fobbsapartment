@@ -20,8 +20,9 @@ const DashboardLayout: React.FC<{ children?: React.ReactNode }> = ({ children })
     const homepath = authority ? (
         ['owner', 'ceo', 'super_admin'].includes(authority.role || '') ? '/dashboard' :
             authority.role === 'manager' ? '/dashboard/manager' :
-                authority.role === 'staff' && authority.departmentName ? `/dashboard/staff/${authority.departmentName}` :
-                    '/dashboard/staff'
+                authority.role === 'kitchen' ? '/dashboard/kitchen' :
+                    authority.role === 'staff' && authority.departmentName ? `/dashboard/staff/${authority.departmentName}` :
+                        '/dashboard/staff'
     ) : '/dashboard';
 
     const navItems = [

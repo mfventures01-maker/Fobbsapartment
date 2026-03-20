@@ -37,7 +37,8 @@ const Restaurant: React.FC = () => {
         }));
     };
 
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    let subtotal = 0;
+    cart.forEach(item => { subtotal += (item.price * item.quantity); });
 
     const handleSubmit = (channel: 'whatsapp' | 'telegram') => {
         if (cart.length === 0) return;
@@ -58,11 +59,11 @@ const Restaurant: React.FC = () => {
     };
 
     // Group items by category (exclude drinks if they are in bar section too, but config has them mixed. We'll use all here for now or filter)
-    const groupedItems = HOTEL_CONFIG.hotel.room_service.menu.reduce((acc, item) => {
-        if (!acc[item.category]) acc[item.category] = [];
-        acc[item.category].push(item);
-        return acc;
-    }, {} as Record<string, typeof HOTEL_CONFIG.hotel.room_service.menu>);
+    const groupedItems: Record<string, any[]> = {};
+    HOTEL_CONFIG.hotel.room_service.menu.forEach((item: any) => {
+        if (!groupedItems[item.category]) groupedItems[item.category] = [];
+        groupedItems[item.category].push(item);
+    });
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">

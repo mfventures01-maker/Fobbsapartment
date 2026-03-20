@@ -1,0 +1,8 @@
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\dashboard\TerminalRadar.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\pos\POSTerminal.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\staff\HardenedStaffTerminal.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\Bar.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\orderService.ts

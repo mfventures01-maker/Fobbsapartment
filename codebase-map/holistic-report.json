@@ -1,0 +1,1203 @@
+{
+  "timestamp": "2026-03-19T00:38:56.612Z",
+  "summary": {},
+  "layers": {
+    "frontend": {
+      "totalComponents": 76,
+      "byType": {
+        "pages": [
+          "src/pages/auth/AccessDenied.tsx",
+          "src/pages/auth/DebugAuth.tsx",
+          "src/pages/auth/Login.tsx",
+          "src/pages/auth/Unauthorized.tsx",
+          "src/pages/ConfirmPayment.tsx",
+          "src/pages/dashboard/ceo/CeoAuditFeed.tsx",
+          "src/pages/dashboard/ceo/CeoBranches.tsx",
+          "src/pages/dashboard/ceo/CEOControlTower.tsx",
+          "src/pages/dashboard/ceo/CeoLayout.tsx",
+          "src/pages/dashboard/ceo/CeoOverview.tsx",
+          "src/pages/dashboard/ceo/CeoSettings.tsx",
+          "src/pages/dashboard/ceo/CeoStaffAdmin.tsx",
+          "src/pages/dashboard/DashboardEngine.tsx",
+          "src/pages/dashboard/DashboardHome.tsx",
+          "src/pages/dashboard/Disputes.tsx",
+          "src/pages/dashboard/guesthub/Bar.tsx",
+          "src/pages/dashboard/guesthub/Cleaning.tsx",
+          "src/pages/dashboard/guesthub/GuestHubLanding.tsx",
+          "src/pages/dashboard/guesthub/Reservations.tsx",
+          "src/pages/dashboard/guesthub/Restaurant.tsx",
+          "src/pages/dashboard/manager/ManagerCommandCenter.tsx",
+          "src/pages/dashboard/Outbox.tsx",
+          "src/pages/dashboard/Payments.tsx",
+          "src/pages/dashboard/staff/BarStaff.tsx",
+          "src/pages/dashboard/staff/HousekeepingStaff.tsx",
+          "src/pages/dashboard/staff/OpenShiftScreen.tsx",
+          "src/pages/dashboard/staff/ReceptionStaff.tsx",
+          "src/pages/dashboard/staff/RestaurantStaff.tsx",
+          "src/pages/dashboard/staff/ShiftDeclarationScreen.tsx",
+          "src/pages/dashboard/staff/StaffOperationalTerminal.tsx",
+          "src/pages/dashboard/StaffAdmin.tsx",
+          "src/pages/dashboard/store/StoreOperationsPanel.tsx",
+          "src/pages/dashboard/super_admin/SuperAdminDashboard.tsx",
+          "src/pages/Fulfillment.tsx",
+          "src/pages/HotelLanding.tsx",
+          "src/pages/PaymentIntent.tsx",
+          "src/pages/pos/POSPage.tsx",
+          "src/pages/public/BarPublic.tsx",
+          "src/pages/public/RestaurantPublic.tsx",
+          "src/pages/public/ServiceRequestPublic.tsx",
+          "src/pages/public/ServicesHubPublic.tsx",
+          "src/pages/staff/DepartmentDashboard.tsx",
+          "src/pages/staff/StaffDashboard.tsx",
+          "src/pages/staff/StaffLogin.tsx"
+        ],
+        "components": [
+          "src/components/AntiGravity/AntiGravitySuggestion.tsx",
+          "src/components/ApartmentCard.tsx",
+          "src/components/auth/DebugAuth.tsx",
+          "src/components/auth/ProtectedRoute.tsx",
+          "src/components/auth/ShiftProtectedRoute.tsx",
+          "src/components/AuthModal.tsx",
+          "src/components/BranchSwitcher.tsx",
+          "src/components/ConfirmSendPanel.tsx",
+          "src/components/dashboard/LiveOperationsPanel.tsx",
+          "src/components/dashboard/TerminalRadar.tsx",
+          "src/components/DashboardLayout.tsx",
+          "src/components/FullScreenLoader.tsx",
+          "src/components/Layout.tsx",
+          "src/components/pos/POSTerminal.tsx",
+          "src/components/RoomNumberGate.tsx",
+          "src/components/ShiftBanner.tsx",
+          "src/components/ShiftMonitor.tsx",
+          "src/components/ShiftSettlementPanel.tsx",
+          "src/components/staff/HardenedStaffTerminal.tsx",
+          "src/components/StatCard.tsx",
+          "src/components/WarModeDebugPanel.tsx"
+        ],
+        "contexts": [
+          "src/contexts/AuthContext.tsx",
+          "src/contexts/BranchContext.tsx",
+          "src/contexts/CartContext.tsx",
+          "src/contexts/DemoContext.tsx",
+          "src/contexts/RoleContext.tsx",
+          "src/contexts/ShiftContext.tsx",
+          "src/contexts/SystemStateProvider.tsx"
+        ],
+        "hooks": [],
+        "utils": []
+      },
+      "terminals": {
+        "staff": [
+          "src/App.tsx",
+          "src/auth/AuthGate.tsx",
+          "src/components/AntiGravity/AntiGravitySuggestion.tsx",
+          "src/components/ApartmentCard.tsx",
+          "src/components/auth/DebugAuth.tsx",
+          "src/components/auth/ShiftProtectedRoute.tsx",
+          "src/components/AuthModal.tsx",
+          "src/components/BranchSwitcher.tsx",
+          "src/components/ConfirmSendPanel.tsx",
+          "src/components/dashboard/LiveOperationsPanel.tsx",
+          "src/components/dashboard/TerminalRadar.tsx",
+          "src/components/DashboardLayout.tsx",
+          "src/components/FullScreenLoader.tsx",
+          "src/components/Layout.tsx",
+          "src/components/pos/POSTerminal.tsx",
+          "src/components/RoomNumberGate.tsx",
+          "src/components/ShiftBanner.tsx",
+          "src/components/ShiftMonitor.tsx",
+          "src/components/ShiftSettlementPanel.tsx",
+          "src/components/staff/HardenedStaffTerminal.tsx",
+          "src/components/StatCard.tsx",
+          "src/components/WarModeDebugPanel.tsx",
+          "src/contexts/AuthContext.tsx",
+          "src/contexts/BranchContext.tsx",
+          "src/contexts/CartContext.tsx",
+          "src/contexts/DemoContext.tsx",
+          "src/contexts/RoleContext.tsx",
+          "src/contexts/ShiftContext.tsx",
+          "src/contexts/SystemStateProvider.tsx",
+          "src/pages/auth/DebugAuth.tsx",
+          "src/pages/auth/Login.tsx",
+          "src/pages/ConfirmPayment.tsx",
+          "src/pages/dashboard/ceo/CeoAuditFeed.tsx",
+          "src/pages/dashboard/ceo/CeoBranches.tsx",
+          "src/pages/dashboard/ceo/CEOControlTower.tsx",
+          "src/pages/dashboard/ceo/CeoLayout.tsx",
+          "src/pages/dashboard/ceo/CeoSettings.tsx",
+          "src/pages/dashboard/ceo/CeoStaffAdmin.tsx",
+          "src/pages/dashboard/DashboardEngine.tsx",
+          "src/pages/dashboard/DashboardHome.tsx",
+          "src/pages/dashboard/Disputes.tsx",
+          "src/pages/dashboard/guesthub/Bar.tsx",
+          "src/pages/dashboard/guesthub/Cleaning.tsx",
+          "src/pages/dashboard/guesthub/GuestHubLanding.tsx",
+          "src/pages/dashboard/guesthub/Reservations.tsx",
+          "src/pages/dashboard/guesthub/Restaurant.tsx",
+          "src/pages/dashboard/manager/ManagerCommandCenter.tsx",
+          "src/pages/dashboard/Outbox.tsx",
+          "src/pages/dashboard/Payments.tsx",
+          "src/pages/dashboard/staff/BarStaff.tsx",
+          "src/pages/dashboard/staff/HousekeepingStaff.tsx",
+          "src/pages/dashboard/staff/OpenShiftScreen.tsx",
+          "src/pages/dashboard/staff/ReceptionStaff.tsx",
+          "src/pages/dashboard/staff/RestaurantStaff.tsx",
+          "src/pages/dashboard/staff/ShiftDeclarationScreen.tsx",
+          "src/pages/dashboard/staff/StaffOperationalTerminal.tsx",
+          "src/pages/dashboard/StaffAdmin.tsx",
+          "src/pages/dashboard/store/StoreOperationsPanel.tsx",
+          "src/pages/dashboard/super_admin/SuperAdminDashboard.tsx",
+          "src/pages/Fulfillment.tsx",
+          "src/pages/HotelLanding.tsx",
+          "src/pages/PaymentIntent.tsx",
+          "src/pages/pos/POSPage.tsx",
+          "src/pages/public/BarPublic.tsx",
+          "src/pages/public/RestaurantPublic.tsx",
+          "src/pages/public/ServiceRequestPublic.tsx",
+          "src/pages/public/ServicesHubPublic.tsx",
+          "src/pages/staff/DepartmentDashboard.tsx",
+          "src/pages/staff/StaffDashboard.tsx",
+          "src/pages/staff/StaffLogin.tsx"
+        ],
+        "manager": [
+          "src/App.tsx",
+          "src/auth/AuthGate.tsx",
+          "src/components/auth/DebugAuth.tsx",
+          "src/components/auth/ShiftProtectedRoute.tsx",
+          "src/components/dashboard/LiveOperationsPanel.tsx",
+          "src/components/DashboardLayout.tsx",
+          "src/components/pos/POSTerminal.tsx",
+          "src/components/ShiftBanner.tsx",
+          "src/components/ShiftMonitor.tsx",
+          "src/components/ShiftSettlementPanel.tsx",
+          "src/components/staff/HardenedStaffTerminal.tsx",
+          "src/contexts/AuthContext.tsx",
+          "src/contexts/BranchContext.tsx",
+          "src/contexts/RoleContext.tsx",
+          "src/contexts/ShiftContext.tsx",
+          "src/contexts/SystemStateProvider.tsx",
+          "src/pages/auth/DebugAuth.tsx",
+          "src/pages/auth/Login.tsx",
+          "src/pages/ConfirmPayment.tsx",
+          "src/pages/dashboard/ceo/CEOControlTower.tsx",
+          "src/pages/dashboard/ceo/CeoLayout.tsx",
+          "src/pages/dashboard/ceo/CeoStaffAdmin.tsx",
+          "src/pages/dashboard/DashboardEngine.tsx",
+          "src/pages/dashboard/DashboardHome.tsx",
+          "src/pages/dashboard/guesthub/Bar.tsx",
+          "src/pages/dashboard/guesthub/Cleaning.tsx",
+          "src/pages/dashboard/guesthub/GuestHubLanding.tsx",
+          "src/pages/dashboard/guesthub/Reservations.tsx",
+          "src/pages/dashboard/guesthub/Restaurant.tsx",
+          "src/pages/dashboard/manager/ManagerCommandCenter.tsx",
+          "src/pages/dashboard/Outbox.tsx",
+          "src/pages/dashboard/staff/BarStaff.tsx",
+          "src/pages/dashboard/staff/OpenShiftScreen.tsx",
+          "src/pages/dashboard/staff/RestaurantStaff.tsx",
+          "src/pages/dashboard/staff/ShiftDeclarationScreen.tsx",
+          "src/pages/dashboard/StaffAdmin.tsx",
+          "src/pages/dashboard/super_admin/SuperAdminDashboard.tsx",
+          "src/pages/public/BarPublic.tsx",
+          "src/pages/staff/DepartmentDashboard.tsx",
+          "src/pages/staff/StaffDashboard.tsx",
+          "src/pages/staff/StaffLogin.tsx"
+        ],
+        "ceo": [
+          "src/App.tsx",
+          "src/components/auth/DebugAuth.tsx",
+          "src/components/auth/ShiftProtectedRoute.tsx",
+          "src/components/DashboardLayout.tsx",
+          "src/constants.tsx",
+          "src/contexts/AuthContext.tsx",
+          "src/contexts/BranchContext.tsx",
+          "src/contexts/DemoContext.tsx",
+          "src/contexts/RoleContext.tsx",
+          "src/contexts/ShiftContext.tsx",
+          "src/contexts/SystemStateProvider.tsx",
+          "src/pages/auth/DebugAuth.tsx",
+          "src/pages/ConfirmPayment.tsx",
+          "src/pages/dashboard/ceo/CeoAuditFeed.tsx",
+          "src/pages/dashboard/ceo/CeoBranches.tsx",
+          "src/pages/dashboard/ceo/CEOControlTower.tsx",
+          "src/pages/dashboard/ceo/CeoLayout.tsx",
+          "src/pages/dashboard/ceo/CeoOverview.tsx",
+          "src/pages/dashboard/ceo/CeoSettings.tsx",
+          "src/pages/dashboard/ceo/CeoStaffAdmin.tsx",
+          "src/pages/dashboard/DashboardEngine.tsx",
+          "src/pages/dashboard/DashboardHome.tsx",
+          "src/pages/dashboard/manager/ManagerCommandCenter.tsx",
+          "src/pages/dashboard/Outbox.tsx",
+          "src/pages/dashboard/StaffAdmin.tsx",
+          "src/pages/dashboard/super_admin/SuperAdminDashboard.tsx"
+        ],
+        "store": [
+          "src/App.tsx",
+          "src/components/auth/DebugAuth.tsx",
+          "src/components/BranchSwitcher.tsx",
+          "src/components/dashboard/LiveOperationsPanel.tsx",
+          "src/components/RoomNumberGate.tsx",
+          "src/components/WarModeDebugPanel.tsx",
+          "src/contexts/DemoContext.tsx",
+          "src/contexts/SystemStateProvider.tsx",
+          "src/pages/dashboard/ceo/CEOControlTower.tsx",
+          "src/pages/dashboard/DashboardEngine.tsx",
+          "src/pages/dashboard/DashboardHome.tsx",
+          "src/pages/dashboard/manager/ManagerCommandCenter.tsx",
+          "src/pages/dashboard/staff/StaffOperationalTerminal.tsx",
+          "src/pages/dashboard/store/StoreOperationsPanel.tsx"
+        ],
+        "kitchen": [
+          "src/components/ShiftBanner.tsx",
+          "src/constants.tsx",
+          "src/pages/dashboard/guesthub/Bar.tsx",
+          "src/pages/dashboard/guesthub/Restaurant.tsx",
+          "src/pages/dashboard/staff/RestaurantStaff.tsx",
+          "src/pages/public/BarPublic.tsx",
+          "src/pages/public/RestaurantPublic.tsx"
+        ]
+      },
+      "entryPoints": [
+        "src/index.tsx",
+        "supabase/functions/accept-invitation/index.ts",
+        "supabase/functions/create-staff-user/index.ts",
+        "supabase/functions/deactivate-user/index.ts",
+        "supabase/functions/staff-invitations/index.ts",
+        "supabase/functions/update-user-role/index.ts"
+      ],
+      "styles": [
+        "src/index.css"
+      ]
+    },
+    "backend": {
+      "rpcFunctions": 102,
+      "rpcList": [
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260204064344_remote_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "prevent_tx_deletion",
+          "file": "supabase/migrations/20260214224500_production_fintech_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "log_transaction_change",
+          "file": "supabase/migrations/20260214224500_production_fintech_schema.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260214234500_airtight_fintech_rls.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260214234500_airtight_fintech_rls.sql",
+          "params": ""
+        },
+        {
+          "name": "confirm_payment_intent",
+          "file": "supabase/migrations/20260215210000_financial_reconciliation.sql",
+          "params": "\r\n    p_intent_id UUID,\r\n    p_external_reference TEXT DEFAULT NULL\r\n"
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260215230000_fintech_hardening_phase1.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260216083500_rls_fix_blank_dashboard.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260216083500_rls_fix_blank_dashboard.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260216083500_rls_fix_blank_dashboard.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260217000000_forensic_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260217000000_forensic_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260217000000_forensic_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260217000000_forensic_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260217200000_fix_profile_rls_recursion.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260218120000_performance_certification.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260218120000_performance_certification.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260218120000_performance_certification.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260218183000_carss_core_stable_v1.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260218183000_carss_core_stable_v1.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260219140000_stabilization_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260224103000_fix_businesses_role_error.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260301194500_decouple_shifts_from_database_exceptions.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260302120000_phase_b_shift_declaration.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260302130000_phase_c_manager_approval.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260302130000_phase_c_manager_approval.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260302140000_phase_d_transaction_linking.sql",
+          "params": ""
+        },
+        {
+          "name": "audit_shift_status_change",
+          "file": "supabase/migrations/20260302150000_final_integrity_lock.sql",
+          "params": ""
+        },
+        {
+          "name": "confirm_payment_intent",
+          "file": "supabase/migrations/20260302210000_guest_checkout_hardening.sql",
+          "params": "\r\n    p_intent_id UUID,\r\n    p_external_reference TEXT DEFAULT NULL\r\n"
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304000000_anti_gravity_telemetry.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304000000_anti_gravity_telemetry.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304120000_granular_shift_integrity.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304120000_granular_shift_integrity.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304143000_staff_terminal_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304143000_staff_terminal_hardening.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304160000_anti_gravity_financial_integrity_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304160000_anti_gravity_financial_integrity_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304160000_anti_gravity_financial_integrity_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304160000_anti_gravity_financial_integrity_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304160000_anti_gravity_financial_integrity_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304170000_shift_rpc_authority.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260304170000_shift_rpc_authority.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305100000_ceo_operational_controls.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305100000_ceo_operational_controls.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305100000_ceo_operational_controls.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305110000_shift_request_alignment.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305110000_shift_request_alignment.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305110000_shift_request_alignment.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305110000_shift_request_alignment.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305110000_shift_request_alignment.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305120000_shift_closing_reconciliation.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305120000_shift_closing_reconciliation.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260305120000_shift_closing_reconciliation.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306071000_rpc_alignment_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306071000_rpc_alignment_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306071000_rpc_alignment_final.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306153000_universal_order_gateway.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306154000_gateway_trigger_alignment.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306160000_confirm_payment_integrity.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306200000_shift_revenue_lock_engine.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306200000_shift_revenue_lock_engine.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260306200000_shift_revenue_lock_engine.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260307000000_order_path_bifurcation.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260307000000_order_path_bifurcation.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260307000000_order_path_bifurcation.sql",
+          "params": ""
+        },
+        {
+          "name": "prevent_end_time_metadata",
+          "file": "supabase/migrations/20260308000000_shift_engine_guard.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260309000000_system_state_rpc.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260309000001_system_state_rpc_v2.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312000000_phase2_ssot_enforcement.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312000000_phase2_ssot_enforcement.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312010000_phase3_surgical_repairs.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312010000_phase3_surgical_repairs.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312020000_location_isolated_rpc.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312030000_phase3_location_isolation_fixes.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312040000_get_system_state_refinement.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260312050000_unified_order_gateway_v2.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260313100000_realtime_presence_system.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260314000000_terminal_discovery_upgrade.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260314000000_terminal_discovery_upgrade.sql",
+          "params": ""
+        },
+        {
+          "name": "public",
+          "file": "supabase/migrations/20260315100000_qr_order_gateway.sql",
+          "params": ""
+        }
+      ],
+      "edgeFunctions": 299,
+      "edgeList": [
+        ".carss_inspector/all_supabase_calls.txt",
+        ".carss_inspector/analyze_payloads.cjs",
+        ".carss_inspector/components.txt",
+        ".carss_inspector/find_legacy.cjs",
+        ".carss_inspector/payloads.md",
+        ".carss_inspector/qr_interfaces.txt",
+        ".carss_inspector/rpc_calls.txt",
+        ".carss_inspector/table_references.txt",
+        ".carss_inspector/types.txt",
+        ".carss_inspector/validate_alignment.cjs",
+        ".env",
+        ".env.local",
+        ".env.production",
+        ".gitignore",
+        ".nvmrc",
+        ".vercel/.env.production.local",
+        ".vercel/output/builds.json",
+        ".vercel/project.json",
+        ".vercel/README.txt",
+        ".vercelignore",
+        "ANTI_GRAVITY_GUIDE.md",
+        "api/create-staff-user.ts",
+        "build.log",
+        "build_debug.log",
+        "build_error.log",
+        "build_test.log",
+        "check_db.mjs",
+        "check_org.mjs",
+        "db_dump.json",
+        "docs/ANTIGRAVITY_PROTOCOL.md",
+        "docs/operational_telemetry_map.md",
+        "dump_db.mjs",
+        "index.html",
+        "metadata.json",
+        "MIGRATION_INSTRUCTIONS.md",
+        "package-lock.json",
+        "package.json",
+        "postcss.config.js",
+        "qa_phase1.mjs",
+        "qa_phase3.mjs",
+        "qa_validation_report.mjs",
+        "query_branches.mjs",
+        "query_loc.mjs",
+        "query_org.mjs",
+        "query_org2.mjs",
+        "README.md",
+        "read_secrets.mjs",
+        "schema.sql",
+        "scripts/check_tables.mjs",
+        "scripts/check_user.mjs",
+        "scripts/create_test_users.mjs",
+        "scripts/holistic-analysis.js",
+        "scripts/lint_ends_at_guard.mjs",
+        "scripts/map-codebase.sh",
+        "scripts/setup_preview.cjs",
+        "scripts/setup_preview.ts",
+        "scripts/test_realtime.mjs",
+        "scripts/verify_integrity.mjs",
+        "scripts/verify_transaction.mjs",
+        "simulation_setup.mjs",
+        "simulation_staff_setup.mjs",
+        "src/App.tsx",
+        "src/auth/AuthGate.tsx",
+        "src/auth/getAuthedProfile.ts",
+        "src/auth/routeRules.ts",
+        "src/components/AntiGravity/AntiGravitySuggestion.tsx",
+        "src/components/ApartmentCard.tsx",
+        "src/components/auth/DebugAuth.tsx",
+        "src/components/auth/ProtectedRoute.tsx",
+        "src/components/auth/ShiftProtectedRoute.tsx",
+        "src/components/AuthModal.tsx",
+        "src/components/BranchSwitcher.tsx",
+        "src/components/ConfirmSendPanel.tsx",
+        "src/components/dashboard/LiveOperationsPanel.tsx",
+        "src/components/dashboard/TerminalRadar.tsx",
+        "src/components/DashboardLayout.tsx",
+        "src/components/FullScreenLoader.tsx",
+        "src/components/Layout.tsx",
+        "src/components/pos/POSTerminal.tsx",
+        "src/components/RoomNumberGate.tsx",
+        "src/components/ShiftBanner.tsx",
+        "src/components/ShiftMonitor.tsx",
+        "src/components/ShiftSettlementPanel.tsx",
+        "src/components/staff/HardenedStaffTerminal.tsx",
+        "src/components/StatCard.tsx",
+        "src/components/WarModeDebugPanel.tsx",
+        "src/config/cars.config.ts",
+        "src/constants/shiftStatus.ts",
+        "src/constants.tsx",
+        "src/contexts/AuthContext.tsx",
+        "src/contexts/BranchContext.tsx",
+        "src/contexts/CartContext.tsx",
+        "src/contexts/DemoContext.tsx",
+        "src/contexts/RoleContext.tsx",
+        "src/contexts/ShiftContext.tsx",
+        "src/contexts/SystemStateProvider.tsx",
+        "src/engine/actionLockEngine.ts",
+        "src/engine/inventoryEngine.ts",
+        "src/engine/paymentEngine.ts",
+        "src/engine/useRevenueFeed.ts",
+        "src/hooks/usePublicRequest.ts",
+        "src/hooks/useShift.ts",
+        "src/hooks/useSystemState.ts",
+        "src/index.css",
+        "src/index.tsx",
+        "src/lib/antigravity/AntiGravityEngine.ts",
+        "src/lib/channelRouting.ts",
+        "src/lib/ids.ts",
+        "src/lib/logging.ts",
+        "src/lib/realtimeTelemetry.ts",
+        "src/lib/safeNumber.ts",
+        "src/lib/shiftService.ts",
+        "src/lib/supabaseClient.ts",
+        "src/lib/systemTelemetry.ts",
+        "src/pages/auth/AccessDenied.tsx",
+        "src/pages/auth/DebugAuth.tsx",
+        "src/pages/auth/Login.tsx",
+        "src/pages/auth/Unauthorized.tsx",
+        "src/pages/ConfirmPayment.tsx",
+        "src/pages/dashboard/ceo/CeoAuditFeed.tsx",
+        "src/pages/dashboard/ceo/CeoBranches.tsx",
+        "src/pages/dashboard/ceo/CEOControlTower.tsx",
+        "src/pages/dashboard/ceo/CeoLayout.tsx",
+        "src/pages/dashboard/ceo/CeoOverview.tsx",
+        "src/pages/dashboard/ceo/CeoSettings.tsx",
+        "src/pages/dashboard/ceo/CeoStaffAdmin.tsx",
+        "src/pages/dashboard/DashboardEngine.tsx",
+        "src/pages/dashboard/DashboardHome.tsx",
+        "src/pages/dashboard/Disputes.tsx",
+        "src/pages/dashboard/guesthub/Bar.tsx",
+        "src/pages/dashboard/guesthub/Cleaning.tsx",
+        "src/pages/dashboard/guesthub/GuestHubLanding.tsx",
+        "src/pages/dashboard/guesthub/Reservations.tsx",
+        "src/pages/dashboard/guesthub/Restaurant.tsx",
+        "src/pages/dashboard/guesthub/useGuestHub.ts",
+        "src/pages/dashboard/manager/ManagerCommandCenter.tsx",
+        "src/pages/dashboard/Outbox.tsx",
+        "src/pages/dashboard/Payments.tsx",
+        "src/pages/dashboard/staff/BarStaff.tsx",
+        "src/pages/dashboard/staff/HousekeepingStaff.tsx",
+        "src/pages/dashboard/staff/OpenShiftScreen.tsx",
+        "src/pages/dashboard/staff/ReceptionStaff.tsx",
+        "src/pages/dashboard/staff/RestaurantStaff.tsx",
+        "src/pages/dashboard/staff/ShiftDeclarationScreen.tsx",
+        "src/pages/dashboard/staff/StaffOperationalTerminal.tsx",
+        "src/pages/dashboard/StaffAdmin.tsx",
+        "src/pages/dashboard/store/StoreOperationsPanel.tsx",
+        "src/pages/dashboard/super_admin/SuperAdminDashboard.tsx",
+        "src/pages/Fulfillment.tsx",
+        "src/pages/HotelLanding.tsx",
+        "src/pages/PaymentIntent.tsx",
+        "src/pages/pos/POSPage.tsx",
+        "src/pages/public/BarPublic.tsx",
+        "src/pages/public/RestaurantPublic.tsx",
+        "src/pages/public/ServiceRequestPublic.tsx",
+        "src/pages/public/ServicesHubPublic.tsx",
+        "src/pages/staff/DepartmentDashboard.tsx",
+        "src/pages/staff/StaffDashboard.tsx",
+        "src/pages/staff/StaffLogin.tsx",
+        "src/services/auth.ts",
+        "src/services/authService.ts",
+        "src/services/customers.ts",
+        "src/services/inventoryService.ts",
+        "src/services/orderService.ts",
+        "src/services/paymentService.ts",
+        "src/services/presenceService.ts",
+        "src/services/shiftService.ts",
+        "src/services/transactionService.ts",
+        "src/store/sessionStore.ts",
+        "src/store/systemStore.ts",
+        "src/store/useStore.ts",
+        "src/types/database.ts",
+        "src/types.ts",
+        "src/utils/anti-gravity-probe.js",
+        "src/vite-env.d.ts",
+        "supabase/.temp/cli-latest",
+        "supabase/.temp/gotrue-version",
+        "supabase/.temp/pooler-url",
+        "supabase/.temp/postgres-version",
+        "supabase/.temp/project-ref",
+        "supabase/.temp/rest-version",
+        "supabase/.temp/storage-migration",
+        "supabase/.temp/storage-version",
+        "supabase/config.toml",
+        "supabase/migrations/20260203234719_remote_schema.sql",
+        "supabase/migrations/20260204064344_remote_schema.sql",
+        "supabase/migrations/20260204140000_staff_and_rls.sql",
+        "supabase/migrations/20260204143000_cleanup_ghost_users.sql",
+        "supabase/migrations/20260214224500_production_fintech_schema.sql",
+        "supabase/migrations/20260214234500_airtight_fintech_rls.sql",
+        "supabase/migrations/20260215210000_financial_reconciliation.sql",
+        "supabase/migrations/20260215230000_fintech_hardening_phase1.sql",
+        "supabase/migrations/20260216083500_rls_fix_blank_dashboard.sql",
+        "supabase/migrations/20260217000000_forensic_hardening.sql",
+        "supabase/migrations/20260217200000_fix_profile_rls_recursion.sql",
+        "supabase/migrations/20260218120000_performance_certification.sql",
+        "supabase/migrations/20260218183000_carss_core_stable_v1.sql",
+        "supabase/migrations/20260219140000_stabilization_hardening.sql",
+        "supabase/migrations/20260219190000_master_restructure_hardening.sql",
+        "supabase/migrations/20260221000000_fix_profile_recursion_production.sql",
+        "supabase/migrations/20260221160000_super_admin_insert.sql",
+        "supabase/migrations/20260223000000_realtime_dashboard_view.sql",
+        "supabase/migrations/20260224103000_fix_businesses_role_error.sql",
+        "supabase/migrations/20260301194500_decouple_shifts_from_database_exceptions.sql",
+        "supabase/migrations/20260302110000_phase_a_shift_lifecycle.sql",
+        "supabase/migrations/20260302120000_phase_b_shift_declaration.sql",
+        "supabase/migrations/20260302130000_phase_c_manager_approval.sql",
+        "supabase/migrations/20260302140000_phase_d_transaction_linking.sql",
+        "supabase/migrations/20260302150000_final_integrity_lock.sql",
+        "supabase/migrations/20260302200000_demo_seed.sql",
+        "supabase/migrations/20260302210000_guest_checkout_hardening.sql",
+        "supabase/migrations/20260304000000_anti_gravity_telemetry.sql",
+        "supabase/migrations/20260304120000_granular_shift_integrity.sql",
+        "supabase/migrations/20260304143000_staff_terminal_hardening.sql",
+        "supabase/migrations/20260304160000_anti_gravity_financial_integrity_final.sql",
+        "supabase/migrations/20260304170000_shift_rpc_authority.sql",
+        "supabase/migrations/20260305100000_ceo_operational_controls.sql",
+        "supabase/migrations/20260305110000_shift_request_alignment.sql",
+        "supabase/migrations/20260305120000_shift_closing_reconciliation.sql",
+        "supabase/migrations/20260305193000_shift_heartbeat_monitor.sql",
+        "supabase/migrations/20260306070000_shift_status_standardization.sql",
+        "supabase/migrations/20260306071000_rpc_alignment_final.sql",
+        "supabase/migrations/20260306153000_universal_order_gateway.sql",
+        "supabase/migrations/20260306154000_gateway_trigger_alignment.sql",
+        "supabase/migrations/20260306160000_confirm_payment_integrity.sql",
+        "supabase/migrations/20260306200000_shift_revenue_lock_engine.sql",
+        "supabase/migrations/20260306203000_inventory_stress_prep.sql",
+        "supabase/migrations/20260306220000_repair_ceo_context.sql",
+        "supabase/migrations/20260307000000_order_path_bifurcation.sql",
+        "supabase/migrations/20260308000000_shift_engine_guard.sql",
+        "supabase/migrations/20260309000000_system_state_rpc.sql",
+        "supabase/migrations/20260309000001_system_state_rpc_v2.sql",
+        "supabase/migrations/20260312000000_phase2_ssot_enforcement.sql",
+        "supabase/migrations/20260312010000_phase3_surgical_repairs.sql",
+        "supabase/migrations/20260312020000_location_isolated_rpc.sql",
+        "supabase/migrations/20260312030000_phase3_location_isolation_fixes.sql",
+        "supabase/migrations/20260312040000_get_system_state_refinement.sql",
+        "supabase/migrations/20260312050000_unified_order_gateway_v2.sql",
+        "supabase/migrations/20260313060000_location_ssot_repair.sql",
+        "supabase/migrations/20260313100000_realtime_presence_system.sql",
+        "supabase/migrations/20260314000000_terminal_discovery_upgrade.sql",
+        "supabase/migrations/20260315100000_qr_order_gateway.sql",
+        "supabase.zip",
+        "tailwind.config.js",
+        "test_businesses.mjs",
+        "test_db.mjs",
+        "test_fk.mjs",
+        "test_locations.mjs",
+        "test_order.mjs",
+        "test_order_verify.mjs",
+        "test_playwright.mjs",
+        "test_playwright.mjs.save",
+        "test_resolution.mjs",
+        "test_schema.mjs",
+        "test_staff_order.mjs",
+        "tmp/apply_migration.mjs",
+        "tmp/check_manager_fetch.mjs",
+        "tmp/check_shifts.mjs",
+        "tmp/create_dept.mjs",
+        "tmp/create_sa_membership.mjs",
+        "tmp/debug_users.mjs",
+        "tmp/discover_all.mjs",
+        "tmp/discover_business.mjs",
+        "tmp/force_shift.mjs",
+        "tmp/inspect_branches.mjs",
+        "tmp/inspect_db.mjs",
+        "tmp/inspect_db_v2.mjs",
+        "tmp/inspect_db_v3.mjs",
+        "tmp/inspect_for_test.mjs",
+        "tmp/inspect_orders_v2.mjs",
+        "tmp/list_members.mjs",
+        "tmp/phase1.cjs",
+        "tmp/phase1.ps1",
+        "tmp/repair_ceo_as_sa.mjs",
+        "tmp/repair_ceo_by_id.mjs",
+        "tmp/repair_ceo_fetch.mjs",
+        "tmp/repair_ceo_upsert.mjs",
+        "tmp/repair_ceo_zero_uuid.mjs",
+        "tmp/repair_context.sql",
+        "tmp/repair_superadmin_fetch.mjs",
+        "tmp/seed_location.mjs",
+        "tmp/setup_bartender.mjs",
+        "tmp/setup_bartender_v2.mjs",
+        "tmp/setup_manager.mjs",
+        "tmp/setup_staff.mjs",
+        "tmp/setup_superadmin.mjs",
+        "tmp/simulate_shift_cycle.mjs",
+        "tmp/stress_test_carss.mjs",
+        "tmp/system_probe.mjs",
+        "tmp/test_org_direct.mjs",
+        "tmp/try_sa_shift.mjs",
+        "tmp/upsert_ceo.mjs",
+        "tmp/volume_probe.mjs",
+        "tsconfig.json",
+        "tsconfig.node.json",
+        "user_data.json",
+        "vercel.json",
+        "verify_results.json",
+        "vite.config.ts"
+      ],
+      "middleware": [
+        "api/create-staff-user.ts",
+        "postcss.config.js",
+        "scripts/holistic-analysis.js",
+        "scripts/setup_preview.ts",
+        "src/auth/getAuthedProfile.ts",
+        "src/auth/routeRules.ts",
+        "src/config/cars.config.ts",
+        "src/constants/shiftStatus.ts",
+        "src/engine/actionLockEngine.ts",
+        "src/engine/inventoryEngine.ts",
+        "src/engine/paymentEngine.ts",
+        "src/engine/useRevenueFeed.ts",
+        "src/hooks/usePublicRequest.ts",
+        "src/hooks/useShift.ts",
+        "src/hooks/useSystemState.ts",
+        "src/lib/antigravity/AntiGravityEngine.ts",
+        "src/lib/channelRouting.ts",
+        "src/lib/ids.ts",
+        "src/lib/logging.ts",
+        "src/lib/realtimeTelemetry.ts",
+        "src/lib/safeNumber.ts",
+        "src/lib/shiftService.ts",
+        "src/lib/supabaseClient.ts",
+        "src/lib/systemTelemetry.ts",
+        "src/pages/dashboard/guesthub/useGuestHub.ts",
+        "src/services/auth.ts",
+        "src/services/authService.ts",
+        "src/services/customers.ts",
+        "src/services/inventoryService.ts",
+        "src/services/orderService.ts",
+        "src/services/paymentService.ts",
+        "src/services/presenceService.ts",
+        "src/services/shiftService.ts",
+        "src/services/transactionService.ts",
+        "src/store/sessionStore.ts",
+        "src/store/systemStore.ts",
+        "src/store/useStore.ts",
+        "src/types/database.ts",
+        "src/types.ts",
+        "src/utils/anti-gravity-probe.js",
+        "src/vite-env.d.ts",
+        "supabase/functions/accept-invitation/index.ts",
+        "supabase/functions/create-staff-user/index.ts",
+        "supabase/functions/deactivate-user/index.ts",
+        "supabase/functions/staff-invitations/index.ts",
+        "supabase/functions/update-user-role/index.ts",
+        "tailwind.config.js",
+        "vite.config.ts"
+      ]
+    },
+    "database": {
+      "tables": 0,
+      "tableList": {},
+      "triggers": 0,
+      "triggerList": [],
+      "views": 0,
+      "viewList": [],
+      "migrations": 2
+    },
+    "realtime": {
+      "subscriptions": 7,
+      "subscriptionList": [
+        {
+          "file": "src/lib/realtimeTelemetry.ts",
+          "channel": "unknown",
+          "table": "unknown"
+        },
+        {
+          "file": "src/pages/dashboard/staff/BarStaff.tsx",
+          "channel": "bar-orders",
+          "table": "unknown"
+        },
+        {
+          "file": "src/pages/dashboard/staff/RestaurantStaff.tsx",
+          "channel": "restaurant-orders",
+          "table": "unknown"
+        },
+        {
+          "file": "src/pages/dashboard/staff/StaffOperationalTerminal.tsx",
+          "channel": "staff-ops-sync",
+          "table": "unknown"
+        },
+        {
+          "file": "src/pages/dashboard/store/StoreOperationsPanel.tsx",
+          "channel": "unknown",
+          "table": "unknown"
+        },
+        {
+          "file": "src/pages/PaymentIntent.tsx",
+          "channel": "unknown",
+          "table": "unknown"
+        },
+        {
+          "file": "src/store/systemStore.ts",
+          "channel": "unknown",
+          "table": "unknown"
+        }
+      ],
+      "enabledTables": []
+    }
+  },
+  "connections": {
+    "rpc": [],
+    "rest": [],
+    "terminals": {},
+    "realtime": []
+  },
+  "risks": {
+    "circular": [],
+    "missingTryCatch": [],
+    "hardcoded": [],
+    "unused": [],
+    "total": 0
+  },
+  "recommendations": []
+}

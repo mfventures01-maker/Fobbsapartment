@@ -24,18 +24,21 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 const terminal_type = (['ceo', 'owner', 'super_admin'].includes(authority.role || '')) ? 'ceo_terminal' :
                     (authority.role === 'manager') ? 'manager_terminal' : 'staff_terminal';
 
+                const device_info = `${navigator.platform} (${navigator.vendor || 'Unknown Browser'})`;
+
                 presenceService.registerPresence({
                     staff_id: staffId,
                     business_id: authority.businessId,
-                    branch_id: authority.branchId || '00000000-0000-0000-0000-000000000000', // System default for global
-                    terminal_type
+                    branch_id: authority.branchId || '00000000-0000-0000-0000-000000000000',
+                    terminal_type,
+                    device_info
                 });
 
-                // Start 20s Heartbeat
+                // Start 60s Heartbeat (Presence Safety)
                 if (heartbeatRef.current) clearInterval(heartbeatRef.current);
                 heartbeatRef.current = setInterval(() => {
                     presenceService.sendHeartbeat(staffId, terminal_type);
-                }, 20000);
+                }, 60000);
             }
 
             // Subscribe only if branchId is present (for realtime operational filters)

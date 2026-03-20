@@ -1,0 +1,25 @@
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:88:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:51:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:32:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:53:.from('shifts')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\inventoryEngine.ts:28:.from('inventory')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:50:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:83:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:73:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:124:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:106:const { data: highVal } = await supabase.from('transactions').select('id, amount, created_at, business_id').eq('business_id', authority.businessId).gt('amount', 100000).order('created_at', { ascending: false }).limit(3);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:107:const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:26:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:129:.from('inventory')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:39:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:39:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:91:const { data } = await supabase.from('inventory').select('*').eq('branch_id', authority.branchId).order('name');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:161:const { data: intent } = await supabase.from('payment_intents').select('*').eq('id', result.payment_intent_id).single();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:177:await supabase.from('payment_intents').update({ payment_type: method }).eq('id', activeIntent.id);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\store\StoreOperationsPanel.tsx:38:const { data: inv } = await supabase.from('inventory')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:60:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:70:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:94:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:107:await supabase.from('orders').update({ payment_method: paymentMethod }).eq('id', orderId);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:5:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:33:.from('transactions')

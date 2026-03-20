@@ -5,6 +5,7 @@ export interface PresenceRegistration {
     business_id: string;
     branch_id: string;
     terminal_type: 'staff_terminal' | 'manager_terminal' | 'ceo_terminal';
+    device_info?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export const presenceService = {
                 business_id: params.business_id,
                 branch_id: params.branch_id,
                 terminal_type: params.terminal_type,
+                device_info: params.device_info || 'Unknown Device',
                 status: 'active',
                 last_seen: new Date().toISOString()
             }, {
@@ -44,7 +46,10 @@ export const presenceService = {
     async sendHeartbeat(staffId: string, terminalType: string) {
         const { error } = await supabase
             .from('terminal_sessions')
-            .update({ last_seen: new Date().toISOString(), status: 'active' })
+            .update({
+                last_seen: new Date().toISOString(),
+                status: 'active'
+            })
             .match({ staff_id: staffId, terminal_type: terminalType });
 
         if (error) {
@@ -61,7 +66,7 @@ export const presenceService = {
         console.log('[PRESENCE] Disconnecting session...');
         await supabase
             .from('terminal_sessions')
-            .update({ status: 'offline' })
+            .update({ status: 'inactive' })
             .match({ staff_id: staffId, terminal_type: terminalType });
     }
 };

@@ -3,7 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { Profile } from '../types/database';
 
-export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner';
+export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner' | 'kitchen';
 
 export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 

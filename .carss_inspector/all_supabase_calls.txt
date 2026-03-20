@@ -1,0 +1,328 @@
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:1:import { createClient } from '@supabase/supabase-js';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:39:const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:40:const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:42:if (!supabaseUrl || !supabaseServiceKey) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:47:const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:56:const { data: { user: callerUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:62:const { data: callerProfile, error: profileError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:63:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:104:const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:116:const { error: upsertError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\api\create-staff-user.ts:117:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:2:import { createClient } from '@supabase/supabase-js';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:19:const supabaseUrl = envConfig['VITE_SUPABASE_URL'] || process.env.VITE_SUPABASE_URL;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:20:const supabaseKey = envConfig['VITE_SUPABASE_ANON_KEY'] || process.env.VITE_SUPABASE_ANON_KEY;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:22:if (!supabaseUrl || !supabaseKey) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:27:const supabase = createClient(supabaseUrl, supabaseKey);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:37:const { data: authData, error: authError } = await supabase.auth.signUp({
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:49:const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:68:const { error: profileError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:69:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:87:const { data: orderData, error: orderError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\scripts\setup_preview.ts:88:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\getAuthedProfile.ts:6:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\getAuthedProfile.ts:25:if (!supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\getAuthedProfile.ts:30:const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\getAuthedProfile.ts:45:const { data: profile, error: profileError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\auth\getAuthedProfile.ts:46:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\auth\DebugAuth.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\auth\DebugAuth.tsx:18:const { data: { user } } = await supabase.auth.getUser();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\auth\DebugAuth.tsx:22:const { data: mems, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\auth\DebugAuth.tsx:23:.from('business_memberships')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\auth\DebugAuth.tsx:147:onClick={() => { supabase.auth.signOut(); navigate('/login'); }}
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:4:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:27:const { error } = await supabase.auth.signInWithPassword({ email, password });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\AuthModal.tsx:31:const { error } = await supabase.auth.signUp({ email, password });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:4:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:32:const channel = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:42:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:50:const { data } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftMonitor.tsx:51:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:31:const { data } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\components\ShiftSettlementPanel.tsx:32:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:2:import { Session, User } from '@supabase/supabase-js';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:3:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:96:const { data: membership, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:97:.from('business_memberships')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:149:const { data: staff } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:150:.from('staff_profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:171:supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:176:const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:202:return await supabase.auth.signInWithPassword({ email, password });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\AuthContext.tsx:206:await supabase.auth.signOut();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:29:// Ensure supabase client and business_id are available before proceeding
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:30:if (!supabase || !authority.businessId) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:37:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\BranchContext.tsx:38:.from('branches')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:2:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:52:let query = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:53:.from('shifts')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:204:const { data, error } = await (supabase as any).rpc('reject_shift', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\inventoryEngine.ts:2:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\inventoryEngine.ts:27:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\inventoryEngine.ts:28:.from('inventory')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:2:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:49:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:50:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:82:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\paymentEngine.ts:83:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\useRevenueFeed.ts:2:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\useRevenueFeed.ts:18:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\engine\useRevenueFeed.ts:19:.from('dashboard_realtime_metrics') // View assumed based on Phase 6 context
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\hooks\usePublicRequest.ts:1:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\hooks\usePublicRequest.ts:34:if (user && supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\hooks\usePublicRequest.ts:36:const { error } = await supabase.from('user_notifications').insert([
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:1:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:31:if (supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:33:const { error } = await supabase.from('orders_or_leads').insert([logData]);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:99:if (supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\logging.ts:101:const { error } = await supabase.from('orders_or_leads').insert([logData]);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\realtimeTelemetry.ts:1:import { supabase } from './supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\realtimeTelemetry.ts:21:const channel = supabase.channel(`ops-sync-${locationId}`);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\realtimeTelemetry.ts:79:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\shiftService.ts:2:import { supabase } from './supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\shiftService.ts:11:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\shiftService.ts:28:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\shiftService.ts:45:const { data, error } = await (supabase as any).rpc('submit_shift_declaration', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:1:import { createClient, SupabaseClient } from '@supabase/supabase-js';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:3:const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:4:const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:6:if (!supabaseUrl) throw new Error("Missing VITE_SUPABASE_URL environment variable.");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:7:if (!supabaseAnonKey) throw new Error("Missing VITE_SUPABASE_ANON_KEY environment variable.");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:8:if (supabaseAnonKey.includes('<PUBLIC_ANON_KEY_FROM_SUPABASE>')) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:12:const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\supabaseClient.ts:20:export { supabase };
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:50:if (!supabase) throw new Error('Supabase not initialized');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:52:const { data: orderData, error: orderError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:72:const { data: intentData } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:73:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:117:if (!supabase) throw new Error('System offline');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:123:const { data: newIntent, error: createError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:124:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:144:const { error: rpcError } = await supabase.rpc('confirm_payment_intent', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoAuditFeed.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoAuditFeed.tsx:5:// Phase 2: Replace mock data with supabase.from("audit_logs") + realtime
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoAuditFeed.tsx:15:const { data } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoAuditFeed.tsx:16:.from('transaction_logs')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:91:const { data: bCount } = await supabase.from('branches').select('id').eq('business_id', authority.businessId).eq('is_active', true);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:92:const { data: sCount } = await supabase.from('business_memberships').select('user_id').eq('business_id', authority.businessId).eq('status', 'active');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:93:const { data: dCount } = await supabase.from('departments').select('id').eq('business_id', authority.businessId);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:102:const { data: staffs } = await supabase.from('business_memberships').select('*, profiles(full_name, status)').eq('business_id', authority.businessId).limit(5);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:106:const { data: highVal } = await supabase.from('transactions').select('id, amount, created_at, business_id').eq('business_id', authority.businessId).gt('amount', 100000).order('created_at', { ascending: false }).limit(3);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:107:const { data: lowStock } = await supabase.from('inventory').select('name, current_stock, min_stock, branch:branches(name)').eq('business_id', authority.businessId).filter('current_stock', 'lte', 'min_stock').limit(5);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:135:const { data, error } = await (supabase as any).rpc('disable_staff', { p_user_id: userId });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoLayout.tsx:6:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoLayout.tsx:21:await supabase.auth.signOut();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:44:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:45:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:67:const { data, error } = await supabase.functions.invoke('create-staff-user', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:99:const { error } = await supabase.functions.invoke('deactivate-user', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CeoStaffAdmin.tsx:121:const { error } = await supabase.functions.invoke('update-user-role', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:8:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:21:if (!supabase || !profile?.business_id) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:25:let query = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\DashboardHome.tsx:26:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Disputes.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Disputes.tsx:19:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Disputes.tsx:21:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Disputes.tsx:22:.from('payment_disputes')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\useGuestHub.ts:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\useGuestHub.ts:39:if (supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\guesthub\useGuestHub.ts:40:const { error } = await supabase.from('user_notifications').insert([
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:128:const { data: invList } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:129:.from('inventory')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:154:const { data, error } = await (supabase as any).rpc('confirm_payment_intent', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:171:const { data, error } = await (supabase as any).rpc('reject_payment_intent', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:196:const { data, error } = await (supabase as any).rpc('approve_shift_open', { p_shift_id: shiftId });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:208:const { data, error } = await (supabase as any).rpc('reject_shift_open', { p_shift_id: shiftId, p_reason: reason });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:24:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:26:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:27:.from('notification_outbox')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:41:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:46:const { data, error } = await supabase.functions.invoke('send-outbox', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:67:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:68:const { error } = await supabase.rpc('queue_ceo_alert', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Payments.tsx:27:if (!supabase || !profile?.business_id) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:36:if (!orgId || !supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:38:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:39:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:57:if (!orgId || !supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:59:const channel = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\BarStaff.tsx:67:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:36:if (!orgId || !supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:38:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:39:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:57:if (!orgId || !supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:59:const channel = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\RestaurantStaff.tsx:67:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:4:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:91:const { data } = await supabase.from('inventory').select('*').eq('branch_id', authority.branchId).order('name');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:97:const channel = supabase.channel('staff-ops-sync')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:100:return () => { supabase.removeChannel(channel); };
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:161:const { data: intent } = await supabase.from('payment_intents').select('*').eq('id', result.payment_intent_id).single();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\staff\StaffOperationalTerminal.tsx:177:await supabase.from('payment_intents').update({ payment_type: method }).eq('id', activeIntent.id);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\StaffAdmin.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\StaffAdmin.tsx:43:const { data: { session } } = await supabase!.auth.getSession();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\store\StoreOperationsPanel.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\store\StoreOperationsPanel.tsx:38:const { data: inv } = await supabase.from('inventory')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\store\StoreOperationsPanel.tsx:58:const channel = supabase.channel(`store-ops-${authority.branchId}`)
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\store\StoreOperationsPanel.tsx:63:return () => { supabase.removeChannel(channel); };
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:46:if (!supabase) throw new Error("Database client not initialized");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:47:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:48:.from('businesses')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:99:if (!supabase) throw new Error("Database client not initialized");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\super_admin\SuperAdminDashboard.tsx:101:const { data, error } = await supabase.functions.invoke('create-staff-user', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:32:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:33:const channel = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:48:if (supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:49:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:55:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:59:const { data: readyData, error: readyError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:60:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:69:const { data: completedData, error: completedError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:70:.from('orders')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:92:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\Fulfillment.tsx:97:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:3:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:31:if (!supabase) return;
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:33:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:64:const channel = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:74:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:91:if (!supabase) throw new Error('System offline');
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:93:const { error: intentError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:94:.from('payment_intents')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\PaymentIntent.tsx:107:await supabase.from('orders').update({ payment_method: paymentMethod }).eq('id', orderId);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:6:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\BarPublic.tsx:66:if (!supabase) throw new Error("Database client not available");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:5:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\public\RestaurantPublic.tsx:66:if (!supabase) throw new Error("Database client not available");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:35:const channel = supabase!
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:59:supabase!.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:66:const { data: reqs, error } = await supabase!
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:67:.from('service_requests')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:81:const { data: notifs } = await supabase!
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:82:.from('user_notifications')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:95:const { error } = await supabase!
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\DepartmentDashboard.tsx:96:.from('service_requests')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\StaffLogin.tsx:2:import { supabase } from '@/lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\staff\StaffLogin.tsx:21:const { data, error } = await supabase.auth.signInWithPassword({
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:1:import { supabase } from "../lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:4:const { data, error } = await supabase.auth.signUp({ email, password });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:11:const { data: business, error: businessError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:23:const { error: profileError } = await supabase.from("profiles").insert({
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:38:const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:44:await supabase.auth.signOut();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\auth.ts:48:const { data } = await supabase.auth.getSession();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\authService.ts:1:import { supabase } from "@/lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\authService.ts:4:const { data, error } = await supabase.auth.getSession();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\authService.ts:10:const { error } = await supabase.auth.signOut();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\authService.ts:15:const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\customers.ts:1:import { supabase } from "../lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\customers.ts:13:let query = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\customers.ts:31:const { data: created, error: createError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\inventoryService.ts:1:import { supabase } from "@/lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\inventoryService.ts:4:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\orderService.ts:1:import { supabase } from "@/lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\orderService.ts:12:const { data, error } = await supabase.rpc("create_qr_order_gateway", {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\orderService.ts:38:const { data, error } = await supabase.rpc("create_order_gateway", {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\paymentService.ts:1:import { supabase } from "@/lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\paymentService.ts:4:const { data, error } = await supabase.rpc("confirm_payment_intent", {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:1:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:22:const { error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:23:.from('terminal_sessions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:47:const { error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:48:.from('terminal_sessions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:67:await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\presenceService.ts:68:.from('terminal_sessions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:1:import { supabase } from "@/lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:7:const { data: { user } } = await supabase.auth.getUser();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:13:const { data: staff, error: staffError } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:24:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:45:const { data, error } = await supabase.rpc("end_shift");
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:51:const { data, error } = await supabase.rpc("submit_shift_declaration", {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:62:const { data, error } = await supabase.rpc("approve_shift_close", {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\shiftService.ts:70:const { data, error } = await supabase.rpc("approve_shift_open", {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:1:import { supabase } from "@/lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:4:let query = supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:5:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:32:const { data, error } = await supabase
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\services\transactionService.ts:33:.from('transactions')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\sessionStore.ts:2:import { supabase } from "../lib/supabaseClient";
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\sessionStore.ts:16:if (!supabase) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\sessionStore.ts:21:const { data, error } = await supabase.auth.getSession();
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:2:import { supabase } from '../lib/supabaseClient';
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:72:const { data, error } = await supabase.rpc('get_system_state', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:103:const channel = supabase.channel(`branch-operational-sync-${locationId}`)
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:138:supabase.removeChannel(channel);
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:3:import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:16:const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:17:const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:20:if (!supabaseUrl || !supabaseServiceKey) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:24:const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:50:const { data: invites, error: fetchError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:51:.from('staff_invitations')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:71:const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:84:const { error: patchError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\accept-invitation\index.ts:85:.from('staff_invitations')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:2:import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:15:const supabaseClient = createClient(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:24:} = await supabaseClient.auth.getUser()
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:29:const { data: callerProfile, error: profileError } = await supabaseClient
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:30:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:79:const supabaseAdmin = createClient(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:84:const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:113:const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:117:// Re-reading supabase-js documentation: admin.listUsers() doesn't allow email filter easily in older versions?
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:146:const { data: profile, error: upsertError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\create-staff-user\index.ts:147:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:2:import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:15:const supabaseClient = createClient(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:22:const { data: { user } } = await supabaseClient.auth.getUser()
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:26:const { data: callerProfile, error: profileError } = await supabaseClient
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:27:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:43:const supabaseAdmin = createClient(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:48:const { data: targetProfile, error: targetError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:49:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:63:const { error: updateError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:64:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\deactivate-user\index.ts:78:await supabaseAdmin.auth.admin.updateUserById(user_id, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:3:import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:16:const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:17:const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:20:if (!supabaseUrl || !supabaseServiceKey) {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:25:const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:42:const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:71:const { data: profile } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:72:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:88:let existingQuery = supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:89:.from('staff_invitations')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:141:const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser(authPayload)
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:148:const { data: foundUser } = await supabaseAdmin.auth.admin.listUsers()
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:155:// supabase-js admin API doesn't have simple 'getUserByEmail'.
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:169:const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc('create_staff_invitation', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:225:await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:226:.from('staff_invitations')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:232:const { data: refreshed } = await supabaseAdmin.from('staff_invitations').select('invitation_token').eq('id', rowId).single()
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:2:import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:15:const supabaseClient = createClient(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:22:const { data: { user } } = await supabaseClient.auth.getUser()
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:26:const { data: callerProfile, error: profileError } = await supabaseClient
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:27:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:56:const supabaseAdmin = createClient(
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:61:const { data: targetProfile, error: targetError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:62:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:76:const { data: updated, error: updateError } = await supabaseAdmin
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\update-user-role\index.ts:77:.from('profiles')
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\vite.config.ts:23:'vendor-supabase': ['@supabase/supabase-js'],

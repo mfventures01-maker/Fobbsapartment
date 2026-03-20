@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
     getWhatsAppTargetNumber, openWhatsApp, openTelegram
@@ -33,14 +34,11 @@ export const usePublicRequest = () => {
         // Assuming user_notifications requires user_id, we only try if user exists.
         if (user && supabase) {
             try {
-                const { error } = await supabase.from('user_notifications').insert([
-                    {
-                        user_id: user.id,
-                        title: title,
-                        message: notificationMessage,
-                        read_at: null
-                    }
-                ]);
+                await callRPC('public', 'push_user_notification', {
+                    p_user_id: user.id,
+                    p_title: title,
+                    p_message: notificationMessage
+                });
 
                 if (error) {
                     console.warn('Notification insert failed:', error);

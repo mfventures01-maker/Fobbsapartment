@@ -7,7 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint:ends_at_guard": "node scripts/lint_ends_at_guard.mjs"
+    "lint:ends_at_guard": "node scripts/lint_ends_at_guard.mjs",
+    "probe": "node src/utils/anti-gravity-probe.js",
+    "probe:bar": "node src/utils/anti-gravity-probe.js --terminal=bar",
+    "probe:full": "node src/utils/anti-gravity-probe.js --full",
+    "map": "bash ./scripts/map-codebase.sh && node scripts/holistic-analysis.js",
+    "map:watch": "nodemon --watch src --ext js,jsx,ts,tsx,sql --exec \"npm run map\"",
+    "map:serve": "npx http-server codebase-map -o"
   },
   "engines": {
     "node": ">=20 <21"

@@ -35,13 +35,13 @@ const ShiftSettlementPanel: React.FC<ShiftSettlementPanelProps> = ({ shiftId, on
                 .in('status', ['verified', 'completed']);
 
             if (data) {
-                const totals = data.reduce((acc, tx) => {
+                const totals = { system_cash: 0, system_pos: 0, system_transfer: 0 };
+                data.forEach(tx => {
                     const method = tx.payment_type?.toLowerCase();
-                    if (method === 'cash') acc.system_cash += Number(tx.amount);
-                    else if (method === 'pos') acc.system_pos += Number(tx.amount);
-                    else acc.system_transfer += Number(tx.amount);
-                    return acc;
-                }, { system_cash: 0, system_pos: 0, system_transfer: 0 });
+                    if (method === 'cash') totals.system_cash += Number(tx.amount);
+                    else if (method === 'pos') totals.system_pos += Number(tx.amount);
+                    else totals.system_transfer += Number(tx.amount);
+                });
                 setStats(totals);
             }
         };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Wine, AlertCircle, ShoppingBag, Bell, Loader2, ArrowRight } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { Wine, ShoppingBag, Bell, Loader2, ArrowRight } from 'lucide-react';
+import { callRPC } from '@/lib/rpcClient';
+import { supabase } from '@/lib/supabaseClient'; // PERMITTED: realtime channel subscriptions only
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
@@ -12,6 +13,12 @@ interface Order {
     status: string;
     created_at: string;
     metadata: any;
+}
+
+interface BarOrdersResponse {
+    orders: Order[];
+    revenue_today: number; // Reality Mirror: Source is Backend SSOT
+    active_count: number;
 }
 
 const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode; color: string }> = ({ title, value, icon, color }) => (
@@ -30,22 +37,22 @@ const BarStaff: React.FC = () => {
     const { orgId } = useAuth();
     const navigate = useNavigate();
     const [orders, setOrders] = useState<Order[]>([]);
+    const [revenueToday, setRevenueToday] = useState(0); // ✅ From backend only
     const [loading, setLoading] = useState(true);
 
     const fetchOrders = async () => {
-        if (!orgId || !supabase) return;
+        if (!orgId) return;
         try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('org_id', orgId)
-                .order('created_at', { ascending: false })
-                .limit(20);
-
-            if (error) throw error;
-            setOrders(data || []);
+            // Authority: following protocol C6
+            const response = await callRPC<BarOrdersResponse>('staff', 'get_bar_orders', {
+                p_org_id: orgId,
+                p_limit: 20,
+                _idempotency_key: crypto.randomUUID()
+            });
+            setOrders(response.orders || []);
+            setRevenueToday(response.revenue_today || 0); // Authority: following protocol C7
         } catch (err) {
-            console.error("Fetch orders failed:", err);
+            console.error('[BAR STAFF] Fetch orders failed:', err);
         } finally {
             setLoading(false);
         }
@@ -54,12 +61,13 @@ const BarStaff: React.FC = () => {
     useEffect(() => {
         fetchOrders();
 
-        if (!orgId || !supabase) return;
+        if (!orgId) return;
 
+        // ✅ PERMITTED: realtime subscription to trigger refetch from RPC
         const channel = supabase
             .channel('bar-orders')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `org_id=eq.${orgId}` }, () => {
-                fetchOrders();
+                fetchOrders(); // refetch from RPC, not from table
             })
             .subscribe();
 
@@ -77,7 +85,7 @@ const BarStaff: React.FC = () => {
                     <div className="p-2 bg-purple-100 rounded-lg">
                         <Wine className="w-6 h-6 text-purple-600" />
                     </div>
-                    <h1 className="text-2xl font-serif font-bold text-emerald-950">Bar & Lounge</h1>
+                    <h1 className="text-2xl font-serif font-bold text-emerald-950">Bar &amp; Lounge</h1>
                 </div>
                 <p className="text-gray-500 text-sm mt-1 sm:mt-0">Service Dashboard</p>
             </div>
@@ -91,7 +99,7 @@ const BarStaff: React.FC = () => {
                 />
                 <StatCard
                     title="Revenue Today"
-                    value={`₦${safeNumber(orders.reduce((acc, o) => acc + (o.status === 'paid' ? o.total : 0), 0))}`}
+                    value={`₦${safeNumber(revenueToday)}`} // ✅ backend-derived, not calculated
                     icon={<ShoppingBag className="w-6 h-6 text-emerald-600" />}
                     color="bg-emerald-50"
                 />

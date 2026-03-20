@@ -4,7 +4,7 @@ import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
 import { supabase } from '@/lib/supabaseClient';
-import { createPublicOrder } from '@/services/orderService';
+import { createPublicOrder } from '@/services/publicService';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
@@ -46,7 +46,8 @@ const BarPublic: React.FC = () => {
         }));
     };
 
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    let subtotal = 0;
+    cart.forEach(item => { subtotal += (item.price * item.quantity); });
 
     const handleSubmit = async (channel: 'whatsapp' | 'telegram' | 'web') => {
         if (cart.length === 0) return;
@@ -65,21 +66,21 @@ const BarPublic: React.FC = () => {
         try {
             if (!supabase) throw new Error("Database client not available");
 
-            // 1. Create Order via Universal Gateway
+            // 1. Create Order via Universal Gateway (Deterministic Alignment)
             const gatewayResult = await createPublicOrder(
                 HOTEL_CONFIG.org_id,
                 HOTEL_CONFIG.location_id,
                 cart.map(item => ({
                     name: item.name,
-                    quantity: item.quantity,
+                    qty: item.quantity,
                     price: item.price
                 })),
                 name,
                 phone,
+                tableNumber || room || 'N/A',
                 {
                     source: 'qr_menu_bar',
                     room_number: room || 'N/A',
-                    table_number: tableNumber || 'N/A',
                     delivery_method: delivery,
                     notes: notes,
                     payment_method_preference: paymentMethod
@@ -141,11 +142,11 @@ const BarPublic: React.FC = () => {
     // Safe access to bar menu
     const barMenu = (HOTEL_CONFIG.hotel as any).bar?.menu || [];
 
-    const groupedItems = barMenu.reduce((acc: any, item: any) => {
-        if (!acc[item.category]) acc[item.category] = [];
-        acc[item.category].push(item);
-        return acc;
-    }, {} as Record<string, any[]>);
+    const groupedItems: Record<string, any[]> = {};
+    barMenu.forEach((item: any) => {
+        if (!groupedItems[item.category]) groupedItems[item.category] = [];
+        groupedItems[item.category].push(item);
+    });
 
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6">

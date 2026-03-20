@@ -1,0 +1,11 @@
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\contexts\ShiftContext.tsx:204:const { data, error } = await (supabase as any).rpc('reject_shift', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\lib\shiftService.ts:45:const { data, error } = await (supabase as any).rpc('submit_shift_declaration', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\ConfirmPayment.tsx:144:const { error: rpcError } = await supabase.rpc('confirm_payment_intent', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\ceo\CEOControlTower.tsx:135:const { data, error } = await (supabase as any).rpc('disable_staff', { p_user_id: userId });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:154:const { data, error } = await (supabase as any).rpc('confirm_payment_intent', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:171:const { data, error } = await (supabase as any).rpc('reject_payment_intent', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:196:const { data, error } = await (supabase as any).rpc('approve_shift_open', { p_shift_id: shiftId });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\manager\ManagerCommandCenter.tsx:208:const { data, error } = await (supabase as any).rpc('reject_shift_open', { p_shift_id: shiftId, p_reason: reason });
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\pages\dashboard\Outbox.tsx:68:const { error } = await supabase.rpc('queue_ceo_alert', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\src\store\systemStore.ts:72:const { data, error } = await supabase.rpc('get_system_state', {
+C:\Users\Administrator\Downloads\fobbs-apartments-asaba (1)\supabase\functions\staff-invitations\index.ts:169:const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc('create_staff_invitation', {

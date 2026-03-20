@@ -71,7 +71,11 @@ const POSTerminal: React.FC<POSTerminalProps> = ({ department }) => {
         }));
     };
 
-    const subtotal = useMemo(() => cart.reduce((acc, i) => acc + (i.price * i.quantity), 0), [cart]);
+    const subtotal = useMemo(() => {
+        let sum = 0;
+        cart.forEach(i => { sum += (i.price * i.quantity); });
+        return sum;
+    }, [cart]);
 
     // 4. Checkout Logic
     const handleCheckout = async (paymentType: 'cash' | 'pos' | 'transfer') => {

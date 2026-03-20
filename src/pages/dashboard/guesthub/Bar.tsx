@@ -37,7 +37,8 @@ const Bar: React.FC = () => {
         }));
     };
 
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    let subtotal = 0;
+    cart.forEach(item => { subtotal += (item.price * item.quantity); });
 
     const handleSubmit = (channel: 'whatsapp' | 'telegram') => {
         if (cart.length === 0) return;
@@ -62,11 +63,11 @@ const Bar: React.FC = () => {
     // Casting as any because TS might not pick up the update immediately without a full project server restart/check
     const barMenu = (HOTEL_CONFIG.hotel as any).bar?.menu || [];
 
-    const groupedItems = barMenu.reduce((acc: any, item: any) => {
-        if (!acc[item.category]) acc[item.category] = [];
-        acc[item.category].push(item);
-        return acc;
-    }, {} as Record<string, any[]>);
+    const groupedItems: Record<string, any[]> = {};
+    barMenu.forEach((item: any) => {
+        if (!groupedItems[item.category]) groupedItems[item.category] = [];
+        groupedItems[item.category].push(item);
+    });
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">

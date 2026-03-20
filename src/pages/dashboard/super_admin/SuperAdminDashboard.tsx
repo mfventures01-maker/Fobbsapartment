@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
+import { callEdgeFunction } from '@/lib/callEdgeFunction';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Database, Plus, Users, Building, ShieldCheck, Mail, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -43,15 +45,7 @@ const SuperAdminDashboard: React.FC = () => {
 
             console.log("[Dashboard] Fetching businesses");
             // 2. Fetch all businesses (Super Admin doesn't depend on profile.business_id)
-            if (!supabase) throw new Error("Database client not initialized");
-            const { data, error } = await supabase
-                .from('businesses')
-                .select('*')
-                .order('name', { ascending: true });
-
-            if (error) {
-                throw error;
-            }
+            const data = await callRPC<Business[]>('ceo', 'get_platform_businesses', {});
 
             console.log("[Dashboard] Businesses result:", data);
 
@@ -98,17 +92,12 @@ const SuperAdminDashboard: React.FC = () => {
             console.log("[CEO Creation] Creating auth user and inserting profile");
             if (!supabase) throw new Error("Database client not initialized");
 
-            const { data, error } = await supabase.functions.invoke('create-staff-user', {
-                body: {
-                    email: newCeo.email,
-                    full_name: newCeo.full_name,
-                    role: 'ceo',
-                    business_id: newCeo.business_id
-                }
+            const data = await callEdgeFunction('create-staff-user', {
+                email: newCeo.email,
+                full_name: newCeo.full_name,
+                role: 'ceo',
+                business_id: newCeo.business_id
             });
-
-            if (error) throw new Error(error.message || 'Failed to create CEO');
-            if (data?.error) throw new Error(data.error);
 
             console.log("[CEO Creation] Success", data);
             toast.success("CEO created successfully!");

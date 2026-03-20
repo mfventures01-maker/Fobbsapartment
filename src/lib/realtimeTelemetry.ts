@@ -16,9 +16,9 @@ export function subscribeToOperationalTelemetry(locationId: string, callbacks: O
         return () => { };
     }
 
-    console.log('[TELEMETRY] Initializing Unified Operational Cockpit for Branch:', locationId);
+    console.log('[TELEMETRY] Initializing Operational Sync for Branch:', locationId);
 
-    const channel = supabase.channel(`carss-ops-${locationId}`);
+    const channel = supabase.channel(`ops-sync-${locationId}`);
 
     // 1. Shift Engine State
     if (callbacks.onShiftUpdate) {
@@ -66,16 +66,16 @@ export function subscribeToOperationalTelemetry(locationId: string, callbacks: O
             (payload) => callbacks.onInventoryChange?.(payload));
     }
 
-    // Activate the observatory
+    // Activate
     channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-            console.log('[TELEMETRY] Cockpit active. Monitoring Branch:', locationId);
+            console.log('[TELEMETRY] Sync active. Monitoring Branch:', locationId);
         }
     });
 
     // Cleanup hook
     return () => {
-        console.log('[TELEMETRY] Shutting down branch observatory.');
+        console.log('[TELEMETRY] Shutting down branch sync.');
         supabase.removeChannel(channel);
     };
 }

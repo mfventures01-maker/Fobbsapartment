@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { callRPC } from '@/lib/rpcClient';
+import { callEdgeFunction } from '@/lib/callEdgeFunction';
 import { RefreshCw, Play, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -21,42 +22,30 @@ const Outbox: React.FC = () => {
     const [processing, setProcessing] = useState(false);
 
     const fetchOutbox = async () => {
-        if (!supabase) return;
         setLoading(true);
-        const { data, error } = await supabase
-            .from('notification_outbox')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(20);
-
-        if (error) {
-            toast.error('Error fetching outbox');
-        } else {
+        try {
+            const data = await callRPC<OutboxItem[]>('ceo', 'get_notification_outbox', {
+                p_limit: 20,
+                _idempotency_key: crypto.randomUUID()
+            });
             setOutbox(data || []);
+        } catch (err: any) {
+            toast.error('Error fetching outbox');
         }
         setLoading(false);
     };
 
     const triggerSendOutbox = async () => {
-        if (!supabase) return;
         setProcessing(true);
         const loadingToast = toast.loading('Invoking Edge Function...');
 
         try {
-            const { data, error } = await supabase.functions.invoke('send-outbox', {
-                body: {},
-            });
+            const data = await callEdgeFunction<{ processed?: number }>('ceo', 'send-outbox', {});
 
-            if (error) {
-                console.error('Edge Function Error:', error);
-                toast.error(`Invocation failed: ${error.message}`, { id: loadingToast });
-            } else {
-                console.log('Edge Function Response:', data);
-                toast.success(`Processed: ${data?.processed ?? 'Unknown'}`, { id: loadingToast });
-                fetchOutbox();
-            }
+            toast.success(`Processed: ${data?.processed ?? 'Unknown'}`, { id: loadingToast });
+            fetchOutbox();
         } catch (err: any) {
-            toast.error(`Client error: ${err.message}`, { id: loadingToast });
+            toast.error(`Invocation failed: ${err.message}`, { id: loadingToast });
         } finally {
             setProcessing(false);
         }
@@ -64,17 +53,16 @@ const Outbox: React.FC = () => {
 
     // Test Trigger helper
     const triggerTestAlert = async () => {
-        if (!supabase) return;
-        const { error } = await supabase.rpc('queue_ceo_alert', {
-            message_text: "Test detailed alert from Admin Dashboard.",
-            context_data: { source: "dashboard_test" }
-        });
-
-        if (error) {
-            toast.error(error.message);
-        } else {
+        try {
+            await callRPC<{ success: boolean }>('ceo', 'queue_ceo_alert', {
+                message_text: "Test detailed alert from Admin Dashboard.",
+                context_data: { source: "dashboard_test" },
+                _idempotency_key: crypto.randomUUID()
+            });
             toast.success("Test alert queued!");
             fetchOutbox();
+        } catch (err: any) {
+            toast.error(err.message);
         }
     };
 
