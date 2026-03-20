@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildRoomServiceMessage } from '@/lib/channelRouting';
@@ -12,11 +12,12 @@ const RestaurantPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
     const navigate = useNavigate();
 
-    // Menu state
+    // 🌐 PUBLIC LAYER: Deterministic Menu State
     const [menuItems, setMenuItems] = useState<any[]>([]);
     const [menuLoading, setMenuLoading] = useState(true);
+    const menuRef = useRef<string>('');
 
-    // Form State
+    // Form State (Public)
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [room, setRoom] = useState('');
@@ -31,23 +32,33 @@ const RestaurantPublic: React.FC = () => {
 
     const loadMenu = useCallback(async () => {
         try {
-            setMenuLoading(true);
-            // ✅ Step 3: QR MENU LOADING (Authoritative RPC only)
+            // ✅ Step 2: PUBLIC MENU LOADER (No Auth Needed)
             const data = await callRPC<any>('public', 'get_qr_menu', {
                 p_location_id: HOTEL_CONFIG.location_id
             });
+
             if (data?.menu) {
-                setMenuItems(data.menu);
+                // 💎 Step 5: DUPLICATION GUARD (Anti-flicker)
+                const menuFingerprint = JSON.stringify(data.menu);
+                if (menuRef.current !== menuFingerprint) {
+                    setMenuItems(data.menu);
+                    menuRef.current = menuFingerprint;
+                }
             }
         } catch (err: any) {
-            console.error('[GUEST MENU] Failed to load:', err.message);
+            console.warn('[QR MENU] Sync Warning:', err.message);
         } finally {
             setMenuLoading(false);
         }
     }, []);
 
     useEffect(() => {
+        // Initial load
         loadMenu();
+
+        // ⏱️ Step 2: 5-second public poll (Passive Mirror)
+        const interval = setInterval(loadMenu, 5000);
+        return () => clearInterval(interval);
     }, [loadMenu]);
 
     const addToCart = (item: any) => {
@@ -70,8 +81,7 @@ const RestaurantPublic: React.FC = () => {
         }));
     };
 
-    let subtotal = 0;
-    cart.forEach(item => { subtotal += (item.price * item.quantity); });
+    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
     const handleSubmit = async (channel: 'whatsapp' | 'telegram' | 'web') => {
         if (cart.length === 0) return;
@@ -88,7 +98,7 @@ const RestaurantPublic: React.FC = () => {
         setSubmitting(true);
 
         try {
-            // 1. Create Order via Universal Gateway (Deterministic Alignment)
+            // 🧱 Determinstic Public Order Gateway
             const gatewayResult = await createPublicOrder(
                 HOTEL_CONFIG.org_id,
                 HOTEL_CONFIG.location_id,
@@ -110,12 +120,10 @@ const RestaurantPublic: React.FC = () => {
                 }
             );
 
-            if (!gatewayResult.success) throw new Error(gatewayResult.error || "Failed to create order");
+            if (!gatewayResult.success) throw new Error(gatewayResult.error || "Order creation failed");
 
-            // Type-safe access to order_id
             const orderId = (gatewayResult as any).order_id;
 
-            // 3. Optional: WhatsApp Notification (Background)
             if (channel !== 'web') {
                 sendRequest(
                     'Restaurant Order',
@@ -133,12 +141,10 @@ const RestaurantPublic: React.FC = () => {
                 );
             }
 
-            // 4. Redirect to Payment Intent
             navigate(`/payment-intent?order_id=${orderId}`);
-
         } catch (err: any) {
             console.error("Submission failed:", err);
-            alert("Failed to submit order: " + (err.message || "Unknown error"));
+            alert("Order failed: " + (err.message || "Unknown error"));
         } finally {
             setSubmitting(false);
         }
@@ -153,7 +159,7 @@ const RestaurantPublic: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6">
             <div className="max-w-4xl mx-auto space-y-6">
-                {menuLoading ? (
+                {menuLoading && menuItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                         <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
                         <p className="text-gray-500 font-medium">Loading Fobbs Menu...</p>
@@ -165,8 +171,8 @@ const RestaurantPublic: React.FC = () => {
                                 <ArrowLeft className="w-5 h-5 text-gray-500" />
                             </Link>
                             <div className="flex-1">
-                                <h1 className="text-3xl font-bold text-emerald-900 font-serif">Fobbs Restaurant</h1>
-                                <p className="text-gray-500 text-sm">Fine Dining & Room Service</p>
+                                <h1 className="text-3xl font-bold text-emerald-900 font-serif lowercase">fobbs apartments</h1>
+                                <p className="text-emerald-600/60 text-xs font-bold uppercase tracking-widest">public qr menu node</p>
                             </div>
                         </div>
 
@@ -175,19 +181,19 @@ const RestaurantPublic: React.FC = () => {
                             <div className="lg:col-span-2 space-y-8">
                                 {Object.entries(groupedItems).map(([category, items]) => (
                                     <div key={category}>
-                                        <h2 className="text-xl font-bold text-gray-800 mb-4 sticky top-0 bg-gray-50 py-2 z-10">{category}</h2>
+                                        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 sticky top-0 bg-gray-50 py-2 z-10">{category}</h2>
                                         <div className="grid gap-4">
                                             {items.map((item: any) => (
-                                                <div key={item.id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+                                                <div key={item.id} className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center justify-between shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 group">
                                                     <div>
-                                                        <div className="font-bold text-gray-900">{item.name}</div>
-                                                        <div className="text-emerald-700 font-medium">₦{safeNumber(item.price)}</div>
+                                                        <div className="font-black text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors">{item.name}</div>
+                                                        <div className="text-emerald-700 font-black text-sm">₦{safeNumber(item.price)}</div>
                                                     </div>
                                                     <button
                                                         onClick={() => addToCart(item)}
-                                                        className="w-10 h-10 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full hover:bg-emerald-100 transition-colors"
+                                                        className="w-12 h-12 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm group-active:scale-95"
                                                     >
-                                                        <Plus className="w-5 h-5" />
+                                                        <Plus className="w-6 h-6" />
                                                     </button>
                                                 </div>
                                             ))}
@@ -198,63 +204,62 @@ const RestaurantPublic: React.FC = () => {
 
                             {/* Cart & Checkout */}
                             <div className="lg:col-span-1 space-y-6">
-                                <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 sticky top-4">
-                                    <h3 className="font-bold text-lg text-gray-900 flex items-center mb-6">
-                                        <ShoppingBag className="w-5 h-5 mr-2" /> Your Order
-                                    </h3>
+                                <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl shadow-emerald-900/5 border border-gray-100 sticky top-4">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h3 className="font-black text-xl text-gray-900 flex items-center tracking-tighter">
+                                            <ShoppingBag className="w-6 h-6 mr-3 text-emerald-600" />
+                                            Vault Order
+                                        </h3>
+                                    </div>
 
                                     {/* Guest Details */}
-                                    <div className="space-y-4 mb-6 pb-6 border-b border-gray-100">
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-gray-500 uppercase">Name *</label>
-                                            <div className="relative">
-                                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <div className="space-y-5 mb-8 pb-8 border-b border-gray-100">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Guest Identity *</label>
+                                            <div className="relative group">
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-emerald-600 transition-colors" />
                                                 <input
                                                     type="text"
                                                     value={name}
                                                     onChange={(e) => setName(e.target.value)}
-                                                    className="w-full pl-9 p-2 bg-gray-50 rounded-lg text-sm"
-                                                    placeholder="Your Name"
+                                                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-sm font-bold text-gray-900 placeholder:text-gray-300 transition-all font-mono"
+                                                    placeholder="NAME"
                                                 />
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-bold text-gray-500 uppercase">Phone *</label>
-                                                <div className="relative">
-                                                    <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                        <div className="grid grid-cols-1 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mobile *</label>
+                                                <div className="relative group">
+                                                    <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-emerald-600 transition-colors" />
                                                     <input
                                                         type="tel"
                                                         value={phone}
                                                         onChange={(e) => setPhone(e.target.value)}
-                                                        className="w-full pl-8 p-2 bg-gray-50 rounded-lg text-sm"
-                                                        placeholder="080..."
+                                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-sm font-bold text-gray-900 placeholder:text-gray-300 transition-all font-mono"
+                                                        placeholder="PHONE"
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-bold text-gray-500 uppercase">Room (Opt)</label>
-                                                <div className="relative">
-                                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Room (Opt)</label>
                                                     <input
                                                         type="text"
                                                         value={room}
                                                         onChange={(e) => setRoom(e.target.value)}
-                                                        className="w-full pl-8 p-2 bg-gray-50 rounded-lg text-sm"
-                                                        placeholder="Rm #"
+                                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-sm font-bold text-gray-900 placeholder:text-gray-300 transition-all font-mono"
+                                                        placeholder="RM#"
                                                     />
                                                 </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-bold text-gray-500 uppercase">Table (Opt)</label>
-                                                <div className="relative">
-                                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Table (Opt)</label>
                                                     <input
                                                         type="text"
                                                         value={tableNumber}
                                                         onChange={(e) => setTableNumber(e.target.value)}
-                                                        className="w-full pl-8 p-2 bg-gray-50 rounded-lg text-sm"
-                                                        placeholder="Table #"
+                                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-sm font-bold text-gray-900 placeholder:text-gray-300 transition-all font-mono"
+                                                        placeholder="TBL#"
                                                     />
                                                 </div>
                                             </div>
@@ -262,41 +267,44 @@ const RestaurantPublic: React.FC = () => {
                                     </div>
 
                                     {cart.length === 0 ? (
-                                        <div className="text-center py-8 text-gray-500 text-sm">
-                                            Your cart is empty.
+                                        <div className="text-center py-12">
+                                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <ShoppingBag className="w-6 h-6 text-gray-200" />
+                                            </div>
+                                            <p className="text-gray-300 text-xs font-black uppercase tracking-widest">Vault Empty</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-4">
-                                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                        <div className="space-y-6">
+                                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                                 {cart.map((item: any) => (
-                                                    <div key={item.id} className="flex items-center justify-between text-sm">
-                                                        <div className="flex-1">
-                                                            <div className="font-medium text-gray-900">{item.name}</div>
-                                                            <div className="text-gray-500">₦{safeNumber(item.price)} x {item.quantity}</div>
+                                                    <div key={item.id} className="flex items-center justify-between text-sm animate-in fade-in slide-in-from-right-2">
+                                                        <div className="flex-1 pr-4">
+                                                            <div className="font-black text-gray-900 text-[13px]">{item.name}</div>
+                                                            <div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">₦{safeNumber(item.price)}</div>
                                                         </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-100 rounded text-gray-500"><Minus className="w-3 h-3" /></button>
-                                                            <span className="font-medium w-4 text-center">{item.quantity}</span>
-                                                            <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-gray-100 rounded text-gray-500"><Plus className="w-3 h-3" /></button>
+                                                        <div className="flex items-center bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                                                            <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-gray-500"><Minus className="w-3 h-3" /></button>
+                                                            <span className="font-black w-6 text-center text-gray-900 text-xs">{item.quantity}</span>
+                                                            <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 hover:bg-white hover:shadow-sm rounded-lg transition-all text-gray-500"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            <div className="border-t border-dashed border-gray-200 pt-4">
-                                                <div className="flex justify-between items-center font-bold text-lg text-emerald-900">
-                                                    <span>Total</span>
-                                                    <span>₦{safeNumber(subtotal)}</span>
+                                            <div className="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100">
+                                                <div className="flex justify-between items-center text-emerald-900">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Bill</span>
+                                                    <span className="text-2xl font-black tabular-nums tracking-tighter">₦{safeNumber(subtotal)}</span>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase">Delivery</label>
+                                            <div className="space-y-4">
+                                                <div className="group">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Delivery Point</label>
                                                     <select
                                                         value={delivery}
                                                         onChange={(e) => setDelivery(e.target.value)}
-                                                        className="w-full text-sm p-2 bg-gray-50 rounded-lg"
+                                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-xs font-black text-gray-900 appearance-none transition-all uppercase tracking-widest cursor-pointer"
                                                     >
                                                         <option value="Room Delivery">Room Delivery</option>
                                                         <option value="Dine In">Dine In (Table)</option>
@@ -304,48 +312,48 @@ const RestaurantPublic: React.FC = () => {
                                                     </select>
                                                 </div>
 
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase">Payment</label>
+                                                <div className="group">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Payment Method</label>
                                                     <select
                                                         value={paymentMethod}
                                                         onChange={(e) => setPaymentMethod(e.target.value)}
-                                                        className="w-full text-sm p-2 bg-gray-50 rounded-lg"
+                                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-xs font-black text-gray-900 appearance-none transition-all uppercase tracking-widest cursor-pointer"
                                                     >
                                                         <option value="POS on Delivery">POS on Delivery</option>
-                                                        <option value="Transfer">Transfer</option>
-                                                        <option value="Cash">Cash</option>
+                                                        <option value="Transfer">Bank Transfer</option>
+                                                        <option value="Cash">Cash Payment</option>
                                                         <option value="Bill to Room">Bill to Room</option>
                                                     </select>
                                                 </div>
 
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase">Notes</label>
+                                                <div className="group">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5">Special Directives</label>
                                                     <textarea
                                                         value={notes}
                                                         onChange={(e) => setNotes(e.target.value)}
-                                                        className="w-full text-sm p-2 bg-gray-50 rounded-lg"
-                                                        placeholder="Short note..."
+                                                        className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-4 focus:ring-emerald-500/10 text-xs font-bold text-gray-900 transition-all placeholder:text-gray-300"
+                                                        placeholder="Allergies, timing, etc..."
                                                         rows={2}
                                                     />
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-2 pt-2">
+                                            <div className="space-y-3 pt-2">
                                                 <button
                                                     onClick={() => handleSubmit('web')}
                                                     disabled={submitting}
-                                                    className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 flex items-center justify-center space-x-2 shadow-lg shadow-emerald-100 disabled:opacity-50"
+                                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50 flex items-center justify-center gap-3"
                                                 >
                                                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                                                    <span>Order on Web</span>
+                                                    Submit to Kitchen
                                                 </button>
                                                 <button
                                                     onClick={() => handleSubmit('whatsapp')}
                                                     disabled={submitting}
-                                                    className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#20bd5a] flex items-center justify-center space-x-2 shadow-lg shadow-green-100 disabled:opacity-50"
+                                                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-900/10 disabled:opacity-50 flex items-center justify-center gap-3"
                                                 >
                                                     <Send className="w-4 h-4" />
-                                                    <span>Order on WhatsApp</span>
+                                                    Orders on Whatsapp
                                                 </button>
                                             </div>
                                         </div>
