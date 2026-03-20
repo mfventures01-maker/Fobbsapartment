@@ -113,10 +113,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log(`[AUTH] ✅ Identity Resolved via RPC: ${identity.role}`);
 
+      // 🏢 CONSTRICTED BRANCH RESOLUTION PIPELINE (LAW 3: AUTH -> BRANCH)
+      let resolvedBranchId = identity.branch_id;
+      if (!resolvedBranchId) {
+        const res = await callRPC<any>("public", "get_my_branches", { _idempotency_key: crypto.randomUUID() });
+        const branches = res?.branches;
+
+        if (!branches?.length) {
+          console.warn("[ANTI-GRAVITY] No branches found");
+        } else {
+          resolvedBranchId = branches[0].id; // Deterministic Default
+          console.log(`[AUTH] 🌿 Branch Auto-Resolved: ${resolvedBranchId}`);
+        }
+      }
+
       // 🦾 STEP 3: SYSTEM READINESS (State Derivation)
       if (isMounted.current) {
         setOrgId(identity.business_id);
-        setLocationId(identity.branch_id);
+        setLocationId(resolvedBranchId); // CRITICAL: This was the missing pipeline link bridging auth to hydration
         setDepartmentId(identity.department_id);
         setDepartmentName(identity.department_name);
         setStaffId(identity.staff_id);

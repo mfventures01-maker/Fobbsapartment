@@ -21,9 +21,6 @@ import AuthGate from '@/auth/AuthGate';
 import DashboardEngine from '@/pages/dashboard/DashboardEngine';
 import AccessDenied from '@/pages/auth/AccessDenied';
 import Unauthorized from '@/pages/auth/Unauthorized';
-import { setupTelemetry } from '@/lib/systemTelemetry';
-import { useSystemStore } from '@/store/systemStore';
-import { HOTEL_CONFIG } from '@/config/cars.config';
 
 // Public pages
 import RestaurantPublic from '@/pages/RestaurantPublic';
@@ -87,16 +84,6 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  React.useEffect(() => {
-    // Phase 5 - Inject Telemetry Into App Boot
-    // Disable SSOT for Public Routes
-    const isPublicRoute = window.location.pathname.startsWith("/menu");
-    if (!isPublicRoute) {
-      const shutdown = setupTelemetry();
-      return shutdown;
-    }
-  }, []);
-
   return (
     <Routes>
       {/* Public routes - NO PROVIDERS */}
