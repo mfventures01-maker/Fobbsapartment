@@ -85,4 +85,8 @@ BEGIN
 END;
 $$;
 
+-- Allow public access to QR menu
+GRANT EXECUTE ON FUNCTION public.get_qr_menu(UUID) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_qr_menu(UUID) TO authenticated;
+
 COMMIT;

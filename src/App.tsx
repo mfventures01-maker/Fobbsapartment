@@ -26,7 +26,7 @@ import { useSystemStore } from '@/store/systemStore';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 
 // Public pages
-import RestaurantPublic from '@/pages/public/RestaurantPublic';
+import RestaurantPublic from '@/pages/RestaurantPublic';
 import BarPublic from '@/pages/public/BarPublic';
 import ServicesHubPublic from '@/pages/public/ServicesHubPublic';
 import ServiceRequestPublic from '@/pages/public/ServiceRequestPublic';
@@ -89,20 +89,32 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   React.useEffect(() => {
     // Phase 5 - Inject Telemetry Into App Boot
-    const shutdown = setupTelemetry();
-    return shutdown;
+    // Disable SSOT for Public Routes
+    const isPublicRoute = window.location.pathname.startsWith("/menu");
+    if (!isPublicRoute) {
+      const shutdown = setupTelemetry();
+      return shutdown;
+    }
   }, []);
 
   return (
-    <AuthProvider>
-      <SystemStateProvider>
-        <ShiftProvider>
-          <CartProvider>
-            <AppContent />
-          </CartProvider>
-        </ShiftProvider>
-      </SystemStateProvider>
-    </AuthProvider>
+    <Routes>
+      {/* Public routes - NO PROVIDERS */}
+      <Route path="/menu/:branchId" element={<RestaurantPublic />} />
+
+      {/* Private routes - WITH PROVIDERS */}
+      <Route path="/*" element={
+        <AuthProvider>
+          <SystemStateProvider>
+            <ShiftProvider>
+              <CartProvider>
+                <AppContent />
+              </CartProvider>
+            </ShiftProvider>
+          </SystemStateProvider>
+        </AuthProvider>
+      } />
+    </Routes>
   );
 };
 

@@ -5,6 +5,11 @@ import type { TerminalType } from './rpcFirewall';
 // Re-export TerminalType so consumers can import from a single place
 export type { TerminalType };
 
+const PUBLIC_RPC_ALLOWLIST = [
+    "get_qr_menu",
+    "create_qr_order_gateway"
+];
+
 /**
  * 🚨 THE ONLY WAY ANY RPC CAN EXECUTE — CARSS Central Nervous System
  *
@@ -24,8 +29,12 @@ export async function callRPC<T>(
     // 🛡️ STEP 0: SESSION GUARD (Temporal Integrity)
     // Prevents "trying to work" before authentication exists.
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-        throw new Error(`[ANTI-GRAVITY] RPC BLOCKED: Unauthenticated request to ${functionName}. Identity must resolve first.`);
+    const isAuthenticated = !!session?.user;
+    const isPublicRPC = PUBLIC_RPC_ALLOWLIST.includes(functionName);
+
+    // BLOCK unauthenticated RPCs that aren't public
+    if (!isAuthenticated && !isPublicRPC) {
+        throw new Error(`[ANTI-GRAVITY] RPC BLOCKED: ${functionName} requires authentication`);
     }
 
     // 🚨 ANTI-GRAVITY CHECKPOINT — TERMINAL ACCESS FIREWALL (MANDATORY)
