@@ -2,7 +2,7 @@
 CREATE OR REPLACE FUNCTION public.get_system_state(
   _idempotency_key UUID DEFAULT gen_random_uuid(),
   p_business_id UUID DEFAULT NULL,
-  p_location_id UUID DEFAULT NULL
+  p_branch_id UUID DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -34,7 +34,7 @@ BEGIN
         v_business := p_business_id;
     END IF;
 
-    v_location := p_location_id;
+    v_location := p_branch_id;
 
     -- ORDERS
     SELECT COALESCE(jsonb_agg(o), '[]'::jsonb) INTO v_orders

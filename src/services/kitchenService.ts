@@ -7,7 +7,7 @@ import { callRPC } from '../lib/rpcClient';
 
 export async function getKitchenSnapshot(locationId: string) {
     return callRPC<{ tickets: any[], server_time: string }>('kitchen', 'get_kitchen_snapshot', {
-        p_location_id: locationId,
+        p_branch_id: locationId,
         _idempotency_key: crypto.randomUUID()
     });
 }

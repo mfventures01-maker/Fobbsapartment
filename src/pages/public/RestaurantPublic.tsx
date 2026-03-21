@@ -34,7 +34,7 @@ const RestaurantPublic: React.FC = () => {
         try {
             // ✅ Step 2: PUBLIC MENU LOADER (No Auth Needed)
             const data = await callRPC<any>('public', 'get_qr_menu', {
-                p_location_id: HOTEL_CONFIG.location_id
+                p_branch_id: HOTEL_CONFIG.location_id
             });
 
             if (data?.menu) {

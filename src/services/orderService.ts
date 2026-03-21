@@ -18,7 +18,7 @@ export async function createPublicOrder(
     try {
         const data = await callRPC<{ order_id: string; total: number }>('public', 'create_qr_order_gateway', {
             p_org_id: businessId,
-            p_location_id: locationId,
+            p_branch_id: locationId,
             p_customer_name: customerName || null,
             p_customer_phone: customerPhone || null,
             p_cart: cart,
@@ -43,7 +43,7 @@ export async function createStaffOrder(
     return callRPC<{ order_id: string; status: string }>('staff', 'universal_order_gateway', {
         p_source: 'staff',
         p_business_id: businessId,
-        p_location_id: locationId,
+        p_branch_id: locationId,
         p_staff_id: staffId,
         p_items: items,
         p_metadata: metadata || {},

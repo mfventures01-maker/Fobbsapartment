@@ -6,7 +6,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
         required: ['payment_intent_id', 'amount', 'payment_method', 'staff_id', 'shift_id', 'terminal_type', 'business_id', 'branch_id']
     },
     get_system_state: {
-        required: ['p_business_id', 'p_location_id', 'terminal_type', 'staff_id', 'business_id', 'branch_id']
+        required: ['p_business_id', 'p_branch_id', 'terminal_type', 'staff_id', 'business_id', 'branch_id']
     },
     log_frontend_error: {
         required: ['rpc', 'payload', 'error', 'terminal_type']

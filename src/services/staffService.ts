@@ -24,7 +24,7 @@ export async function getShiftById(shiftId: string): Promise<Shift | null> {
 export async function requestShift(businessId: string, locationId: string, staffId: string) {
     const data = await callRPC<{ shift_id: string }>('staff', 'open_staff_shift', {
         p_business_id: businessId,
-        p_location_id: locationId,
+        p_branch_id: locationId,
         p_staff_id: staffId,
         _idempotency_key: crypto.randomUUID()
     });
@@ -60,7 +60,7 @@ export async function createStaffOrder(
     const data = await callRPC<{ order_id: string; status: string; payment_intent_id: string }>('staff', 'universal_order_gateway', {
         p_source: 'staff',
         p_business_id: businessId,
-        p_location_id: locationId,
+        p_branch_id: locationId,
         p_staff_id: staffId,
         p_items: items,
         p_metadata: metadata || {},

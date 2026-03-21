@@ -89,7 +89,7 @@ const StaffOperationalTerminal: React.FC = () => {
     const hydrate = useCallback(async () => {
         if (!authority.businessId || !authority.branchId) return;
         const data = await callRPC<InventoryItem[]>('staff', 'get_active_inventory', {
-            p_location_id: authority.branchId
+            p_branch_id: authority.branchId
         });
         setInventory(data || []);
     }, [authority.businessId, authority.branchId]);

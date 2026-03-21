@@ -49,7 +49,7 @@ export async function hydrateSystem(businessId: string, branchId: string) {
         "get_system_state",
         {
             p_business_id: businessId,
-            p_location_id: branchId
+            p_branch_id: branchId
         }
     );
 
