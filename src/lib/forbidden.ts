@@ -18,8 +18,8 @@ export const forbiddenQuery = () => {
 export const protectedArray = <T>(arr: T[]): T[] => {
     return new Proxy(arr, {
         get(target, prop) {
-            if (prop === 'map' || prop === 'filter' || prop === 'reduce') {
-                console.warn('[ANTI-GRAVITY] Array operations should only be for rendering, not logic');
+            if (prop === 'reduce') {
+                throw new Error("🚫 Financial calculations must be done via backend RPC");
             }
             return target[prop as keyof T[]];
         }
