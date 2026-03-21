@@ -1,11 +1,10 @@
-// 🛸 ANTI-GRAVITY: PURE REFLECTION LAYER V2
-// Purpose: Zero-Hydration, Zero-Race Shell with Diff Tracking.
-// Law: No local state. Only the Mirror.
+// 🛸 ANTI-GRAVITY PHASE 5.2: ENHANCED DETERMINISTIC SHELL
+// Purpose: Zero-Hydration Mirror with Diff Tracking, Timeout, Retry, and sync lag monitoring.
 
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 
 // ============================================
-// TYPES - Backend Mirror
+// ENHANCED TYPES
 // ============================================
 
 export type TerminalType = 'qr' | 'pos' | 'mobile' | 'manager';
@@ -63,25 +62,50 @@ export interface InventoryAlert {
     alert_level: 'OUT_OF_STOCK' | 'LOW_STOCK' | 'OK';
 }
 
-export type ShellState =
-    | { status: 'BOOTING'; reason?: string }
-    | { status: 'MIRRORING'; state: SystemState; lastSync: number; diff?: any }
-    | { status: 'TRANSMITTING'; action: string; timestamp: number }
-    | { status: 'ERROR'; error: Error; state: SystemState | null };
+export interface PendingAction {
+    id: string;
+    action: string;
+    params: any;
+    timestamp: number;
+    status: 'pending' | 'synced' | 'failed';
+    retryCount: number;
+    lastError?: string;
+}
+
+export interface ShellStateEnhanced {
+    status: 'BOOTING' | 'MIRRORING' | 'TRANSMITTING' | 'ERROR' | 'RECONNECTING';
+    state: SystemState | null;
+    lastSync: number | null;
+    pendingActions: PendingAction[];
+    failedActions: PendingAction[];
+    syncLag: number;
+    error?: Error;
+    diff?: any; // Precise diff for animations
+}
 
 // ============================================
-// THE SHELL
+// ENHANCED DETERMINISTIC SHELL
 // ============================================
 
 export class DeterministicShell {
     private supabase: SupabaseClient;
     private channel: RealtimeChannel | null = null;
-    private state: ShellState = { status: 'BOOTING', reason: 'Initializing' };
+    private state: ShellStateEnhanced = {
+        status: 'BOOTING',
+        state: null,
+        lastSync: null,
+        pendingActions: [],
+        failedActions: [],
+        syncLag: 0
+    };
     private identity: any = null;
     private readonly terminalType: TerminalType;
     public branchId: string | null = null;
-    private subscribers: Map<string, (state: ShellState) => void> = new Map();
-    private pendingActions: Map<string, Promise<any>> = new Map();
+    private subscribers: Map<string, (state: ShellStateEnhanced) => void> = new Map();
+    private pendingActionPromises: Map<string, { resolve: Function; reject: Function }> = new Map();
+    private syncTimeout: NodeJS.Timeout | null = null;
+    private readonly SYNC_TIMEOUT_MS = 3000;
+    private readonly MAX_RETRIES = 3;
 
     constructor(supabaseUrl: string, supabaseKey: string, terminalType: TerminalType) {
         this.supabase = createClient(supabaseUrl, supabaseKey);
@@ -102,76 +126,159 @@ export class DeterministicShell {
         return data;
     }
 
+    // ============================================
+    // ENHANCED TRANSMIT WITH RETRY & TIMEOUT
+    // ============================================
+
     async transmit<R = any>(
         action: string,
-        params: Record<string, any>
+        params: Record<string, any>,
+        idempotencyKey?: string,
+        retryCount: number = 0
     ): Promise<R> {
-        const key = `${action}:${Date.now()}:${Math.random().toString(36).substring(2, 11)}`;
+        const key = idempotencyKey || `${action}:${Date.now()}:${Math.random().toString(36).substring(2, 11)}`;
 
-        if (this.pendingActions.has(key)) return this.pendingActions.get(key) as Promise<R>;
+        // Anti-Gravity: Check shift active for POS operations
+        if (this.terminalType === 'pos') {
+            const shiftActive = this.state.state?.shift?.success;
+            const mutations = ['create_order_gateway', 'add_order_item', 'apply_discount', 'create_payment_intent', 'void_order'];
+            if (mutations.includes(action) && !shiftActive) {
+                throw new Error('🛸 SYMMETRY_VIOLATION: No active shift. Terminal locked.');
+            }
+        }
 
-        this.state = { status: 'TRANSMITTING', action, timestamp: Date.now() };
+        // Track lifecycle
+        const pendingAction: PendingAction = {
+            id: key,
+            action,
+            params,
+            timestamp: Date.now(),
+            status: 'pending',
+            retryCount
+        };
+
+        this.state.pendingActions.push(pendingAction);
+        this.state.status = 'TRANSMITTING';
         this.notifySubscribers();
 
-        const promise = this.executeAction<R>(action, params, key);
-        this.pendingActions.set(key, promise);
+        return new Promise((resolve, reject) => {
+            this.pendingActionPromises.set(key, { resolve, reject });
 
-        try {
-            const result = await promise;
-            return result;
-        } finally {
-            this.pendingActions.delete(key);
-        }
+            // Sync Confirmation Timeout
+            const timeout = setTimeout(async () => {
+                const actionIndex = this.state.pendingActions.findIndex(a => a.id === key);
+                if (actionIndex !== -1) {
+                    const actionItem = this.state.pendingActions[actionIndex];
+                    actionItem.status = 'failed';
+                    actionItem.lastError = 'DESYNC_TIMEOUT: Action may have succeeded in backend but not mirrored.';
+                    this.state.failedActions.push(actionItem);
+                    this.state.pendingActions.splice(actionIndex, 1);
+
+                    if (retryCount < this.MAX_RETRIES) {
+                        console.warn(`🔄 DESYNC_RETRY: ${actionItem.action} (${retryCount + 1}/${this.MAX_RETRIES})`);
+                        try {
+                            const res = await this.transmit(actionItem.action, actionItem.params, `${key}:retry`, retryCount + 1);
+                            resolve(res);
+                        } catch (e: any) { reject(e); }
+                    } else {
+                        reject(new Error(`🛸 RADIUS_FATAL: Action ${actionItem.action} failed to sync after ${this.MAX_RETRIES} attempts.`));
+                    }
+                }
+                this.pendingActionPromises.delete(key);
+            }, this.SYNC_TIMEOUT_MS);
+
+            // Execute RPC
+            this.executeAction<R>(action, params, key)
+                .then(result => {
+                    clearTimeout(timeout);
+                    // Resolve happens in mirroring when pg_notify confirms the state shift
+                })
+                .catch(error => {
+                    clearTimeout(timeout);
+                    this.pendingActionPromises.delete(key);
+                    const idx = this.state.pendingActions.findIndex(a => a.id === key);
+                    if (idx !== -1) {
+                        const failAction = this.state.pendingActions[idx];
+                        failAction.status = 'failed';
+                        failAction.lastError = error.message;
+                        this.state.failedActions.push(failAction);
+                        this.state.pendingActions.splice(idx, 1);
+                    }
+                    this.notifySubscribers();
+                    reject(error);
+                });
+        });
     }
 
     private async executeAction<R>(action: string, params: Record<string, any>, key: string): Promise<R> {
         try {
-            const enrichedParams = {
-                ...params,
-                p_terminal_type: this.terminalType
-            };
-
+            const enrichedParams = { ...params, p_terminal_type: this.terminalType };
             const { data, error } = await this.supabase.rpc(action, enrichedParams);
             if (error) throw error;
-
             return data as R;
         } catch (error) {
-            this.state = { status: 'ERROR', error: error as Error, state: (this.state as any).state || null };
-            this.notifySubscribers();
             throw error;
         }
     }
 
+    // ============================================
+    // ENHANCED MIRRORING WITH DIFFS
+    // ============================================
+
     async startMirroring(branchId?: string): Promise<void> {
         this.branchId = branchId || await this.resolveBranchId();
 
-        // Postgres notification channel handled by Supabase Realtime
-        this.channel = this.supabase.channel(`system-state-${this.branchId}`);
+        this.channel = this.supabase.channel(`system-state-${this.branchId}-${this.terminalType}`);
 
         this.channel
-            .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-                // Fallback if needed, but we prefer the pg_notify channel
-            })
-            // Listen for pg_notify events via the specific channel name
-            .on('broadcast', { event: 'state_update' }, (payload) => {
-                const { state: newState, diff } = payload.payload;
-                this.state = {
-                    status: 'MIRRORING',
-                    state: newState as SystemState,
-                    lastSync: Date.now(),
-                    diff: diff
-                };
-                this.notifySubscribers();
-            })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log(`[CARSS] Mirror Channel Active: ${this.branchId}`);
-                }
-            });
+            .on('broadcast', { event: 'state_update' }, async (payload) => {
+                const notification = payload.payload;
+                const { diff, timestamp } = notification;
 
-        // Initial fetch to lock the mirror
+                // 1. Fetch Fresh State (Phase 1 Law)
+                const newState = await this.getState();
+                const lag = Date.now() - (timestamp * 1000);
+
+                // 2. Resolve Synced Actions
+                const syncedActionKey = notification.record_id; // Simple mapping
+                if (syncedActionKey && this.pendingActionPromises.has(syncedActionKey)) {
+                    const { resolve } = this.pendingActionPromises.get(syncedActionKey)!;
+                    this.state.pendingActions = this.state.pendingActions.filter(a => a.id !== syncedActionKey);
+                    this.pendingActionPromises.delete(syncedActionKey);
+                    resolve(newState);
+                }
+
+                // 3. Update Mirror
+                this.state = {
+                    ...this.state,
+                    status: 'MIRRORING',
+                    state: newState,
+                    lastSync: Date.now(),
+                    syncLag: lag,
+                    diff: diff // Drive animations
+                };
+
+                this.notifySubscribers();
+
+                if (this.syncTimeout) clearTimeout(this.syncTimeout);
+                this.syncTimeout = setTimeout(() => {
+                    if (this.state.syncLag > this.SYNC_TIMEOUT_MS) {
+                        this.state.status = 'RECONNECTING';
+                        this.notifySubscribers();
+                    }
+                }, this.SYNC_TIMEOUT_MS);
+            })
+            .subscribe();
+
+        // Initial fetch
         const initialState = await this.getState();
-        this.state = { status: 'MIRRORING', state: initialState, lastSync: Date.now() };
+        this.state = {
+            ...this.state,
+            status: 'MIRRORING',
+            state: initialState,
+            lastSync: Date.now(),
+            syncLag: 0
+        };
         this.notifySubscribers();
     }
 
@@ -183,7 +290,7 @@ export class DeterministicShell {
         return data.branch_id;
     }
 
-    subscribe(callback: (state: ShellState) => void): () => void {
+    subscribe(callback: (state: ShellStateEnhanced) => void): () => void {
         const id = Math.random().toString(36).substring(2, 11);
         this.subscribers.set(id, callback);
         callback(this.state);
@@ -194,7 +301,7 @@ export class DeterministicShell {
         this.subscribers.forEach(callback => callback(this.state));
     }
 
-    // SEMANTIC ACTIONS
+    // SEMANTIC HELPERS
     async createOrder(customerName?: string): Promise<{ id: string }> {
         return this.transmit('create_order_gateway', { p_customer_name: customerName });
     }
@@ -208,19 +315,18 @@ export class DeterministicShell {
         });
     }
 
-    async processPayment(orderId: string, amount: number, method: PaymentMethod): Promise<any> {
-        return this.transmit('create_payment_intent', {
-            p_order_id: orderId,
-            p_amount: amount,
-            p_payment_method: method
-        });
+    async retryFailedActions(): Promise<void> {
+        const failed = [...this.state.failedActions];
+        this.state.failedActions = [];
+        for (const action of failed) {
+            try {
+                await this.transmit(action.action, action.params, `${action.id}:retry`, action.retryCount + 1);
+            } catch (e) {
+                console.error(`DESYNC_FATAL: Retry failed for ${action.id}`);
+            }
+        }
     }
 
-    async updateKitchenStatus(orderId: string, status: KitchenStatus): Promise<any> {
-        return this.transmit('update_kitchen_status', { p_order_id: orderId, p_status: status });
-    }
-
-    // HELPERS
     async stopMirroring(): Promise<void> {
         if (this.channel) await this.channel.unsubscribe();
     }
