@@ -1,11 +1,19 @@
-// 🧬 DETERMINISTIC SHELL PROVIDER: PURE REFLECTION INTERFACE
+// 🧬 DETERMINISTIC SHELL PROVIDER V2: SYMMETRICAL INTERFACE
 // Purpose: Provide a context-based bridge to the deterministic mirror.
 // Law: No business state storage in React - ONLY mirroring.
 
 'use client';
 
 import React, { createContext, useContext, useEffect, useRef, ReactNode, useMemo, useState } from 'react';
-import { DeterministicShell, ShellState, TerminalType, SystemState } from '@/lib/core/deterministic-shell';
+import {
+    DeterministicShell,
+    ShellState,
+    TerminalType,
+    SystemState,
+    OrderStatus,
+    KitchenStatus,
+    PaymentMethod
+} from '@/lib/core/deterministic-shell';
 
 interface ShellContextValue {
     shell: DeterministicShell | null;
@@ -14,9 +22,9 @@ interface ShellContextValue {
         createOrder: (customerName?: string) => Promise<any>;
         addItem: (orderId: string, name: string, price: number, quantity: number) => Promise<any>;
         applyDiscount: (orderId: string, amount: number) => Promise<any>;
-        processPayment: (orderId: string, amount: number, method: any) => Promise<any>;
+        processPayment: (orderId: string, amount: number, method: PaymentMethod) => Promise<any>;
         voidOrder: (orderId: string, reason: string) => Promise<any>;
-        updateKitchenStatus: (orderId: string, status: any) => Promise<any>;
+        updateKitchenStatus: (orderId: string, status: KitchenStatus) => Promise<any>;
     };
 }
 
@@ -41,11 +49,9 @@ export function DeterministicShellProvider({
     const [state, setState] = useState<ShellState>({ status: 'BOOTING', reason: 'Initializing State Mirror' });
 
     useEffect(() => {
-        console.log(`[CARSS] Establishing Deterministic Mirror for ${terminalType}...`);
         const shell = new DeterministicShell(supabaseUrl, supabaseKey, terminalType);
         shellRef.current = shell;
 
-        // Single source of state truth
         const unsubscribe = shell.subscribe((newState) => {
             setState(newState);
         });
@@ -64,36 +70,27 @@ export function DeterministicShellProvider({
     const actions = useMemo(() => ({
         createOrder: async (customerName?: string) => {
             if (!shellRef.current) throw new Error('Shell not ready');
-            return shellRef.current.transmit('create_order_gateway', { p_customer_name: customerName });
+            return shellRef.current.createOrder(customerName);
         },
         addItem: async (orderId: string, name: string, price: number, quantity: number) => {
             if (!shellRef.current) throw new Error('Shell not ready');
-            return shellRef.current.transmit('add_order_item', {
-                p_order_id: orderId,
-                p_name: name,
-                p_price: price,
-                p_quantity: quantity
-            });
+            return shellRef.current.addItem(orderId, name, price, quantity);
         },
         applyDiscount: async (orderId: string, amount: number) => {
             if (!shellRef.current) throw new Error('Shell not ready');
             return shellRef.current.transmit('apply_discount', { p_order_id: orderId, p_amount: amount });
         },
-        processPayment: async (orderId: string, amount: number, method: any) => {
+        processPayment: async (orderId: string, amount: number, method: PaymentMethod) => {
             if (!shellRef.current) throw new Error('Shell not ready');
-            return shellRef.current.transmit('create_payment_intent', {
-                p_order_id: orderId,
-                p_amount: amount,
-                p_payment_method: method
-            });
+            return shellRef.current.processPayment(orderId, amount, method);
         },
         voidOrder: async (orderId: string, reason: string) => {
             if (!shellRef.current) throw new Error('Shell not ready');
             return shellRef.current.transmit('void_order', { p_order_id: orderId, p_reason: reason });
         },
-        updateKitchenStatus: async (orderId: string, status: any) => {
+        updateKitchenStatus: async (orderId: string, status: KitchenStatus) => {
             if (!shellRef.current) throw new Error('Shell not ready');
-            return shellRef.current.transmit('update_kitchen_status', { p_order_id: orderId, p_status: status });
+            return shellRef.current.updateKitchenStatus(orderId, status);
         }
     }), []);
 

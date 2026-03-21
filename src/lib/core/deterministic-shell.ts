@@ -1,5 +1,5 @@
-// 🛸 ANTI-GRAVITY: PURE REFLECTION LAYER
-// Purpose: Zero-Hydration, Zero-Race Shell for CARSS Terminals.
+// 🛸 ANTI-GRAVITY: PURE REFLECTION LAYER V2
+// Purpose: Zero-Hydration, Zero-Race Shell with Diff Tracking.
 // Law: No local state. Only the Mirror.
 
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
@@ -65,7 +65,7 @@ export interface InventoryAlert {
 
 export type ShellState =
     | { status: 'BOOTING'; reason?: string }
-    | { status: 'MIRRORING'; state: SystemState; lastSync: number }
+    | { status: 'MIRRORING'; state: SystemState; lastSync: number; diff?: any }
     | { status: 'TRANSMITTING'; action: string; timestamp: number }
     | { status: 'ERROR'; error: Error; state: SystemState | null };
 
@@ -79,7 +79,7 @@ export class DeterministicShell {
     private state: ShellState = { status: 'BOOTING', reason: 'Initializing' };
     private identity: any = null;
     private readonly terminalType: TerminalType;
-    private branchId: string | null = null;
+    public branchId: string | null = null;
     private subscribers: Map<string, (state: ShellState) => void> = new Map();
     private pendingActions: Map<string, Promise<any>> = new Map();
 
@@ -149,12 +149,25 @@ export class DeterministicShell {
         this.channel = this.supabase.channel(`system-state-${this.branchId}`);
 
         this.channel
+            .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+                // Fallback if needed, but we prefer the pg_notify channel
+            })
+            // Listen for pg_notify events via the specific channel name
             .on('broadcast', { event: 'state_update' }, (payload) => {
-                const newState = payload.payload.state as SystemState;
-                this.state = { status: 'MIRRORING', state: newState, lastSync: Date.now() };
+                const { state: newState, diff } = payload.payload;
+                this.state = {
+                    status: 'MIRRORING',
+                    state: newState as SystemState,
+                    lastSync: Date.now(),
+                    diff: diff
+                };
                 this.notifySubscribers();
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`[CARSS] Mirror Channel Active: ${this.branchId}`);
+                }
+            });
 
         // Initial fetch to lock the mirror
         const initialState = await this.getState();
@@ -166,6 +179,7 @@ export class DeterministicShell {
         const { data, error } = await this.supabase.rpc('get_my_identity');
         if (error) throw error;
         this.identity = data;
+        this.branchId = data.branch_id;
         return data.branch_id;
     }
 
@@ -180,9 +194,30 @@ export class DeterministicShell {
         this.subscribers.forEach(callback => callback(this.state));
     }
 
-    // SELECTORS (Derived from state, never stored)
-    getSnapshot(): SystemState | null {
-        return this.state.status === 'MIRRORING' ? this.state.state : null;
+    // SEMANTIC ACTIONS
+    async createOrder(customerName?: string): Promise<{ id: string }> {
+        return this.transmit('create_order_gateway', { p_customer_name: customerName });
+    }
+
+    async addItem(orderId: string, name: string, price: number, quantity: number): Promise<any> {
+        return this.transmit('add_order_item', {
+            p_order_id: orderId,
+            p_name: name,
+            p_price: price,
+            p_quantity: quantity
+        });
+    }
+
+    async processPayment(orderId: string, amount: number, method: PaymentMethod): Promise<any> {
+        return this.transmit('create_payment_intent', {
+            p_order_id: orderId,
+            p_amount: amount,
+            p_payment_method: method
+        });
+    }
+
+    async updateKitchenStatus(orderId: string, status: KitchenStatus): Promise<any> {
+        return this.transmit('update_kitchen_status', { p_order_id: orderId, p_status: status });
     }
 
     // HELPERS
