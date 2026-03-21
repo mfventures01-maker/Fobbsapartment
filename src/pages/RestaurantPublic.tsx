@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { callRPC } from "@/lib/rpcClient";
 import { useDeterministicPolling } from "@/hooks/useDeterministicPolling";
+import { useSafeArray } from "@/hooks/useSafeArray";
 
 export default function RestaurantPublic() {
     const { branchId } = useParams<{ branchId: string }>();
@@ -48,7 +49,7 @@ export default function RestaurantPublic() {
 
     return (
         <div className="qr-menu-container">
-            {menu.map((item) => (
+            {useSafeArray(menu).map((item: any) => (
                 <div key={item.id} className="menu-item bg-white p-4 shadow mb-4 rounded">
                     <h3 className="font-bold">{item.name}</h3>
                     <p className="text-gray-600">{item.description}</p>

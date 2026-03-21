@@ -33,9 +33,15 @@ export const supabase = new Proxy(baseClient, {
             };
         }
 
-        // Allow RPC calls (must move through rpcClient.ts for firewall)
+        // BLOCK ALL DIRECT RPC CALLS FROM SUPABASE. MUST GO THROUGH RPCCLIENT.TS
         if (prop === 'rpc') {
-            return target.rpc.bind(target);
+            return (...args: any[]) => {
+                const fn = args[0];
+                console.error(`🚫 BLOCKED: Direct supabase.rpc('${fn}') detected`);
+                throw new Error(
+                    `🚫 Anti-Gravity Violation: Direct RPC '${fn}' is forbidden. Use rpcClient.call().`
+                );
+            };
         }
 
         // Block everything else by default
