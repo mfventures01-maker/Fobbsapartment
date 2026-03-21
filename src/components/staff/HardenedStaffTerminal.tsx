@@ -6,7 +6,7 @@ import ShiftDeclarationScreen from "@/pages/dashboard/staff/ShiftDeclarationScre
 import { ShieldCheck, Clock, RefreshCw } from "lucide-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import HousekeepingStaff from "@/pages/dashboard/staff/HousekeepingStaff";
-import StaffOperationalTerminal from "@/pages/dashboard/staff/StaffOperationalTerminal";
+import StaffTerminal from "@/pages/staff/StaffTerminal";
 import { SHIFT_STATUS } from "@/constants/shiftStatus";
 
 const AwaitingApprovalScreen = ({ title, message }: { title?: string, message?: string }) => (
@@ -91,7 +91,7 @@ export function HardenedStaffTerminal() {
             // (Except specialized departments like Housekeeping)
             if (authority.departmentName === 'Housekeeping') return <HousekeepingStaff />;
 
-            return <StaffOperationalTerminal />;
+            return <StaffTerminal />;
 
         default:
             return <OpenShiftScreen />;

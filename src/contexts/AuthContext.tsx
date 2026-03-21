@@ -30,6 +30,7 @@ interface AuthContextType {
   departmentName: string | null;
   profile: Profile | null;
   staffId: string | null;
+  shiftId: string | null;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
 }
@@ -54,6 +55,7 @@ const AuthContext = createContext<AuthContextType>({
   departmentName: null,
   profile: null,
   staffId: null,
+  shiftId: null,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
 });
@@ -69,9 +71,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [departmentName, setDepartmentName] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [staffId, setStaffId] = useState<string | null>(null);
+  const [shiftId, setShiftId] = useState<string | null>(null);
   const isMounted = useRef(true);
 
   const isOrgAdmin = currentRole === 'ceo' || currentRole === 'owner' || currentRole === 'super_admin';
+
+  // 🔐 SHIFT GATE INTEGRATION
+  useEffect(() => {
+    const resolveShift = async () => {
+      if (authorityStatus === 'authorized' && locationId) {
+        try {
+          const shift = await callRPC('staff', 'resolve_active_shift', {
+            staff_id: staffId,
+            p_branch_id: locationId
+          });
+          if (shift?.shift_id && isMounted.current) {
+            setShiftId(shift.shift_id);
+            console.log('[SHIFT] Active shift resolved:', shift.shift_id);
+          }
+        } catch (err) {
+          console.warn('[SHIFT] No active shift found. Some actions will be blocked.');
+        }
+      }
+    };
+
+    resolveShift();
+  }, [authorityStatus, locationId, staffId]);
 
   const resolveAuthority = async (currentSession: Session | null) => {
     if (!currentSession?.user) {
@@ -209,6 +234,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     departmentName,
   };
 
+  // 🔄 Sync RPC Injection Context (Law: Identity flow)
+  useEffect(() => {
+    import('@/lib/rpcClient').then(mod => {
+      mod.setRPCInjectionContext({ staffId, shiftId, authority, locationId });
+    });
+  }, [staffId, shiftId, authority, locationId]);
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -223,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       departmentName,
       profile,
       staffId,
+      shiftId,
       signOut,
       signInWithPassword
     }}>
