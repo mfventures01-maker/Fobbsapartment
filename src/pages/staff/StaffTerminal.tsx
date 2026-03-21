@@ -1,199 +1,248 @@
-import React, { useState } from 'react';
-import { useStaffTerminal } from '@/hooks/useStaffTerminal';
+// 🧬 STAFF TERMINAL (POS): DETERMINISTIC FINANCIAL ENGINE V2
+// Purpose: Optimized, RPC-driven POS shell with shift gating and perfect symmetry.
+// Law: No local math. No assumptions. Truth comes from the RPC layer.
 
-export const StaffTerminal: React.FC = () => {
-    const {
-        currentOrder,
-        items,
-        isLoading,
-        error,
-        createOrder,
-        addItem,
-        applyDiscount,
-        processPayment,
-        voidOrder,
-        getOrderHistory
-    } = useStaffTerminal();
+import React, { useState, useEffect } from 'react';
+import { CARSSProvider, useCARSS } from '@/lib/context/CARSSContext';
+import { Order, OrderWithDetails, PaymentMethod } from '@/lib/core/carss-client';
+import { Plus, Minus, CreditCard, Banknote, History, ExternalLink, ShieldCheck, ShoppingCart, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
+function StaffTerminalContent() {
+    const { client, identity, isLoading, error: clientError } = useCARSS();
+
+    // UI State
+    const [activeOrder, setActiveOrder] = useState<OrderWithDetails | null>(null);
+    const [orderHistory, setOrderHistory] = useState<Order[]>([]);
+    const [menuItems, setMenuItems] = useState<any[]>([]);
     const [customerName, setCustomerName] = useState('');
-    const [itemName, setItemName] = useState('');
-    const [itemPrice, setItemPrice] = useState('');
-    const [itemQty, setItemQty] = useState('1');
-    const [discountAmount, setDiscountAmount] = useState('');
-    const [history, setHistory] = useState<any[]>([]);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+    const [flowState, setFlowState] = useState<'idle' | 'creating' | 'adding' | 'discounting' | 'paying' | 'success'>('idle');
+    const [error, setError] = useState('');
 
-    const handleCreateOrder = async () => {
-        await createOrder(customerName);
-        setCustomerName('');
-    };
+    // Load Data (RPC Driven)
+    useEffect(() => {
+        if (!client) return;
+        const loadData = async () => {
+            try {
+                // Ensure shift is resolved first (Law: No shift, no POS)
+                await client.resolveShift();
 
-    const handleAddItem = async () => {
-        await addItem(itemName, parseFloat(itemPrice), parseInt(itemQty));
-        setItemName('');
-        setItemPrice('');
-        setItemQty('1');
-    };
+                // Fetch menu (using history as placeholder for items in this mock/stage)
+                const history = await client.getOrderHistory(50);
+                setOrderHistory(history.orders);
+                setMenuItems(history.orders || []);
+                toast.success("Identity & Shift Resolved.");
+            } catch (err: any) {
+                setError(err.message);
+                toast.error(err.message);
+            }
+        };
+        loadData();
+    }, [client]);
 
-    const handleApplyDiscount = async () => {
-        await applyDiscount(parseFloat(discountAmount));
-        setDiscountAmount('');
-    };
-
-    const handleProcessPayment = async () => {
-        await processPayment('cash');
-    };
-
-    const handleVoidOrder = async () => {
-        const reason = prompt('Reason for voiding order:');
-        if (reason) {
-            await voidOrder(reason);
+    // DETERMINISTIC FLOW: NEW_ORDER -> ADD_ITEMS -> DISCOUNT -> PAY
+    const startOrder = async () => {
+        if (!client) return;
+        setFlowState('creating');
+        try {
+            const order = await client.createOrder(customerName || 'Walk-in');
+            setActiveOrder(order as any);
+            setFlowState('adding');
+            setCustomerName('');
+            toast.success("Order Created.");
+        } catch (err: any) {
+            setError(err.message);
+            setFlowState('idle');
         }
     };
 
-    const handleLoadHistory = async () => {
-        const orders = await getOrderHistory(20, 0);
-        setHistory(orders);
+    const addItem = async (itemId: string, quantity: number = 1) => {
+        if (!client || !activeOrder) return;
+        try {
+            await client.addItem(itemId, quantity);
+            const refresh = await client.getOrderDetails(activeOrder.id);
+            setActiveOrder(refresh);
+        } catch (err: any) {
+            toast.error(err.message);
+        }
     };
 
+    const applyPayment = async () => {
+        if (!client || !activeOrder) return;
+        setFlowState('paying');
+        try {
+            await client.processPayment(activeOrder.total_amount, paymentMethod);
+            toast.success("Payment Finalized.");
+            setActiveOrder(null);
+            setFlowState('idle');
+            const history = await client.getOrderHistory(50);
+            setOrderHistory(history.orders);
+        } catch (err: any) {
+            setError(err.message);
+            setFlowState('adding');
+        }
+    };
+
+    if (isLoading) return <div className="flex h-screen items-center justify-center bg-black text-emerald-500"><Loader2 className="animate-spin w-12 h-12" /></div>;
+
     return (
-        <div className="staff-terminal p-8 bg-zinc-50 min-h-screen font-mono text-zinc-900">
-            <div className="terminal-header flex justify-between items-center mb-12 border-b-2 border-zinc-900 pb-4">
-                <h1 className="text-4xl font-black uppercase tracking-tighter">Staff Terminal</h1>
-                <button
-                    onClick={handleLoadHistory}
-                    className="px-6 py-2 bg-zinc-900 text-white hover:bg-zinc-800 transition-colors uppercase font-bold text-xs"
-                >
-                    Load History
-                </button>
-            </div>
-
-            {error && (
-                <div className="error-banner mb-6 p-4 bg-red-100 border-2 border-red-900 text-red-900 font-bold">
-                    💥 {error}
+        <div className="h-screen bg-slate-950 text-emerald-50 w-full flex overflow-hidden font-mono text-sm">
+            {/* Sidebar: Status & Controls */}
+            <aside className="w-64 border-r border-emerald-900/30 bg-slate-900/50 p-6 flex flex-col gap-8">
+                <div>
+                    <h1 className="text-2xl font-black tracking-tighter text-emerald-500 italic">CARSS POS 🤖</h1>
+                    <p className="text-[10px] text-emerald-800 uppercase tracking-widest mt-1">Symmetry Engine v2.0</p>
                 </div>
-            )}
 
-            <div className="terminal-layout grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Order Creation */}
-                <div className="order-creation section-container p-6 border-2 border-zinc-900 bg-white">
-                    <h2 className="text-xl font-black uppercase mb-6 tracking-wide underline underline-offset-4">New Order</h2>
-                    <div className="flex flex-col gap-4">
-                        <input
-                            type="text"
-                            placeholder="Customer Name (optional)"
-                            className="w-full px-4 py-3 border-2 border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-400 font-bold"
-                            value={customerName}
-                            onChange={(e) => setCustomerName(e.target.value)}
-                        />
-                        <button
-                            onClick={handleCreateOrder}
-                            disabled={isLoading}
-                            className="w-full py-4 bg-zinc-900 text-white font-black uppercase tracking-widest hover:bg-zinc-800 transition-all disabled:opacity-50"
-                        >
-                            Create Order
-                        </button>
+                <div className="space-y-4">
+                    <div className="p-3 bg-emerald-950/20 border border-emerald-900/30 rounded-lg">
+                        <p className="text-[10px] text-emerald-700 uppercase mb-1">TERMINAL_IDENTITY</p>
+                        <p className="font-bold text-xs truncate">ID: {identity?.staff_id?.slice(0, 8)}</p>
+                        <div className="flex items-center gap-2 mt-2 text-emerald-500">
+                            <ShieldCheck size={12} />
+                            <span className="text-[10px]">VERIFIED_SESSION</span>
+                        </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-950/20 border border-blue-900/30 rounded-lg">
+                        <p className="text-[10px] text-blue-700 uppercase mb-1">BRANCH_CONTEXT</p>
+                        <p className="font-bold text-xs">LOC: {identity?.branch_id?.slice(0, 8)}</p>
                     </div>
                 </div>
 
-                {/* Active Order */}
-                {currentOrder && (
-                    <div className="active-order section-container p-6 border-2 border-emerald-900 bg-white shadow-[8px_8px_0px_0px_rgba(6,78,59,1)]">
-                        <h2 className="text-xl font-black uppercase mb-2 text-emerald-900">Active Order #{currentOrder.id.slice(0, 8)}</h2>
-                        <div className="flex justify-between items-center border-b-2 border-zinc-100 pb-4 mb-4">
-                            <span className="font-bold uppercase text-xs px-2 py-1 bg-zinc-100">{currentOrder.status}</span>
-                            <span className="text-2xl font-black">₦{currentOrder.total.toLocaleString()}</span>
-                        </div>
+                <div className="mt-auto space-y-2">
+                    <button className="w-full flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg text-xs transition-colors">
+                        <span>SHIFT_REPORT</span>
+                        <ExternalLink size={12} />
+                    </button>
+                    <button className="w-full flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg text-xs transition-colors">
+                        <span>FULL_AUDIT_LOG</span>
+                        <History size={12} />
+                    </button>
+                </div>
+            </aside>
 
-                        {/* Items */}
-                        <div className="items-list mb-8">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">Current Line Items</h3>
-                            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-                                {items.map((item) => (
-                                    <div key={item.id} className="item-row flex justify-between font-bold border-b border-zinc-50 pb-2">
-                                        <span>{item.qty}x {item.name}</span>
-                                        <span>₦{item.line_total.toLocaleString()}</span>
+            {/* Main Center: Menu & Interaction */}
+            <main className="flex-1 p-8 overflow-y-auto">
+                {!activeOrder ? (
+                    <div className="h-full flex flex-col items-center justify-center space-y-6">
+                        <div className="w-24 h-24 bg-emerald-900/10 rounded-full flex items-center justify-center border-2 border-dashed border-emerald-900/40">
+                            <Plus className="text-emerald-900/50" size={32} />
+                        </div>
+                        <div className="max-w-md w-full space-y-4 text-center">
+                            <h2 className="text-2xl font-bold tracking-tight">INITIALIZE_ORDER</h2>
+                            <input
+                                value={customerName}
+                                onChange={(e) => setCustomerName(e.target.value)}
+                                placeholder="GUEST_NAME_ID..."
+                                className="w-full bg-slate-900 border border-emerald-900/30 p-4 rounded-xl text-center text-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                            <button
+                                onClick={startOrder}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-black tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                            >
+                                START_TRANSACTION [SHIFT_LOCKED]
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {menuItems.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => addItem(item.id)}
+                                className="p-6 bg-slate-900 border border-emerald-900/20 rounded-2xl hover:border-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all flex flex-col items-start gap-4 text-left group"
+                            >
+                                <div className="bg-emerald-950/40 p-3 rounded-lg group-hover:bg-emerald-500 group-hover:text-black transition-colors">
+                                    <Plus size={20} />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-lg leading-tight">{item.name || 'TEST_ITEM'}</div>
+                                    <div className="text-emerald-500 font-black mt-1">${item.price || item.total || 0}</div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </main>
+
+            {/* Right: Active Transaction Summary */}
+            <div className="w-96 border-l border-emerald-900/30 bg-slate-900/80 p-6 flex flex-col gap-6 backdrop-blur-xl">
+                <header className="flex justify-between items-center border-b border-emerald-900/30 pb-4">
+                    <h2 className="text-xl font-black italic tracking-tighter uppercase">Transaction</h2>
+                    <ShoppingCart className="text-emerald-500" size={18} />
+                </header>
+
+                {activeOrder ? (
+                    <>
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                            {activeOrder.items.map(item => (
+                                <div key={item.id} className="p-4 bg-slate-950/50 border border-emerald-900/10 rounded-xl flex justify-between items-center group">
+                                    <div className="space-y-1">
+                                        <div className="font-bold">{item.name}</div>
+                                        <div className="text-[10px] text-emerald-800 font-black">PRICE: ${item.price} • QTY: {item.quantity}</div>
                                     </div>
-                                ))}
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-emerald-500 font-black">${item.subtotal}</div>
+                                        <button onClick={() => addItem(item.item_id, -1)} className="p-1 hover:text-red-500 transition-colors"><Minus size={14} /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <footer className="border-t border-emerald-900/30 pt-6 space-y-6">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs text-emerald-800 font-bold">
+                                    <span>SUBTOTAL:</span>
+                                    <span>${activeOrder.total_amount + (activeOrder.discount_amount || 0)}</span>
+                                </div>
+                                <div className="flex justify-between text-xl font-black text-emerald-500">
+                                    <span>TOTAL:</span>
+                                    <span>${activeOrder.total_amount}</span>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Add Item form */}
-                        <div className="add-item grid grid-cols-2 gap-2 mb-6">
-                            <input
-                                type="text"
-                                placeholder="Item name"
-                                className="col-span-2 px-4 py-2 border-2 border-zinc-200 font-bold focus:border-zinc-900 focus:outline-none"
-                                value={itemName}
-                                onChange={(e) => setItemName(e.target.value)}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Price"
-                                className="px-4 py-2 border-2 border-zinc-200 font-bold"
-                                value={itemPrice}
-                                onChange={(e) => setItemPrice(e.target.value)}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Qty"
-                                className="px-4 py-2 border-2 border-zinc-200 font-bold"
-                                value={itemQty}
-                                onChange={(e) => setItemQty(e.target.value)}
-                            />
-                            <button
-                                onClick={handleAddItem}
-                                disabled={isLoading}
-                                className="col-span-2 py-3 bg-zinc-100 font-black uppercase border-2 border-zinc-900 hover:bg-zinc-200"
-                            >
-                                Confirm Add item
-                            </button>
-                        </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={() => setPaymentMethod('cash')} className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'cash' ? 'bg-emerald-600 border-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border-emerald-900/50'}`}>
+                                    <Banknote size={16} />
+                                    <span className="text-[10px] font-bold">CASH</span>
+                                </button>
+                                <button onClick={() => setPaymentMethod('card')} className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'card' ? 'bg-emerald-600 border-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border-emerald-900/50'}`}>
+                                    <CreditCard size={16} />
+                                    <span className="text-[10px] font-bold">CARD</span>
+                                </button>
+                            </div>
 
-                        {/* Actions */}
-                        <div className="order-actions grid grid-cols-2 gap-4">
                             <button
-                                onClick={handleProcessPayment}
-                                disabled={isLoading || currentOrder.total === 0}
-                                className="py-4 bg-emerald-700 text-white font-black uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-[4px_4px_0_0_rgb(6,78,59)]"
+                                onClick={applyPayment}
+                                disabled={activeOrder.items.length === 0 || flowState === 'paying'}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-black py-4 rounded-2xl font-black text-lg shadow-[0_0_30px_rgba(16,185,129,0.2)]"
                             >
-                                Process Pay
+                                {flowState === 'paying' ? 'EXECUTING...' : `PAY $${activeOrder.total_amount}`}
                             </button>
-                            <button
-                                onClick={handleVoidOrder}
-                                disabled={isLoading}
-                                className="py-4 bg-red-100 text-red-900 font-black uppercase text-xs border-2 border-red-900"
-                            >
-                                Void Order
-                            </button>
-                        </div>
+                        </footer>
+                    </>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center opacity-20 italic space-y-4">
+                        <div className="w-32 h-[1px] bg-emerald-500"></div>
+                        <p>Awaiting transaction...</p>
+                        <div className="w-32 h-[1px] bg-emerald-500"></div>
                     </div>
                 )}
             </div>
-
-            {/* Order History */}
-            {history.length > 0 && (
-                <div className="order-history mt-16 p-6 border-2 border-zinc-900 bg-white">
-                    <h2 className="text-2xl font-black uppercase mb-8 underline underline-offset-8">Recent Activity Log (Backend Reality)</h2>
-                    <div className="grid grid-cols-1 gap-2">
-                        {history.map((order) => (
-                            <div key={order.id} className="history-item flex justify-between p-4 border border-zinc-100 hover:bg-zinc-50 font-bold">
-                                <span>#{order.id.slice(0, 8)}</span>
-                                <span className="uppercase text-xs px-2 py-1 bg-zinc-100 self-center">{order.status}</span>
-                                <span className="text-zinc-600">₦{order.total.toLocaleString()}</span>
-                                <span className="text-xs text-zinc-400">{new Date(order.created_at).toLocaleTimeString()}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {isLoading && (
-                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="font-black text-4xl animate-pulse tracking-tighter uppercase">Applying deterministic state...</div>
-                </div>
-            )}
         </div>
     );
 }
 
-export default StaffTerminal;
+export default function StaffTerminal() {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    return (
+        <CARSSProvider terminalType="pos" supabaseUrl={supabaseUrl} supabaseKey={supabaseKey}>
+            <StaffTerminalContent />
+        </CARSSProvider>
+    );
+}

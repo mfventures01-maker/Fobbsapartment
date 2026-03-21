@@ -10,7 +10,7 @@ interface OrderData {
     status: string;
     total: number;
     org_id: string;
-    location_id: string;
+    branch_id: string;
     metadata?: { table_number?: string };
 }
 

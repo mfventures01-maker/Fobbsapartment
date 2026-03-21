@@ -13,7 +13,7 @@ interface Order {
     status: 'open' | 'paid' | 'void' | 'refunded';
     served_at: string | null;
     created_at: string;
-    location_id: string;
+    branch_id: string;
     org_id: string;
 }
 

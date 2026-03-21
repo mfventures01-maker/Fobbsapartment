@@ -9,7 +9,7 @@ export function assertUUID(id: string | null | undefined, label: string) {
 
 export type SystemState = {
     business_id: string | null;
-    location_id: string | null;
+    branch_id: string | null;
     user_id: string | null;
     orders: any[];
     kitchen: any[];
@@ -24,7 +24,7 @@ interface SystemStore extends SystemState {
 
 export const useSystemStore = create<SystemStore>((set) => ({
     business_id: null,
-    location_id: null,
+    branch_id: null,
     user_id: null,
     orders: [],
     kitchen: [],

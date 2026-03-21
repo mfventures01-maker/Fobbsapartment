@@ -34,7 +34,7 @@ const RestaurantPublic: React.FC = () => {
         try {
             // ✅ Step 2: PUBLIC MENU LOADER (No Auth Needed)
             const data = await callRPC<any>('public', 'get_qr_menu', {
-                p_branch_id: HOTEL_CONFIG.location_id
+                p_branch_id: HOTEL_CONFIG.branch_id
             });
 
             if (data?.menu) {
@@ -101,7 +101,7 @@ const RestaurantPublic: React.FC = () => {
             // 🧱 Determinstic Public Order Gateway
             const gatewayResult = await createPublicOrder(
                 HOTEL_CONFIG.org_id,
-                HOTEL_CONFIG.location_id,
+                HOTEL_CONFIG.branch_id,
                 cart.map(item => ({
                     id: item.id,
                     name: item.name,

@@ -76,7 +76,7 @@ class RPCClient {
                 staff_id: null,
                 business_id: null,
                 branch_id: null,
-                location_id: null,
+                branch_id: null,
                 shift_id: null
             };
         }
@@ -84,7 +84,7 @@ class RPCClient {
             staff_id: this.currentContext.staffId,
             business_id: this.currentContext.authority?.businessId,
             branch_id: this.currentContext.authority?.branchId,
-            location_id: this.currentContext.locationId,
+            branch_id: this.currentContext.locationId,
             shift_id: this.currentContext.shiftId || "unassigned"
         };
     }
@@ -147,7 +147,7 @@ class RPCClient {
                     payload: fullPayload,
                     error: err?.message || String(err),
                     terminal_type: terminal
-                }).catch(() => { });
+                });
             }
 
             throw err;
@@ -158,6 +158,6 @@ class RPCClient {
 export const rpcClient = new RPCClient();
 
 // Keep legacy exports for compatibility if needed, but point them to the new instance
-export const callRPC = (terminal: any, fn: string, payload: any) => rpcClient.call(fn, payload, terminal);
-export const callRPCWithContext = (terminal: any, fn: string, payload: any) => rpcClient.call(fn, payload, terminal);
+export const callRPC = <T = any>(terminal: any, fn: string, payload: any) => rpcClient.call<T>(fn, payload, terminal);
+export const callRPCWithContext = <T = any>(terminal: any, fn: string, payload: any) => rpcClient.call<T>(fn, payload, terminal);
 export const setRPCInjectionContext = (context: any) => rpcClient.setInjectionContext(context);

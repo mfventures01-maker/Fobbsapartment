@@ -12,7 +12,7 @@ interface Order {
     total: number;
     payment_intent: string | null;
     org_id: string;
-    location_id: string;
+    branch_id: string;
     created_by: string;
 }
 

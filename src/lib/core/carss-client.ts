@@ -1,0 +1,264 @@
+// 🧬 CARSS CLIENT CORE: DETERMINISTIC EXECUTION ENGINE
+// Purpose: Enforce the same state machine as the backend.
+// Law: Perfect symmetry between front and back end.
+
+import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+
+// === TYPES ===
+export type OrderStatus = 'open' | 'paid' | 'void';
+export type KitchenStatus = 'pending' | 'preparing' | 'ready' | 'served';
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'qr_pay';
+export type TerminalType = 'qr' | 'pos' | 'mobile' | 'manager';
+
+export interface DeterministicIdentity {
+    user_id: string | null;
+    business_id: string;
+    branch_id: string;
+    role: 'customer' | 'staff' | 'manager' | 'admin' | string;
+    staff_id: string | null;
+    permissions: Record<string, any>;
+    terminal_type: TerminalType;
+    session_id: string;
+}
+
+export interface ShiftContext {
+    shift_id: string;
+    branch_id: string;
+    started_at: string;
+    is_active: boolean;
+    staff_id: string | null;
+}
+
+export interface Order {
+    id: string;
+    branch_id: string;
+    shift_id: string;
+    customer_name: string | null;
+    status: OrderStatus;
+    total_amount: number;
+    discount_amount: number;
+    created_at: string;
+    paid_at: string | null;
+    void_reason: string | null;
+    terminal_type: TerminalType;
+    session_id: string;
+}
+
+export interface OrderItem {
+    id: string;
+    order_id: string;
+    item_id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    subtotal: number;
+}
+
+export interface OrderWithDetails extends Order {
+    items: OrderItem[];
+    kitchen_status?: KitchenStatus;
+}
+
+// === FLOW STATES ===
+export type OrderFlowState =
+    | { step: 'INIT' }
+    | { step: 'VALIDATING_IDENTITY'; identity: DeterministicIdentity | null }
+    | { step: 'RESOLVING_SHIFT' }
+    | { step: 'SHIFT_RESOLVED'; shift: ShiftContext }
+    | { step: 'CREATING_ORDER' }
+    | { step: 'ORDER_CREATED'; order: Order }
+    | { step: 'ADDING_ITEMS'; items_added: number }
+    | { step: 'APPLYING_DISCOUNT'; discount_applied: number }
+    | { step: 'PROCESSING_PAYMENT' }
+    | { step: 'PAYMENT_CONFIRMED'; payment_id: string }
+    | { step: 'COMPLETED'; order: OrderWithDetails }
+    | { step: 'VOIDING' }
+    | { step: 'VOIDED'; reason: string }
+    | { step: 'ERROR'; error: Error; rollback_data?: any };
+
+// === THE CLIENT ===
+export class CARSSClient {
+    private supabase: SupabaseClient;
+    private state: OrderFlowState = { step: 'INIT' };
+    private identity: DeterministicIdentity | null = null;
+    private shift: ShiftContext | null = null;
+    private currentOrder: Order | null = null;
+    private readonly terminalType: TerminalType;
+    private readonly sessionId: string;
+
+    constructor(supabaseUrl: string, supabaseKey: string, terminalType: TerminalType) {
+        this.supabase = createClient(supabaseUrl, supabaseKey);
+        this.terminalType = terminalType;
+        this.sessionId = Math.random().toString(36).substring(2, 15);
+    }
+
+    // === TELEMETRY ===
+    private async logEvent(
+        eventType: string,
+        rpcName: string,
+        payload: any,
+        response?: any,
+        error?: any
+    ): Promise<void> {
+        if (!this.identity) return;
+
+        try {
+            await this.supabase.rpc('log_deterministic_event', {
+                p_order_id: this.currentOrder?.id || null,
+                p_branch_id: this.identity.branch_id,
+                p_terminal_type: this.terminalType,
+                p_event_type: eventType,
+                p_rpc_name: rpcName,
+                p_payload: payload,
+                p_response: response || null,
+                p_identity: this.identity,
+                p_error: error || null
+            });
+        } catch (logError) {
+            console.warn('Failed to log event:', logError);
+        }
+    }
+
+    private async callRPC<T>(name: string, payload: any): Promise<T> {
+        const startTime = performance.now();
+
+        await this.logEvent('RPC_START', name, payload);
+
+        try {
+            const { data, error } = await this.supabase.rpc(name, payload);
+            const duration = Math.round(performance.now() - startTime);
+
+            if (error) {
+                await this.logEvent('RPC_ERROR', name, payload, null, error);
+                const err = new Error(`${name} failed: ${error.message} (${duration}ms)`);
+                this.state = { step: 'ERROR', error: err, rollback_data: { payload, name } };
+                throw err;
+            }
+
+            await this.logEvent('RPC_SUCCESS', name, payload, data);
+            return data as T;
+        } catch (err: any) {
+            const duration = Math.round(performance.now() - startTime);
+            console.error(`[${this.terminalType}] ${name} → ERROR (${duration}ms)`, err);
+            throw err;
+        }
+    }
+
+    // === DETERMINISTIC METHODS ===
+
+    async validateIdentity(): Promise<DeterministicIdentity> {
+        this.state = { step: 'VALIDATING_IDENTITY', identity: null };
+        const identityResult = await this.callRPC<DeterministicIdentity>('get_my_identity', {
+            p_terminal_type: this.terminalType
+        });
+
+        this.identity = {
+            ...identityResult,
+            terminal_type: this.terminalType,
+            session_id: this.sessionId
+        };
+
+        this.state = { step: 'VALIDATING_IDENTITY', identity: this.identity };
+        return this.identity;
+    }
+
+    async resolveShift(): Promise<ShiftContext> {
+        if (!this.identity) throw new Error('Validate identity first');
+        this.state = { step: 'RESOLVING_SHIFT' };
+
+        const shift = await this.callRPC<ShiftContext>('resolve_active_shift', {
+            p_branch_id: this.identity.branch_id,
+            p_staff_id: this.identity.staff_id,
+            p_terminal_type: this.terminalType
+        });
+
+        if (!shift.is_active) throw new Error('No active shift found');
+
+        this.shift = shift;
+        this.state = { step: 'SHIFT_RESOLVED', shift };
+        return shift;
+    }
+
+    async createOrder(customerName?: string): Promise<Order> {
+        if (!this.identity) throw new Error('Validate identity first');
+        if (this.terminalType === 'pos' && !this.shift) throw new Error('Resolve shift first');
+
+        this.state = { step: 'CREATING_ORDER' };
+
+        const order = await this.callRPC<Order>('create_order_gateway', {
+            p_branch_id: this.identity.branch_id,
+            p_shift_id: this.shift?.shift_id || null,
+            p_customer_name: customerName || (this.terminalType === 'qr' ? 'QR Customer' : null),
+            p_terminal_type: this.terminalType,
+            p_session_id: this.sessionId,
+            p_staff_id: this.identity.staff_id
+        });
+
+        this.currentOrder = order;
+        this.state = { step: 'ORDER_CREATED', order };
+        return order;
+    }
+
+    async addItem(itemId: string, quantity: number, priceOverride?: number): Promise<OrderItem> {
+        if (!this.currentOrder) throw new Error('No active order');
+
+        this.state = { step: 'ADDING_ITEMS', items_added: (this.state.step === 'ADDING_ITEMS' ? this.state.items_added : 0) + 1 };
+
+        const item = await this.callRPC<OrderItem>('add_order_item', {
+            p_order_id: this.currentOrder.id,
+            p_item_id: itemId,
+            p_quantity: quantity,
+            p_price_override: priceOverride
+        });
+
+        return item;
+    }
+
+    async applyDiscount(amount: number): Promise<{ discount: number; new_total: number }> {
+        if (!this.currentOrder) throw new Error('No active order');
+        this.state = { step: 'APPLYING_DISCOUNT', discount_applied: amount };
+
+        return await this.callRPC<{ discount: number; new_total: number }>('apply_discount', {
+            p_order_id: this.currentOrder.id,
+            p_amount: amount,
+            p_staff_id: this.identity?.staff_id
+        });
+    }
+
+    async processPayment(amount: number, method: PaymentMethod): Promise<{ status: OrderStatus; payment_id: string }> {
+        if (!this.currentOrder) throw new Error('No active order');
+        this.state = { step: 'PROCESSING_PAYMENT' };
+
+        const result = await this.callRPC<{ status: OrderStatus; payment_id: string }>('create_payment_intent', {
+            p_order_id: this.currentOrder.id,
+            p_amount: amount,
+            p_payment_method: method,
+            p_terminal_type: this.terminalType,
+            p_session_id: this.sessionId,
+            p_staff_id: this.identity?.staff_id
+        });
+
+        this.state = { step: 'PAYMENT_CONFIRMED', payment_id: result.payment_id };
+        return result;
+    }
+
+    async getOrderDetails(orderId: string): Promise<OrderWithDetails> {
+        return this.callRPC<OrderWithDetails>('get_order_details', {
+            p_order_id: orderId,
+            p_terminal_type: this.terminalType
+        });
+    }
+
+    async getOrderHistory(limit: number = 20, offset: number = 0): Promise<{ orders: Order[]; total: number }> {
+        if (!this.identity) throw new Error('Validate identity first');
+        return this.callRPC<{ orders: Order[]; total: number }>('get_order_history', {
+            p_branch_id: this.identity.branch_id,
+            p_limit: limit,
+            p_offset: offset,
+            p_staff_id: this.identity.staff_id
+        });
+    }
+
+    // === HELPERS ===
+    getCurrentState() { return this.state; }
+}

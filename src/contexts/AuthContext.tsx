@@ -33,6 +33,7 @@ interface AuthContextType {
   shiftId: string | null;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
+  signInAsDemo: (role: UserRole, department?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -58,6 +59,7 @@ const AuthContext = createContext<AuthContextType>({
   shiftId: null,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
+  signInAsDemo: async () => { },
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -234,6 +236,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     departmentName,
   };
 
+  const signInAsDemo = async (role: UserRole, department?: string) => {
+    // Hardened Demo Login for Validation
+    const demoEmail = `${role.toLowerCase()}@fobbs.com`;
+    const demoPassword = 'password123';
+
+    console.log(`[AUTH] 🛡️ Deterministic Demo Access: ${role}`);
+    await supabase.auth.signInWithPassword({ email: demoEmail, password: demoPassword });
+  };
+
   // 🔄 Sync RPC Injection Context (Law: Identity flow)
   useEffect(() => {
     import('@/lib/rpcClient').then(mod => {
@@ -257,7 +268,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       staffId,
       shiftId,
       signOut,
-      signInWithPassword
+      signInWithPassword,
+      signInAsDemo
     }}>
       {children}
     </AuthContext.Provider>

@@ -18,7 +18,7 @@ export function useSystemState() {
     // Default values matching precise backend mirror
     const defaults = {
         business_id: null,
-        location_id: null,
+        branch_id: null,
         user_id: null,
         orders: [],
         kitchen: [],

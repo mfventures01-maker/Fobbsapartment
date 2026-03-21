@@ -69,7 +69,7 @@ const BarPublic: React.FC = () => {
             // 1. Create Order via Universal Gateway (Deterministic Alignment)
             const gatewayResult = await createPublicOrder(
                 HOTEL_CONFIG.org_id,
-                HOTEL_CONFIG.location_id,
+                HOTEL_CONFIG.branch_id,
                 cart.map(item => ({
                     name: item.name,
                     qty: item.quantity,
