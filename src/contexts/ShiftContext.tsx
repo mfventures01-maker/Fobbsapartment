@@ -49,7 +49,12 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             businessShifts = [];
 
             // STEP 2 — Resolve personal shift for terminal control
-            const shift = await getActiveShift(staffId);
+            const shift = await getActiveShift(
+                authority.businessId || '',
+                authority.branchId || '',
+                staffId,
+                authority.role || 'staff'
+            );
 
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
@@ -143,9 +148,14 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
         // DECLARATION GUARD
-        if (!staffId) return { error: { message: 'Staff identity unresolved' }, data: undefined };
+        if (!staffId || !authority?.businessId || !authority?.branchId) return { error: { message: 'Incomplete identity context' }, data: undefined };
 
-        const activeShift = await getActiveShift(staffId);
+        const activeShift = await getActiveShift(
+            authority.businessId,
+            authority.branchId,
+            staffId,
+            authority.role || 'staff'
+        );
         if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
             return { error: { message: 'No shift pending declaration or session desync' }, data: undefined };
         }

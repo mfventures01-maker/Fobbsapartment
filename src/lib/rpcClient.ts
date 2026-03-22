@@ -48,7 +48,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
         required: ['p_business_id', 'p_branch_id', 'p_terminal_type']
     },
     resolve_active_shift: {
-        required: ['p_branch_id']
+        required: ['business_id', 'branch_id', 'staff_id', 'terminal_type']
     },
     create_order_gateway: {
         required: ['p_branch_id', 'p_terminal_type']
@@ -101,13 +101,30 @@ class RPCClient {
         const context = this.getTerminalContext();
 
         // Auto-inject context and idempotency
-        const fullPayload = {
-            ...payload,
-            ...context,
-            terminal_type: terminal,
-            p_terminal_type: terminal, // Mirror for parameter naming drift
-            _idempotency_key: payload._idempotency_key || payload.p_idempotency_key || crypto.randomUUID()
-        };
+        let fullPayload: any;
+
+        if (functionName === 'resolve_active_shift') {
+            // 🛡️ [ANTI-GRAVITY] STRICT PAYLOAD NORMALIZATION
+            // Canonical shift engine forbids legacy/duplicated parameters.
+            fullPayload = {
+                business_id: payload.business_id || context.business_id,
+                branch_id: payload.branch_id || context.branch_id,
+                staff_id: payload.staff_id || context.staff_id,
+                terminal_type: terminal
+            };
+        } else {
+            if (functionName === 'get_active_shift') {
+                console.warn("[DEPRECATED] get_active_shift call detected. Routing should favor resolve_active_shift.");
+            }
+
+            fullPayload = {
+                ...payload,
+                ...context,
+                terminal_type: terminal,
+                p_terminal_type: terminal, // Mirror for parameter naming drift
+                _idempotency_key: payload._idempotency_key || payload.p_idempotency_key || crypto.randomUUID()
+            };
+        }
 
         // 🛡️ ANTI-GRAVITY ENFORCEMENT (PHASE 2-3)
         assertValidPayload(fullPayload, functionName);

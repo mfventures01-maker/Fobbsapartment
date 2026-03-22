@@ -7,20 +7,15 @@ import { Shift } from '../types/database';
  * The database is the single source of truth for shift state.
  */
 
-export async function getActiveShift(staffId: string): Promise<Shift | null> {
-    const { data, error } = await supabase
-        .from("shifts")
-        .select("*")
-        .eq("staff_id", staffId)
-        .in("status", ["open", "requested", "pending_declaration", "awaiting_close_approval"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+import { callRPC } from '../lib/rpcClient';
 
-    if (error) {
-        console.error("[SHIFT SERVICE] Failed to fetch active shift:", error);
-        throw error;
-    }
+export async function getActiveShift(businessId: string, branchId: string, staffId: string, terminalType: string = 'staff'): Promise<Shift | null> {
+    const data = await callRPC<Shift | null>('staff', 'resolve_active_shift', {
+        business_id: businessId,
+        branch_id: branchId,
+        staff_id: staffId,
+        terminal_type: terminalType
+    });
     return data;
 }
 

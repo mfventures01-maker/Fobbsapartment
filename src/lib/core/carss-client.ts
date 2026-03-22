@@ -2,7 +2,7 @@
 // Purpose: Enforce the same state machine as the backend.
 // Law: Perfect symmetry between front and back end.
 
-import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // === TYPES ===
 export type OrderStatus = 'open' | 'paid' | 'void';
@@ -167,9 +167,10 @@ export class CARSSClient {
         this.state = { step: 'RESOLVING_SHIFT' };
 
         const shift = await this.callRPC<ShiftContext>('resolve_active_shift', {
-            p_branch_id: this.identity.branch_id,
-            p_staff_id: this.identity.staff_id,
-            p_terminal_type: this.terminalType
+            branch_id: this.identity.branch_id,
+            staff_id: this.identity.staff_id,
+            terminal_type: this.terminalType,
+            business_id: this.identity.business_id
         });
 
         if (!shift.is_active) throw new Error('No active shift found');

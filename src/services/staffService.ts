@@ -5,10 +5,12 @@ import { Shift } from '../types/database';
  * 🧱 STAFF TERMINAL SERVICE LAYER - ANTI-GRAVITY ALIGNED
  */
 
-export async function getActiveShift(staffId: string): Promise<Shift | null> {
-    const data = await callRPC<Shift | null>('staff', 'get_active_shift', {
-        p_staff_id: staffId,
-        _idempotency_key: crypto.randomUUID()
+export async function getActiveShift(businessId: string, branchId: string, staffId: string, terminalType: string = 'staff'): Promise<Shift | null> {
+    const data = await callRPC<Shift | null>('staff', 'resolve_active_shift', {
+        business_id: businessId,
+        branch_id: branchId,
+        staff_id: staffId,
+        terminal_type: terminalType
     });
     return data;
 }

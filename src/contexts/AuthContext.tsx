@@ -85,7 +85,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const shift = await callRPC('staff', 'resolve_active_shift', {
             staff_id: staffId,
-            p_branch_id: locationId
+            branch_id: locationId,
+            business_id: orgId,
+            terminal_type: 'staff'
           });
           if (shift?.shift_id && isMounted.current) {
             setShiftId(shift.shift_id);
@@ -236,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     departmentName,
   };
 
-  const signInAsDemo = async (role: UserRole, department?: string) => {
+  const signInAsDemo = async (role: UserRole) => {
     // Hardened Demo Login for Validation
     const demoEmail = `${role.toLowerCase()}@fobbs.com`;
     const demoPassword = 'password123';

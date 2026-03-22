@@ -9,18 +9,20 @@ import { Shift } from '@/types/database';
 import { SHIFT_STATUS } from '@/constants/shiftStatus';
 
 const StaffDashboard: React.FC = () => {
-    const { user } = useAuth();
+    const { user, orgId, locationId, staffId, currentRole } = useAuth();
     const [shift, setShift] = React.useState<Shift | null>(null);
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
-        if (user) {
-            getActiveShift(user.id).then(data => {
+        if (user && orgId && locationId && staffId) {
+            getActiveShift(orgId, locationId, staffId, currentRole || 'staff').then(data => {
                 setShift(data);
                 setLoading(false);
             });
+        } else {
+            setLoading(false);
         }
-    }, [user]);
+    }, [user, orgId, locationId, staffId, currentRole]);
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">

@@ -70,7 +70,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Dual probe: Verify with DB (Anti-Gravity Rule)
-            const activeShift = await getActiveShift(shiftState.shift.staff_id);
+            const activeShift = await getActiveShift(
+                shiftState.shift.business_id,
+                shiftState.shift.branch_id,
+                shiftState.shift.staff_id,
+                'staff'
+            );
             if (!activeShift || activeShift.id !== shiftState.shift.id) {
                 toast.error("SHIFT DESYNC: Your active shift session has expired or changed.");
                 throw new Error("Shift desync");
