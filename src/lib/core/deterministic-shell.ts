@@ -1,5 +1,6 @@
-// 🛸 ANTI-GRAVITY PHASE 6.2: IDEMPOTENT SHELL UPGRADE (FIXED)
-// Purpose: Unified action transmission with guaranteed one-time delivery.
+// 🛸 ANTI-GRAVITY FINAL CHECKPOINT: DETERMINISTIC SYMMETRY ENFORCEMENT
+// Purpose: Zero-tolerance UUID sanitization and RPC payload enforcement.
+// Law: "Frontend Must Obey the Database Like Gravity"
 
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 
@@ -85,11 +86,39 @@ export interface ShellStateEnhanced {
 }
 
 // ============================================
-// THE IDEMPOTENT SHELL
+// 🔒 ANTI-GRAVITY UTILITIES (PHASE 1)
+// ============================================
+
+export const isValidUUID = (value: any): boolean => {
+    if (!value || typeof value !== 'string') return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(value);
+};
+
+export const sanitizeUUID = (value: any): string | null => {
+    return isValidUUID(value) ? value : null;
+};
+
+const assertValidPayload = (payload: any) => {
+    const invalidFields = Object.entries(payload).filter(([key, value]) => {
+        // If key contains 'id', 'branch_id', 'shift_id', etc. and isn't null, it MUST be a valid UUID.
+        if (key.includes('_id')) {
+            return value !== null && !isValidUUID(value);
+        }
+        return false;
+    });
+
+    if (invalidFields.length > 0) {
+        console.error('[ANTI-GRAVITY] ❌ INVALID UUID DETECTED', invalidFields);
+        throw new Error(`Payload rejected: invalid UUID detected in fields: ${invalidFields.map(f => f[0]).join(', ')}`);
+    }
+};
+
+// ============================================
+// THE DETERMINISTIC SHELL (PHASE 2-4)
 // ============================================
 
 export class DeterministicShell {
-    // Static Helpers for Routine #1–#2
     static validateQRFormat(url: string): boolean {
         const qrRegex = /\/qr\/[0-9a-fA-F-]{36}/;
         return qrRegex.test(url);
@@ -98,7 +127,7 @@ export class DeterministicShell {
     static scanQRCode(scannedUrl: string): { branchId: string | null; valid: boolean } {
         if (!this.validateQRFormat(scannedUrl)) return { branchId: null, valid: false };
         const parts = scannedUrl.split('/');
-        return { branchId: parts[parts.length - 1], valid: true };
+        return { branchId: sanitizeUUID(parts[parts.length - 1]), valid: true };
     }
 
     private supabase: SupabaseClient;
@@ -128,13 +157,31 @@ export class DeterministicShell {
             this.branchId = await this.resolveBranchId();
         }
 
-        const { data, error } = await this.supabase.rpc('get_system_state', {
-            p_branch_id: this.branchId,
+        return this.callRPC<SystemState>('get_system_state', {
+            p_branch_id: sanitizeUUID(this.branchId),
             p_terminal_type: this.terminalType
         });
+    }
 
-        if (error) throw error;
-        return data;
+    // ============================================
+    // DETERMINISTIC RPC WRAPPER (PHASE 4)
+    // ============================================
+
+    private async callRPC<R>(fn: string, payload: any): Promise<R> {
+        assertValidPayload(payload);
+        console.log(`[RPC] ${fn} → START`, payload);
+
+        try {
+            const { data, error } = await this.supabase.rpc(fn, payload);
+            if (error) {
+                console.error(`[RPC] ${fn} → ERROR`, error);
+                throw error;
+            }
+            console.log(`[RPC] ${fn} → SUCCESS ✅`, data);
+            return data as R;
+        } catch (error) {
+            throw error;
+        }
     }
 
     // ============================================
@@ -146,10 +193,8 @@ export class DeterministicShell {
         params: Record<string, any>,
         retryCount: number = 0
     ): Promise<R> {
-        // Universal Idempotency Key Generation
         const idempotencyKey = params.p_idempotency_key || `IG:${this.branchId}:${action}:${Date.now()}:${Math.random().toString(36).substring(2, 7)}`;
 
-        // Track lifecycle
         const pendingAction: PendingAction = {
             id: idempotencyKey,
             action,
@@ -166,7 +211,6 @@ export class DeterministicShell {
         return new Promise((resolve, reject) => {
             this.pendingActionPromises.set(idempotencyKey, { resolve, reject });
 
-            // Sync Confirmation Timeout
             const timeout = setTimeout(async () => {
                 const actionIndex = this.state.pendingActions.findIndex(a => a.id === idempotencyKey);
                 if (actionIndex !== -1) {
@@ -188,11 +232,9 @@ export class DeterministicShell {
                 this.pendingActionPromises.delete(idempotencyKey);
             }, this.syncTimeoutConstant);
 
-            // Execute RPC
-            this.executeAction<R>(action, { ...params, p_idempotency_key: idempotencyKey })
+            this.callRPC<R>(action, { ...params, p_idempotency_key: idempotencyKey, p_terminal_type: this.terminalType })
                 .then(() => {
                     clearTimeout(timeout);
-                    // Actual resolution happens in Mirror broadcast
                 })
                 .catch((error: any) => {
                     clearTimeout(timeout);
@@ -211,23 +253,12 @@ export class DeterministicShell {
         });
     }
 
-    private async executeAction<R>(action: string, params: Record<string, any>): Promise<R> {
-        try {
-            const enrichedParams = { ...params, p_terminal_type: this.terminalType };
-            const { data, error } = await this.supabase.rpc(action, enrichedParams);
-            if (error) throw error;
-            return data as R;
-        } catch (error) {
-            throw error;
-        }
-    }
-
     // ============================================
     // ENHANCED MIRRORING WITH DIFFS
     // ============================================
 
     async startMirroring(branchId?: string): Promise<void> {
-        this.branchId = branchId || await this.resolveBranchId();
+        this.branchId = sanitizeUUID(branchId) || await this.resolveBranchId();
 
         this.channel = this.supabase.channel(`system-state-${this.branchId}-${this.terminalType}`);
 
@@ -236,11 +267,9 @@ export class DeterministicShell {
                 const notification = payload.payload;
                 const { diff, timestamp } = notification;
 
-                // 1. Fetch Fresh State (Phase 1 Law)
                 const newState = await this.getState();
                 const lag = Date.now() - (timestamp * 1000);
 
-                // 2. Resolve Idempotent Actions
                 const syncedActionKey = notification.record_id;
                 if (syncedActionKey && this.pendingActionPromises.has(syncedActionKey)) {
                     const { resolve } = this.pendingActionPromises.get(syncedActionKey)!;
@@ -249,7 +278,6 @@ export class DeterministicShell {
                     resolve(newState);
                 }
 
-                // 3. Update Mirror
                 this.state = {
                     ...this.state,
                     status: 'MIRRORING',
@@ -275,9 +303,8 @@ export class DeterministicShell {
     }
 
     private async resolveBranchId(): Promise<string> {
-        const { data, error } = await this.supabase.rpc('get_my_identity');
-        if (error) throw error;
-        this.branchId = data.branch_id;
+        const data = await this.callRPC<any>('get_my_identity', {});
+        this.branchId = sanitizeUUID(data.branch_id);
         return data.branch_id;
     }
 
@@ -296,14 +323,14 @@ export class DeterministicShell {
     async createOrder(customerName?: string): Promise<{ id: string }> {
         return this.transmit('create_order_gateway', {
             p_customer_name: customerName,
-            p_branch_id: this.branchId,
-            p_shift_id: this.state.state?.shift?.shift_id
+            p_branch_id: sanitizeUUID(this.branchId),
+            p_shift_id: sanitizeUUID(this.state.state?.shift?.shift_id)
         });
     }
 
     async addItem(orderId: string, name: string, price: number, quantity: number): Promise<any> {
         return this.transmit('add_order_item', {
-            p_order_id: orderId,
+            p_order_id: sanitizeUUID(orderId),
             p_name: name,
             p_price: price,
             p_quantity: quantity
