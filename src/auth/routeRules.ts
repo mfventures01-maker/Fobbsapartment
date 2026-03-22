@@ -3,7 +3,7 @@
  * Single source of truth for user role types and route resolution
  */
 
-export type Role = 'owner' | 'ceo' | 'manager' | 'staff';
+export type Role = 'admin' | 'owner' | 'ceo' | 'manager' | 'staff';
 
 export interface Profile {
     user_id: string;
@@ -19,6 +19,11 @@ export interface Profile {
  */
 export function routeForProfile(profile: Profile): string {
     const { role, department } = profile;
+
+    // Admin goes to root dashboard engine
+    if (role === 'admin') {
+        return '/dashboard';
+    }
 
     // Owner goes to owner dashboard
     if (role === 'owner') {

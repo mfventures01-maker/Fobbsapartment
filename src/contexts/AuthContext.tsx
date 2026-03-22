@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { callRPC } from '../lib/rpcClient';
 import { Profile } from '../types/database';
 
-export type UserRole = 'ceo' | 'manager' | 'staff' | 'super_admin' | 'owner' | 'kitchen';
+export type UserRole = 'admin' | 'manager' | 'staff' | 'owner' | 'kitchen' | 'ceo' | 'super_admin';
 
 export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [shiftId, setShiftId] = useState<string | null>(null);
   const isMounted = useRef(true);
 
-  const isOrgAdmin = currentRole === 'ceo' || currentRole === 'owner' || currentRole === 'super_admin';
+  const isOrgAdmin = currentRole === 'admin' || currentRole === 'owner' || currentRole === 'ceo' || currentRole === 'super_admin';
 
   // 🔐 SHIFT GATE INTEGRATION
   useEffect(() => {
