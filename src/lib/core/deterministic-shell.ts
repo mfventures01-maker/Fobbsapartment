@@ -1,5 +1,5 @@
-// 🛸 ANTI-GRAVITY PHASE 5.2: ENHANCED DETERMINISTIC SHELL
-// Purpose: Zero-Hydration Mirror with Diff Tracking, Timeout, Retry, and sync lag monitoring.
+// 🛸 ANTI-GRAVITY PHASE 6.2: IDEMPOTENT SHELL UPGRADE (FIXED)
+// Purpose: Unified action transmission with guaranteed one-time delivery.
 
 import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 
@@ -36,6 +36,7 @@ export interface Order {
     kitchen_status: KitchenStatus;
     created_at: string;
     items?: OrderItem[];
+    idempotency_key?: string;
 }
 
 export interface OrderItem {
@@ -84,10 +85,22 @@ export interface ShellStateEnhanced {
 }
 
 // ============================================
-// ENHANCED DETERMINISTIC SHELL
+// THE IDEMPOTENT SHELL
 // ============================================
 
 export class DeterministicShell {
+    // Static Helpers for Routine #1–#2
+    static validateQRFormat(url: string): boolean {
+        const qrRegex = /\/qr\/[0-9a-fA-F-]{36}/;
+        return qrRegex.test(url);
+    }
+
+    static scanQRCode(scannedUrl: string): { branchId: string | null; valid: boolean } {
+        if (!this.validateQRFormat(scannedUrl)) return { branchId: null, valid: false };
+        const parts = scannedUrl.split('/');
+        return { branchId: parts[parts.length - 1], valid: true };
+    }
+
     private supabase: SupabaseClient;
     private channel: RealtimeChannel | null = null;
     private state: ShellStateEnhanced = {
@@ -98,14 +111,12 @@ export class DeterministicShell {
         failedActions: [],
         syncLag: 0
     };
-    private identity: any = null;
     private readonly terminalType: TerminalType;
     public branchId: string | null = null;
     private subscribers: Map<string, (state: ShellStateEnhanced) => void> = new Map();
     private pendingActionPromises: Map<string, { resolve: Function; reject: Function }> = new Map();
-    private syncTimeout: NodeJS.Timeout | null = null;
-    private readonly SYNC_TIMEOUT_MS = 3000;
-    private readonly MAX_RETRIES = 3;
+    private syncTimeoutConstant = 3000;
+    private maxRetries = 3;
 
     constructor(supabaseUrl: string, supabaseKey: string, terminalType: TerminalType) {
         this.supabase = createClient(supabaseUrl, supabaseKey);
@@ -127,29 +138,20 @@ export class DeterministicShell {
     }
 
     // ============================================
-    // ENHANCED TRANSMIT WITH RETRY & TIMEOUT
+    // TRANSMIT WITH AUTOMATIC IDEMPOTENCY KEY
     // ============================================
 
     async transmit<R = any>(
         action: string,
         params: Record<string, any>,
-        idempotencyKey?: string,
         retryCount: number = 0
     ): Promise<R> {
-        const key = idempotencyKey || `${action}:${Date.now()}:${Math.random().toString(36).substring(2, 11)}`;
-
-        // Anti-Gravity: Check shift active for POS operations
-        if (this.terminalType === 'pos') {
-            const shiftActive = this.state.state?.shift?.success;
-            const mutations = ['create_order_gateway', 'add_order_item', 'apply_discount', 'create_payment_intent', 'void_order'];
-            if (mutations.includes(action) && !shiftActive) {
-                throw new Error('🛸 SYMMETRY_VIOLATION: No active shift. Terminal locked.');
-            }
-        }
+        // Universal Idempotency Key Generation
+        const idempotencyKey = params.p_idempotency_key || `IG:${this.branchId}:${action}:${Date.now()}:${Math.random().toString(36).substring(2, 7)}`;
 
         // Track lifecycle
         const pendingAction: PendingAction = {
-            id: key,
+            id: idempotencyKey,
             action,
             params,
             timestamp: Date.now(),
@@ -162,41 +164,40 @@ export class DeterministicShell {
         this.notifySubscribers();
 
         return new Promise((resolve, reject) => {
-            this.pendingActionPromises.set(key, { resolve, reject });
+            this.pendingActionPromises.set(idempotencyKey, { resolve, reject });
 
             // Sync Confirmation Timeout
             const timeout = setTimeout(async () => {
-                const actionIndex = this.state.pendingActions.findIndex(a => a.id === key);
+                const actionIndex = this.state.pendingActions.findIndex(a => a.id === idempotencyKey);
                 if (actionIndex !== -1) {
                     const actionItem = this.state.pendingActions[actionIndex];
                     actionItem.status = 'failed';
-                    actionItem.lastError = 'DESYNC_TIMEOUT: Action may have succeeded in backend but not mirrored.';
-                    this.state.failedActions.push(actionItem);
-                    this.state.pendingActions.splice(actionIndex, 1);
+                    actionItem.lastError = 'DESYNC_TIMEOUT';
 
-                    if (retryCount < this.MAX_RETRIES) {
-                        console.warn(`🔄 DESYNC_RETRY: ${actionItem.action} (${retryCount + 1}/${this.MAX_RETRIES})`);
+                    if (retryCount < this.maxRetries) {
                         try {
-                            const res = await this.transmit(actionItem.action, actionItem.params, `${key}:retry`, retryCount + 1);
+                            const res = await this.transmit(actionItem.action, { ...actionItem.params, p_idempotency_key: idempotencyKey }, retryCount + 1);
                             resolve(res);
                         } catch (e: any) { reject(e); }
                     } else {
-                        reject(new Error(`🛸 RADIUS_FATAL: Action ${actionItem.action} failed to sync after ${this.MAX_RETRIES} attempts.`));
+                        this.state.failedActions.push(actionItem);
+                        this.state.pendingActions.splice(actionIndex, 1);
+                        reject(new Error(`🛸 RADIUS_FATAL: Action ${actionItem.action} timed out.`));
                     }
                 }
-                this.pendingActionPromises.delete(key);
-            }, this.SYNC_TIMEOUT_MS);
+                this.pendingActionPromises.delete(idempotencyKey);
+            }, this.syncTimeoutConstant);
 
             // Execute RPC
-            this.executeAction<R>(action, params, key)
-                .then(result => {
+            this.executeAction<R>(action, { ...params, p_idempotency_key: idempotencyKey })
+                .then(() => {
                     clearTimeout(timeout);
-                    // Resolve happens in mirroring when pg_notify confirms the state shift
+                    // Actual resolution happens in Mirror broadcast
                 })
-                .catch(error => {
+                .catch((error: any) => {
                     clearTimeout(timeout);
-                    this.pendingActionPromises.delete(key);
-                    const idx = this.state.pendingActions.findIndex(a => a.id === key);
+                    this.pendingActionPromises.delete(idempotencyKey);
+                    const idx = this.state.pendingActions.findIndex(a => a.id === idempotencyKey);
                     if (idx !== -1) {
                         const failAction = this.state.pendingActions[idx];
                         failAction.status = 'failed';
@@ -210,7 +211,7 @@ export class DeterministicShell {
         });
     }
 
-    private async executeAction<R>(action: string, params: Record<string, any>, key: string): Promise<R> {
+    private async executeAction<R>(action: string, params: Record<string, any>): Promise<R> {
         try {
             const enrichedParams = { ...params, p_terminal_type: this.terminalType };
             const { data, error } = await this.supabase.rpc(action, enrichedParams);
@@ -239,8 +240,8 @@ export class DeterministicShell {
                 const newState = await this.getState();
                 const lag = Date.now() - (timestamp * 1000);
 
-                // 2. Resolve Synced Actions
-                const syncedActionKey = notification.record_id; // Simple mapping
+                // 2. Resolve Idempotent Actions
+                const syncedActionKey = notification.record_id;
                 if (syncedActionKey && this.pendingActionPromises.has(syncedActionKey)) {
                     const { resolve } = this.pendingActionPromises.get(syncedActionKey)!;
                     this.state.pendingActions = this.state.pendingActions.filter(a => a.id !== syncedActionKey);
@@ -255,22 +256,13 @@ export class DeterministicShell {
                     state: newState,
                     lastSync: Date.now(),
                     syncLag: lag,
-                    diff: diff // Drive animations
+                    diff: diff
                 };
 
                 this.notifySubscribers();
-
-                if (this.syncTimeout) clearTimeout(this.syncTimeout);
-                this.syncTimeout = setTimeout(() => {
-                    if (this.state.syncLag > this.SYNC_TIMEOUT_MS) {
-                        this.state.status = 'RECONNECTING';
-                        this.notifySubscribers();
-                    }
-                }, this.SYNC_TIMEOUT_MS);
             })
             .subscribe();
 
-        // Initial fetch
         const initialState = await this.getState();
         this.state = {
             ...this.state,
@@ -285,7 +277,6 @@ export class DeterministicShell {
     private async resolveBranchId(): Promise<string> {
         const { data, error } = await this.supabase.rpc('get_my_identity');
         if (error) throw error;
-        this.identity = data;
         this.branchId = data.branch_id;
         return data.branch_id;
     }
@@ -303,7 +294,11 @@ export class DeterministicShell {
 
     // SEMANTIC HELPERS
     async createOrder(customerName?: string): Promise<{ id: string }> {
-        return this.transmit('create_order_gateway', { p_customer_name: customerName });
+        return this.transmit('create_order_gateway', {
+            p_customer_name: customerName,
+            p_branch_id: this.branchId,
+            p_shift_id: this.state.state?.shift?.shift_id
+        });
     }
 
     async addItem(orderId: string, name: string, price: number, quantity: number): Promise<any> {
@@ -320,7 +315,7 @@ export class DeterministicShell {
         this.state.failedActions = [];
         for (const action of failed) {
             try {
-                await this.transmit(action.action, action.params, `${action.id}:retry`, action.retryCount + 1);
+                await this.transmit(action.action, action.params, action.retryCount + 1);
             } catch (e) {
                 console.error(`DESYNC_FATAL: Retry failed for ${action.id}`);
             }
