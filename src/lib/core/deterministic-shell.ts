@@ -99,18 +99,21 @@ export const sanitizeUUID = (value: any): string | null => {
     return isValidUUID(value) ? value : null;
 };
 
-const assertValidPayload = (payload: any) => {
+const assertValidPayload = (payload: any, rpcName: string) => {
     const invalidFields = Object.entries(payload).filter(([key, value]) => {
-        // If key contains 'id', 'branch_id', 'shift_id', etc. and isn't null, it MUST be a valid UUID.
-        if (key.includes('_id')) {
-            return value !== null && !isValidUUID(value);
+        // Check all fields ending in _id or containing id_ or named 'id'
+        if (key.includes('_id') || key.includes('id_') || key === 'id') {
+            // Forbidden values check (Rogue Strings)
+            if (value === "unassigned" || value === "null" || value === "") return true;
+            // UUID format check if not null/undefined
+            return value !== null && value !== undefined && !isValidUUID(value);
         }
         return false;
     });
 
     if (invalidFields.length > 0) {
-        console.error('[ANTI-GRAVITY] ❌ INVALID UUID DETECTED', invalidFields);
-        throw new Error(`Payload rejected: invalid UUID detected in fields: ${invalidFields.map(f => f[0]).join(', ')}`);
+        console.error(`[ANTI-GRAVITY] ❌ INVALID UUID DETECTED in RPC: ${rpcName}`, invalidFields);
+        throw new Error(`Payload rejected: invalid UUID detected. Rogue values: ${invalidFields.map(f => `${f[0]}=${f[1]}`).join(', ')}`);
     }
 };
 
@@ -168,7 +171,7 @@ export class DeterministicShell {
     // ============================================
 
     private async callRPC<R>(fn: string, payload: any): Promise<R> {
-        assertValidPayload(payload);
+        assertValidPayload(payload, fn);
         console.log(`[RPC] ${fn} → START`, payload);
 
         try {
