@@ -3,7 +3,7 @@
  * Single source of truth for user role types and route resolution
  */
 
-export type Role = 'admin' | 'owner' | 'ceo' | 'manager' | 'staff';
+export type Role = 'admin' | 'owner' | 'ceo' | 'manager' | 'staff' | 'super_admin' | 'kitchen';
 
 export interface Profile {
     user_id: string;
@@ -21,8 +21,9 @@ export function routeForProfile(profile: Profile): string {
     const { role, department } = profile;
 
     // Admin goes to root dashboard engine
-    if (role === 'admin') {
-        return '/dashboard';
+    if (role === 'admin' || role === 'super_admin') {
+        const path = role === 'super_admin' ? '/dashboard/super_admin' : '/dashboard';
+        return path;
     }
 
     // Owner goes to owner dashboard
@@ -32,12 +33,17 @@ export function routeForProfile(profile: Profile): string {
 
     // CEO goes to CEO dashboard
     if (role === 'ceo') {
-        return '/ceo?token=carss-secure-ceo';
+        return '/dashboard/ceo';
     }
 
     // Manager goes to manager dashboard
     if (role === 'manager') {
         return '/dashboard/manager';
+    }
+
+    // Kitchen terminal access
+    if (role === 'kitchen') {
+        return '/dashboard/kitchen';
     }
 
     // Staff routing - department-based if available
