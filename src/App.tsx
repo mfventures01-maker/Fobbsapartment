@@ -64,8 +64,7 @@ const AuthGate = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) return <FullScreenLoader />;
   if (isAuthenticated && role) {
-    // If they land on root or login while authenticated, push to dashboard
-    if (window.location.pathname === '/' || window.location.pathname === '/login') {
+    if (window.location.pathname === '/login') {
       return <Navigate to="/dashboard" replace />;
     }
   }
@@ -82,7 +81,7 @@ export default function App() {
           <Suspense fallback={<FullScreenLoader />}>
             <Routes>
               {/* PUBLIC ROUTES */}
-              <Route path="/" element={<AuthGate><HotelLanding /></AuthGate>} />
+              <Route path="/" element={<HotelLanding />} />
               <Route path="/login" element={<AuthGate><Login /></AuthGate>} />
               <Route path="/menu/:branchId" element={<RestaurantPublic />} />
 

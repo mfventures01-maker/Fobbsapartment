@@ -109,7 +109,11 @@ const DashboardEngine: React.FC = () => {
             />
 
             {/* Base redirect: find the role and push them through */}
-            <Route index element={<Navigate to={`/dashboard/${role}`} replace />} />
+            <Route index element={
+                role === 'admin' ? <Navigate to="/dashboard/super_admin" replace /> :
+                    role ? <Navigate to={`/dashboard/${role}`} replace /> :
+                        <div className="p-10 text-rose-500 font-bold">🚫 ERR_IDENTITY_MISMATCH: NO_OPERATIONAL_ROLE_MAPPED</div>
+            } />
         </Routes>
     );
 };
