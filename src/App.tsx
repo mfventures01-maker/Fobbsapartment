@@ -29,9 +29,9 @@ import ServicesHubPublic from '@/pages/public/ServicesHubPublic';
 import ServiceRequestPublic from '@/pages/public/ServiceRequestPublic';
 
 const AppContent: React.FC = () => {
-  const { authorityStatus } = useAuth();
+  const { isLoading } = useAuth();
 
-  if (authorityStatus === 'loading') {
+  if (isLoading) {
     return <FullScreenLoader />;
   }
 

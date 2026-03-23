@@ -31,9 +31,13 @@ interface AuthContextType {
   profile: Profile | null;
   staffId: string | null;
   shiftId: string | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  role: UserRole | null;
   signOut: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
   signInAsDemo: (role: UserRole, department?: string) => Promise<void>;
+  refreshIdentity: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -57,9 +61,13 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   staffId: null,
   shiftId: null,
+  isLoading: true,
+  isAuthenticated: false,
+  role: null,
   signOut: async () => { },
   signInWithPassword: async () => ({ error: 'Not implemented' }),
   signInAsDemo: async () => { },
+  refreshIdentity: async () => { },
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -269,9 +277,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile,
       staffId,
       shiftId,
+      isLoading: authorityStatus === 'loading',
+      isAuthenticated: !!session,
+      role: currentRole,
       signOut,
       signInWithPassword,
-      signInAsDemo
+      signInAsDemo,
+      refreshIdentity: () => resolveAuthority(session)
     }}>
       {children}
     </AuthContext.Provider>

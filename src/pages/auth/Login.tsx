@@ -103,6 +103,15 @@ const Login: React.FC = () => {
                             <p className="text-sm text-red-700">{profileError}</p>
                         </div>
                     )}
+
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Demo Sandbox</span>
+                        <div className="flex flex-col items-center gap-2">
+                            <code className="text-[10px] bg-gray-50 px-2 py-1 rounded text-gray-400 border border-gray-100">admin@fobbs.com / password123</code>
+                            <code className="text-[10px] bg-gray-50 px-2 py-1 rounded text-gray-400 border border-gray-100">ceo@fobbs.com / password123</code>
+                            <code className="text-[10px] bg-gray-50 px-2 py-1 rounded text-gray-400 border border-gray-100">kitchen@fobbs.com / password123</code>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
