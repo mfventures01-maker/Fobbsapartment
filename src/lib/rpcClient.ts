@@ -20,23 +20,9 @@ export const sanitizeUUID = (value: any): string | null => {
     return isValidUUID(value) ? value : null;
 };
 
-const assertValidPayload = (payload: any, rpcName: string) => {
-    const invalidFields = Object.entries(payload).filter(([key, value]) => {
-        // Check all fields ending in _id or containing id_ or named 'id'
-        if (key.includes('_id') || key.includes('id_') || key === 'id') {
-            // Forbidden values check (Rogue Strings)
-            if (value === "unassigned" || value === "null" || value === "") return true;
-            // UUID format check if not null/undefined
-            return value !== null && value !== undefined && !isValidUUID(value);
-        }
-        return false;
-    });
-
-    if (invalidFields.length > 0) {
-        console.error(`[ANTI-GRAVITY] ❌ INVALID UUID DETECTED in RPC: ${rpcName}`, invalidFields);
-        throw new Error(`Payload rejected: invalid UUID detected in ${rpcName}. Rogue values: ${invalidFields.map(f => `${f[0]}=${f[1]}`).join(', ')}`);
-    }
-};
+// ============================================
+// 🔒 ANTI-GRAVITY SCHEMAS (PHASE 2)
+// ============================================
 
 export const rpcSchemas: Record<string, { required: string[] }> = {
     confirm_payment_intent: {
@@ -65,6 +51,51 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
     },
     log_frontend_error: {
         required: ['rpc', 'payload', 'error', 'terminal_type']
+    }
+};
+
+/**
+ * 🇳🇬 NIGERIAN CURRENCY NORMALIZATION
+ * Prevents floating point errors by converting Naira (decimal) to Kobo (integer).
+ */
+const normalizeNairaToKobo = (payload: any) => {
+    const amountFields = ['amount', 'p_amount', 'p_declaration_amount', 'p_price', 'total', 'subtotal'];
+    const normalized = { ...payload };
+
+    Object.keys(normalized).forEach(key => {
+        if (amountFields.includes(key) && typeof normalized[key] === 'number') {
+            // If it's already a large integer (likely kobo), don't multiply again
+            // Standard NGN transactions don't exceed 100M Naira (10B kobo)
+            if (normalized[key] % 1 !== 0 || normalized[key] < 1000000) {
+                normalized[key] = Math.round(normalized[key] * 100);
+            }
+        }
+    });
+
+    return normalized;
+};
+
+const assertValidPayload = (payload: any, rpcName: string) => {
+    const invalidFields = Object.entries(payload).filter(([key, value]) => {
+        // 🛡️ UUID SANITIZATION
+        if (key.includes('_id') || key.includes('id_') || key === 'id') {
+            if (value === "unassigned" || value === "null" || value === "") return true;
+            return value !== null && value !== undefined && !isValidUUID(value);
+        }
+
+        // 🇳🇬 NIGERIAN AMOUNT VALIDATION
+        const amountFields = ['amount', 'p_amount', 'p_declaration_amount', 'p_price', 'total'];
+        if (amountFields.includes(key) && typeof value === 'number') {
+            // Anti-Gravity: Forbidden Float Law
+            if (value % 1 !== 0) return true;
+        }
+
+        return false;
+    });
+
+    if (invalidFields.length > 0) {
+        console.error(`[ANTI-GRAVITY] ❌ INVALID PAYLOAD DETECTED in ${rpcName}`, invalidFields);
+        throw new Error(`Payload rejected: invalid data type (UUID/Float) in ${rpcName}. ${invalidFields.map(f => `${f[0]}=${f[1]}`).join(', ')}`);
     }
 };
 
@@ -113,6 +144,15 @@ class RPCClient {
         // Auto-inject context and idempotency
         let fullPayload: any;
 
+        // 🛡️ [ANTI-GRAVITY] 🇳🇬 NORMALIZE NAIRA -> KOBO
+        const basePayload = normalizeNairaToKobo({
+            ...payload,
+            ...context,
+            terminal_type: terminal,
+            p_terminal_type: terminal, // Mirror for parameter naming drift
+            _idempotency_key: payload._idempotency_key || payload.p_idempotency_key || crypto.randomUUID()
+        });
+
         if (functionName === 'resolve_active_shift') {
             // 🛡️ [ANTI-GRAVITY] STRICT PAYLOAD NORMALIZATION
             // Canonical shift engine forbids legacy/duplicated parameters.
@@ -126,14 +166,7 @@ class RPCClient {
             if (functionName === 'get_active_shift') {
                 console.warn("[DEPRECATED] get_active_shift call detected. Routing should favor resolve_active_shift.");
             }
-
-            fullPayload = {
-                ...payload,
-                ...context,
-                terminal_type: terminal,
-                p_terminal_type: terminal, // Mirror for parameter naming drift
-                _idempotency_key: payload._idempotency_key || payload.p_idempotency_key || crypto.randomUUID()
-            };
+            fullPayload = basePayload;
         }
 
         // 🛡️ ANTI-GRAVITY ENFORCEMENT (PHASE 2-3)
@@ -167,6 +200,12 @@ class RPCClient {
             console.error(`[RPC] ${functionName} → FAILURE 💥 (${duration}ms)`, {
                 error: err instanceof Error ? err.message : err,
                 payload: fullPayload
+            });
+
+            // 🛡️ [ANTI-GRAVITY] OFFLINE QUEUEING
+            // Nigerian connectivity gap: Queue for replay if transactional.
+            import('./offlineRpcQueue').then(({ offlineQueue }) => {
+                offlineQueue.enqueue(terminal, functionName, fullPayload);
             });
 
             // Log error to backend if needed

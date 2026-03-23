@@ -247,9 +247,11 @@ export class DeterministicShell {
     // ENHANCED MIRRORING WITH DIFFS
     // ============================================
 
-    async startMirroring(branchId?: string): Promise<void> {
-        this.branchId = sanitizeUUID(branchId) || await this.resolveBranchId();
+    async startMirroring(preResolvedBranchId?: string): Promise<void> {
+        // 🧪 ANTI-GRAVITY: Deterministic Hydration
+        this.branchId = sanitizeUUID(preResolvedBranchId) || await this.resolveBranchId();
 
+        console.log(`[SHELL] 📡 Establishing MIRROR for Branch: ${this.branchId}`);
         this.channel = singletonClient.channel(`system-state-${this.branchId}-${this.terminalType}`);
 
         this.channel

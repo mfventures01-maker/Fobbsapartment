@@ -120,8 +120,20 @@ export class CARSSClient {
 
     // === DETERMINISTIC METHODS ===
 
-    async validateIdentity(): Promise<DeterministicIdentity> {
-        this.state = { step: 'VALIDATING_IDENTITY', identity: null };
+    async validateIdentity(identitySource?: DeterministicIdentity): Promise<DeterministicIdentity> {
+        this.state = { step: 'VALIDATING_IDENTITY', identity: identitySource || null };
+
+        if (identitySource) {
+            this.identity = {
+                ...identitySource,
+                terminal_type: this.terminalType,
+                session_id: this.sessionId
+            };
+            return this.identity;
+        }
+
+        // Fallback for standalone/CLI usage only
+        console.warn(`[${this.terminalType}] ⚠️ Identity not provided. Performing fallback fetch (Race Condition Risk).`);
         const identityResult = await this.callRPC<DeterministicIdentity>('get_my_identity', {
             p_terminal_type: this.terminalType
         });
@@ -131,8 +143,6 @@ export class CARSSClient {
             terminal_type: this.terminalType,
             session_id: this.sessionId
         };
-
-        this.state = { step: 'VALIDATING_IDENTITY', identity: this.identity };
         return this.identity;
     }
 
