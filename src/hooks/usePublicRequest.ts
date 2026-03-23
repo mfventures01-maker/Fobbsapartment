@@ -40,11 +40,8 @@ export const usePublicRequest = () => {
                     p_message: notificationMessage
                 });
 
-                if (error) {
-                    console.warn('Notification insert failed:', error);
-                } else {
-                    // success silently
-                }
+                // callRPC throws on failure, so if we've reached this line it was successful.
+                // success silently
             } catch (err) {
                 console.error('Notification error:', err);
             }

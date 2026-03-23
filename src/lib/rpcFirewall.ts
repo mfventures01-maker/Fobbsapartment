@@ -2,7 +2,7 @@ import { AntiGravityViolation } from './forbidden';
 
 // 🔒 THE TERMINAL ISOLATION FIREWALL
 // Centrally defined here to avoid circular dependencies
-export type TerminalType = 'staff' | 'kitchen' | 'store' | 'manager' | 'ceo' | 'public';
+export type TerminalType = 'staff' | 'kitchen' | 'store' | 'manager' | 'ceo' | 'super_admin' | 'public';
 
 export const TERMINAL_RPC_ACCESS: Record<TerminalType, string[]> = {
     public: [
@@ -36,6 +36,12 @@ export const TERMINAL_RPC_ACCESS: Record<TerminalType, string[]> = {
     ceo: [
         'disable_staff',
         'update_branch',
+        'get_ceo_snapshot',
+        'get_system_snapshot'
+    ],
+    super_admin: [
+        'get_platform_businesses',
+        'disable_staff',
         'get_ceo_snapshot',
         'get_system_snapshot'
     ]

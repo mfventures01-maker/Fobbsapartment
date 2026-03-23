@@ -89,7 +89,7 @@ const BarPublic: React.FC = () => {
 
             if (!gatewayResult.success) throw new Error(gatewayResult.error || "Failed to create order");
 
-            const orderId = gatewayResult.order_id;
+            const orderId = (gatewayResult as any).order_id;
 
             // 2. Log to Supabase for Dashboard visibility (Legacy/Forensic)
             logLeadOrBooking({

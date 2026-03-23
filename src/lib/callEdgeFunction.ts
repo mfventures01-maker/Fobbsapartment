@@ -1,5 +1,4 @@
 import { supabase } from './supabaseClient';
-import { enforceTerminalAccess } from './rpcFirewall';
 import type { TerminalType } from './rpcFirewall';
 
 /**
@@ -18,6 +17,7 @@ export const TERMINAL_EDGE_FUNCTION_ACCESS: Record<TerminalType, string[]> = {
     kitchen: [],
     store: [],
     manager: [],
+    super_admin: ['create-staff-user', 'deactivate-user', 'update-user-role', 'send-outbox'],
     ceo: ['create-staff-user', 'deactivate-user', 'update-user-role', 'send-outbox'],
     public: [],
 };

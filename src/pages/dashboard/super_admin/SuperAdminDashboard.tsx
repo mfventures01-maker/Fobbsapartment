@@ -92,7 +92,7 @@ const SuperAdminDashboard: React.FC = () => {
             console.log("[CEO Creation] Creating auth user and inserting profile");
             if (!supabase) throw new Error("Database client not initialized");
 
-            const data = await callEdgeFunction('create-staff-user', {
+            const data = await callEdgeFunction<any>('super_admin', 'create-staff-user', {
                 email: newCeo.email,
                 full_name: newCeo.full_name,
                 role: 'ceo',
