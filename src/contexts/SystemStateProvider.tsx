@@ -64,8 +64,17 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         };
     }, [isHydrated]);
 
+    // Render children immediately if no user is present (Public/Login routes)
+    // AuthGate/ProtectedRoute downstream will handle redirection.
+    if (!user) {
+        return <>{children}</>;
+    }
+
     if (!canHydrate || !isHydrated) {
-        return <div className="hydration-lock flex items-center justify-center p-8 text-gray-500 font-mono text-xs uppercase tracking-widest h-screen">Initializing deterministic terminal...</div>;
+        return <div className="hydration-lock flex flex-col items-center justify-center p-8 bg-white h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-900 mb-4"></div>
+            <p className="text-emerald-950 font-mono text-xs uppercase tracking-widest animate-pulse">Initializing deterministic terminal...</p>
+        </div>;
     }
 
     return <>{children}</>;

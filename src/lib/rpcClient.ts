@@ -2,11 +2,9 @@
 // Purpose: Deterministic RPC transmission with Zero-Tolerance UUID sanitization.
 // Law: "If it enters, it is correct. If it is wrong, it never enters."
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const rawClient = createClient(supabaseUrl, supabaseKey);
+import { supabase } from './supabaseClient';
+// rawClient is now the singleton from supabaseClient.ts
+const rawClient = supabase;
 
 // ============================================
 // 🔒 ANTI-GRAVITY UTILITIES (PHASE 1)
@@ -50,11 +48,23 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
     resolve_active_shift: {
         required: ['business_id', 'branch_id', 'staff_id', 'terminal_type']
     },
-    create_order_gateway: {
-        required: ['p_branch_id', 'p_terminal_type']
+    create_qr_order_gateway: {
+        required: ['p_org_id', 'p_branch_id', 'p_cart']
+    },
+    universal_order_gateway: {
+        required: ['p_business_id', 'p_branch_id', 'p_staff_id', 'p_items']
     },
     add_order_item: {
-        required: ['p_order_id', 'p_name', 'p_price', 'p_quantity', 'p_terminal_type']
+        required: ['p_order_id', 'p_name', 'p_price', 'p_quantity']
+    },
+    submit_shift_declaration: {
+        required: ['p_shift_id', 'p_staff_id', 'p_branch_id', 'p_declaration_amount']
+    },
+    log_deterministic_event: {
+        required: ['p_branch_id', 'p_terminal_type', 'p_event_type', 'p_rpc_name', 'p_payload', 'p_identity']
+    },
+    log_frontend_error: {
+        required: ['rpc', 'payload', 'error', 'terminal_type']
     }
 };
 
@@ -138,7 +148,7 @@ class RPCClient {
             }
         }
 
-        console.log(`[RPC] ${functionName} → START`, fullPayload);
+        console.log(`[RPC] ${functionName} → ATTEMPT`, fullPayload);
 
         try {
             const { data, error } = await rawClient.rpc(functionName, fullPayload);

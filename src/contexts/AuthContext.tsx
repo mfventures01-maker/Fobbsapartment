@@ -127,16 +127,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // 🛡️ STEP 1: AUTHENTICATED (Temporal Integrity Gate)
-    console.log('[AUTH] Initial Session Check');
+    console.log("[AUTH] Initial Session Check - START");
     setAuthorityStatus('loading');
 
     try {
+      console.log("[AUTH] Calling get_my_identity RPC...");
       // 🔐 STEP 2: IDENTITY RESOLUTION (RPC Master Control)
       // This is the ONLY path to system readiness.
       const identity = await callRPC<any>('public', 'get_my_identity', {
         _idempotency_key: crypto.randomUUID()
       });
+      console.log("[AUTH] get_my_identity RESPONSE:", identity);
 
       if (!identity || !identity.role) {
         console.error('[AUTH] ❌ Identity Resolution Failure: No role assigned.');

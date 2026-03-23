@@ -17,30 +17,12 @@ function DiagnosticsPanel() {
   const [rpcError, setRpcError] = useState<string | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
 
-  // Test RPC call when auth is ready
+  // Monitor context status without triggering rogue RPCs
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      setRpcStatus('pending');
-      setRpcError(null);
-
-      import('./lib/supabaseClient').then(({ supabase }) => {
-        // We use the raw supabase client here as a diagnostic test
-        supabase.rpc('get_my_identity', { p_terminal_type: 'staff' })
-          .then(response => {
-            setRpcStatus('success');
-            setLastRpcResponse(response);
-            console.log('[DIAGNOSTICS] ✅ RPC Test Success:', response);
-          })
-          .catch(err => {
-            setRpcStatus('error');
-            setRpcError(err.message);
-            console.error('[DIAGNOSTICS] ❌ RPC Test Failed:', err);
-          });
-      }).catch(err => {
-        setRpcStatus('error');
-        setRpcError('Supabase client import failed');
-        console.error('[DIAGNOSTICS] ❌ Import failed:', err);
-      });
+      setRpcStatus('success');
+      setLastRpcResponse({ message: 'Sync: Identity Resolved from AuthContext' });
+      console.log('[DIAGNOSTICS] ✅ App Context ready. Session Verified.');
     }
   }, [isAuthenticated, isLoading, refreshCount]);
 

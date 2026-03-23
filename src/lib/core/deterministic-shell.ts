@@ -2,7 +2,9 @@
 // Purpose: Zero-tolerance UUID sanitization and RPC payload enforcement.
 // Law: "Frontend Must Obey the Database Like Gravity"
 
-import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { callRPC } from '../rpcClient';
+import { supabase as singletonClient } from '../supabaseClient';
 
 // ============================================
 // ENHANCED TYPES
@@ -133,7 +135,6 @@ export class DeterministicShell {
         return { branchId: sanitizeUUID(parts[parts.length - 1]), valid: true };
     }
 
-    private supabase: SupabaseClient;
     private channel: RealtimeChannel | null = null;
     private state: ShellStateEnhanced = {
         status: 'BOOTING',
@@ -150,8 +151,7 @@ export class DeterministicShell {
     private syncTimeoutConstant = 3000;
     private maxRetries = 3;
 
-    constructor(supabaseUrl: string, supabaseKey: string, terminalType: TerminalType) {
-        this.supabase = createClient(supabaseUrl, supabaseKey);
+    constructor(_url: string, _key: string, terminalType: TerminalType) {
         this.terminalType = terminalType;
     }
 
@@ -171,20 +171,7 @@ export class DeterministicShell {
     // ============================================
 
     private async callRPC<R>(fn: string, payload: any): Promise<R> {
-        assertValidPayload(payload, fn);
-        console.log(`[RPC] ${fn} → START`, payload);
-
-        try {
-            const { data, error } = await this.supabase.rpc(fn, payload);
-            if (error) {
-                console.error(`[RPC] ${fn} → ERROR`, error);
-                throw error;
-            }
-            console.log(`[RPC] ${fn} → SUCCESS ✅`, data);
-            return data as R;
-        } catch (error) {
-            throw error;
-        }
+        return callRPC<R>(this.terminalType, fn, payload);
     }
 
     // ============================================
@@ -263,7 +250,7 @@ export class DeterministicShell {
     async startMirroring(branchId?: string): Promise<void> {
         this.branchId = sanitizeUUID(branchId) || await this.resolveBranchId();
 
-        this.channel = this.supabase.channel(`system-state-${this.branchId}-${this.terminalType}`);
+        this.channel = singletonClient.channel(`system-state-${this.branchId}-${this.terminalType}`);
 
         this.channel
             .on('broadcast', { event: 'state_update' }, async (payload) => {

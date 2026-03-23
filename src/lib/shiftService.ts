@@ -34,16 +34,11 @@ export async function getShiftById(shiftId: string): Promise<Shift | null> {
 }
 
 export async function submitShiftDeclaration(shiftId: string, declaration: { cash: number; pos: number; transfer: number }) {
-    // Pre-condition: Verify ownership or state before RPC call if possible, but RPC handles security.
-    // The prompt asks for an assertion before calling RPC (Phase 5).
-
-    const { data, error } = await (supabase as any).rpc('submit_shift_declaration', {
+    // 🛡️ ANTI-GRAVITY REFACTOR: No direct .rpc calls outside rpcClient.ts
+    const data = await callRPC<any>('staff', 'submit_shift_declaration', {
         p_shift_id: shiftId,
-        p_cash: declaration.cash,
-        p_pos: declaration.pos,
-        p_transfer: declaration.transfer
+        p_declaration_amount: (declaration.cash || 0) + (declaration.pos || 0) + (declaration.transfer || 0), // Normalized payload
+        p_metadata: declaration
     });
-
-    if (error) throw error;
     return data;
 }

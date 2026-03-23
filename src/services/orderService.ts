@@ -16,7 +16,7 @@ export async function createPublicOrder(
     metadata?: any
 ) {
     try {
-        const data = await callRPC<{ order_id: string; total: number }>('public', 'create_qr_order_gateway', {
+        const data = await callRPC<string>('public', 'create_qr_order_gateway', {
             p_org_id: businessId,
             p_branch_id: locationId,
             p_customer_name: customerName || null,
@@ -25,7 +25,8 @@ export async function createPublicOrder(
             p_table_id: tableId || null,
             p_metadata: metadata || {}
         });
-        return { success: true, order_id: data.order_id };
+        // Backend returns a single UUID string
+        return { success: true, order_id: data };
     } catch (err: any) {
         console.error('[ORDER SERVICE] QR Order RPC Error:', err.message);
         return { success: false, error: err.message };

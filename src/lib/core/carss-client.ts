@@ -2,7 +2,9 @@
 // Purpose: Enforce the same state machine as the backend.
 // Law: Perfect symmetry between front and back end.
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { supabase as singletonClient } from '../supabaseClient';
+import { callRPC } from '../rpcClient';
 
 // === TYPES ===
 export type OrderStatus = 'open' | 'paid' | 'void';
@@ -78,7 +80,6 @@ export type OrderFlowState =
 
 // === THE CLIENT ===
 export class CARSSClient {
-    private supabase: SupabaseClient;
     private state: OrderFlowState = { step: 'INIT' };
     private identity: DeterministicIdentity | null = null;
     private shift: ShiftContext | null = null;
@@ -86,8 +87,8 @@ export class CARSSClient {
     private readonly terminalType: TerminalType;
     private readonly sessionId: string;
 
-    constructor(supabaseUrl: string, supabaseKey: string, terminalType: TerminalType) {
-        this.supabase = createClient(supabaseUrl, supabaseKey);
+    constructor(_url: string, _key: string, terminalType: TerminalType) {
+        // 🧪 ANTI-GRAVITY EXORCISM: Using singleton via rpcClient
         this.terminalType = terminalType;
         this.sessionId = Math.random().toString(36).substring(2, 15);
     }
@@ -100,48 +101,21 @@ export class CARSSClient {
         response?: any,
         error?: any
     ): Promise<void> {
+        // Redundant with global rpcClient logging, but keeping for specialized telemetry
         if (!this.identity) return;
-
-        try {
-            await this.supabase.rpc('log_deterministic_event', {
-                p_order_id: this.currentOrder?.id || null,
-                p_branch_id: this.identity.branch_id,
-                p_terminal_type: this.terminalType,
-                p_event_type: eventType,
-                p_rpc_name: rpcName,
-                p_payload: payload,
-                p_response: response || null,
-                p_identity: this.identity,
-                p_error: error || null
-            });
-        } catch (logError) {
-            console.warn('Failed to log event:', logError);
-        }
+        callRPC(this.terminalType, 'log_deterministic_event', {
+            p_order_id: this.currentOrder?.id || null,
+            p_branch_id: this.identity.branch_id,
+            p_event_type: eventType,
+            p_rpc_name: rpcName,
+            p_payload: payload,
+            p_identity: this.identity
+        }).catch(() => { });
     }
 
     private async callRPC<T>(name: string, payload: any): Promise<T> {
-        const startTime = performance.now();
-
-        await this.logEvent('RPC_START', name, payload);
-
-        try {
-            const { data, error } = await this.supabase.rpc(name, payload);
-            const duration = Math.round(performance.now() - startTime);
-
-            if (error) {
-                await this.logEvent('RPC_ERROR', name, payload, null, error);
-                const err = new Error(`${name} failed: ${error.message} (${duration}ms)`);
-                this.state = { step: 'ERROR', error: err, rollback_data: { payload, name } };
-                throw err;
-            }
-
-            await this.logEvent('RPC_SUCCESS', name, payload, data);
-            return data as T;
-        } catch (err: any) {
-            const duration = Math.round(performance.now() - startTime);
-            console.error(`[${this.terminalType}] ${name} → ERROR (${duration}ms)`, err);
-            throw err;
-        }
+        // 🛡️ ANTI-GRAVITY: Routing through global Truth Gate
+        return callRPC<T>(this.terminalType, name, payload);
     }
 
     // === DETERMINISTIC METHODS ===
