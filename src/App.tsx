@@ -1,108 +1,98 @@
-import React from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import Layout from '@/components/Layout';
-import HotelLanding from '@/pages/HotelLanding';
-import PaymentIntent from '@/pages/PaymentIntent';
-import ConfirmPayment from '@/pages/ConfirmPayment';
-import Fulfillment from '@/pages/Fulfillment';
-import DebugAuth from '@/pages/auth/DebugAuth';
+// src/App.tsx - SAFE BOOT MODE V2
+// This is a temporary minimal test to verify the UI pipeline is working
+// Once confirmed, we will gradually restore components
 
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { ShiftProvider } from '@/contexts/ShiftContext';
-import { SystemStateProvider } from '@/contexts/SystemStateProvider';
-import { CartProvider } from '@/contexts/CartContext';
-import { Toaster } from 'react-hot-toast';
-import FullScreenLoader from '@/components/FullScreenLoader';
+import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
-import Login from '@/pages/auth/Login';
-import StaffLogin from '@/pages/staff/StaffLogin';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import AuthGate from '@/auth/AuthGate';
-import DashboardEngine from '@/pages/dashboard/DashboardEngine';
-import AccessDenied from '@/pages/auth/AccessDenied';
-import Unauthorized from '@/pages/auth/Unauthorized';
+export default function App() {
+  const [bootTime, setBootTime] = useState<string>('');
+  const [clientStatus, setClientStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
-// Public pages
-import RestaurantPublic from '@/pages/RestaurantPublic';
-import BarPublic from '@/pages/public/BarPublic';
-import ServicesHubPublic from '@/pages/public/ServicesHubPublic';
-import ServiceRequestPublic from '@/pages/public/ServiceRequestPublic';
+  useEffect(() => {
+    setBootTime(new Date().toISOString());
+    console.log('[ANTI-GRAVITY] 🚀 App is mounting - Safe Boot Mode');
 
-const AppContent: React.FC = () => {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return <FullScreenLoader />;
-  }
+    // Quick check if React is rendering
+    const root = document.getElementById('root');
+    if (root) {
+      console.log('[ANTI-GRAVITY] ✅ Root element found, content:', root.innerHTML.substring(0, 100));
+      setClientStatus('ready');
+    } else {
+      console.error('[ANTI-GRAVITY] ❌ Root element not found');
+      setClientStatus('error');
+    }
+  }, []);
 
   return (
-    <React.Fragment>
-      <Toaster position="top-right" />
-      <AuthGate>
-        <Routes>
-          {/* Public Hotel Routes */}
-          <Route element={<Layout><Outlet /></Layout>}>
-            <Route path="/" element={<HotelLanding />} />
-            <Route path="/hotel" element={<HotelLanding />} />
-            <Route path="/fobbs" element={<HotelLanding />} />
-          </Route>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#0a0a0a',
+      color: '#00ff00',
+      fontFamily: 'monospace',
+      padding: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{
+        border: '2px solid #00ff00',
+        padding: '30px',
+        borderRadius: '8px',
+        maxWidth: '600px',
+        width: '100%',
+        boxShadow: '0 0 20px rgba(0,255,0,0.2)'
+      }}>
+        <h1 style={{ fontSize: '2rem', margin: '0 0 10px 0' }}>🛸 CARSS IS ALIVE</h1>
+        <p style={{ margin: '5px 0' }}>
+          <strong>Boot Time:</strong> {bootTime || 'Loading...'}
+        </p>
+        <p style={{ margin: '5px 0' }}>
+          <strong>Environment:</strong> {(import.meta as any).env?.MODE || 'development'}
+        </p>
+        <p style={{ margin: '5px 0' }}>
+          <strong>Client Status:</strong>
+          <span style={{
+            color: clientStatus === 'ready' ? '#00ff00' : clientStatus === 'error' ? '#ff0000' : '#ffff00',
+            marginLeft: '8px'
+          }}>
+            {clientStatus === 'loading' ? '⏳ LOADING' : clientStatus === 'ready' ? '✅ READY' : '❌ ERROR'}
+          </span>
+        </p>
+        <hr style={{ margin: '20px 0', borderColor: '#00ff00' }} />
+        <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+          ✅ If you see this green box, the UI pipeline is working.
+          <br />
+          ✅ React is rendering correctly.
+          <br />
+          ✅ The application root is mounted.
+        </p>
 
-          {/* Public Guest Hub Routes (No Login) */}
-          <Route path="/payment-intent" element={<PaymentIntent />} />
-          <Route path="/confirm-payment" element={<ConfirmPayment />} />
-          <Route path="/fulfillment" element={<Fulfillment />} />
-          <Route path="/restaurant" element={<RestaurantPublic />} />
-          <Route path="/bar" element={<BarPublic />} />
-          <Route path="/services" element={<ServicesHubPublic />} />
-          <Route path="/services/:type" element={<ServiceRequestPublic />} />
+        {/* Status indicators */}
+        <div style={{ marginTop: '20px', fontSize: '0.8rem' }}>
+          <div>🟢 REACT: MOUNTED</div>
+          <div>🟢 DOM: READY</div>
+          <div>🟡 AUTH: PAUSED (will restore next)</div>
+        </div>
 
-          {/* Authentication */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/staff-login" element={<StaffLogin />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="/access-denied" element={<AccessDenied />} />
-
-          {/* Protected Dashboard Engine */}
-          <Route
-            path="/dashboard/*"
-            element={
-              <ProtectedRoute allowedRoles={['admin', 'manager', 'staff', 'ceo', 'super_admin', 'kitchen']}>
-                <DashboardEngine />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Debug Route */}
-          <Route path="/debug-auth" element={<DebugAuth />} />
-
-          {/* Catch all - redirect to login or home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthGate>
-    </React.Fragment>
+        {/* Instructions for next steps */}
+        <div style={{
+          marginTop: '30px',
+          padding: '15px',
+          backgroundColor: 'rgba(0,255,0,0.1)',
+          borderRadius: '4px',
+          fontSize: '0.8rem'
+        }}>
+          <strong>📋 NEXT STEPS:</strong>
+          <ol style={{ marginTop: '10px', paddingLeft: '20px' }}>
+            <li>Confirm you see this green box ✅</li>
+            <li>Check console for "[ANTI-GRAVITY] 🚀 App is mounting"</li>
+            <li>If visible, UI pipeline is confirmed working</li>
+            <li>We will now gradually restore AuthProvider and routes</li>
+          </ol>
+        </div>
+      </div>
+    </div>
   );
-};
-
-const App: React.FC = () => {
-  return (
-    <Routes>
-      {/* Public routes - NO PROVIDERS */}
-      <Route path="/menu/:branchId" element={<RestaurantPublic />} />
-
-      {/* Private routes - WITH PROVIDERS */}
-      <Route path="/*" element={
-        <AuthProvider>
-          <SystemStateProvider>
-            <ShiftProvider>
-              <CartProvider>
-                <AppContent />
-              </CartProvider>
-            </ShiftProvider>
-          </SystemStateProvider>
-        </AuthProvider>
-      } />
-    </Routes>
-  );
-};
-
-export default App;
+}
