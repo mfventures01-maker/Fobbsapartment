@@ -16,6 +16,7 @@ DECLARE
     v_user_id UUID;
     v_membership RECORD;
     v_staff RECORD;
+    v_profile_name TEXT;
 BEGIN
     v_user_id := auth.uid();
     IF v_user_id IS NULL THEN
@@ -38,8 +39,12 @@ BEGIN
     -- Resolve Staff Proxy (Operational Identity)
     SELECT id INTO v_staff FROM public.staff_profiles WHERE user_id = v_user_id LIMIT 1;
 
+    -- Resolve Profile (Name)
+    SELECT full_name INTO v_profile_name FROM public.profiles WHERE user_id = v_user_id LIMIT 1;
+
     RETURN jsonb_build_object(
         'user_id', v_user_id,
+        'full_name', COALESCE(v_profile_name, 'Unknown User'),
         'role', v_membership.role,
         'business_id', v_membership.business_id,
         'branch_id', v_membership.branch_id,

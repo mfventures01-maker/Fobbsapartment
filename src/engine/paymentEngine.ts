@@ -1,5 +1,10 @@
+// 🛸 ANTI-GRAVITY PAYMENT ENGINE — DETERMINISTIC REWRITE
+// Law: "No direct table writes. Every mutation passes through the RPC firewall."
+// BEFORE: used supabase.from('payment_intents').insert() — CRITICAL VIOLATION
+// AFTER:  all operations via callRPC exclusively
+
 import { create } from 'zustand';
-import { supabase } from '../lib/supabaseClient';
+import { callRPC } from '../lib/rpcClient';
 
 export interface PaymentIntent {
     id: string;
@@ -20,52 +25,43 @@ interface PaymentEngine {
     loading: boolean;
     clientRequestId: string | null;
 
-    createPaymentIntent: (
-        payload: Omit<PaymentIntent, 'id' | 'status' | 'created_at' | 'updated_at'>
-    ) => Promise<PaymentIntent>;
+    createPaymentIntent: (payload: {
+        order_id: string;
+        payment_type: string;
+        shift_id?: string;
+        external_reference?: string;
+        idempotencyKey: string;    // ← Caller MUST provide — no internal generation
+    }) => Promise<{ intent_id: string }>;
 
-    refreshIntent: (intentId?: string) => Promise<void>;
+    confirmPaymentIntent: (payload: {
+        intentId: string;
+        externalReference?: string;
+        idempotencyKey: string;    // ← Caller MUST provide
+    }) => Promise<{ success: boolean; transaction_id: string }>;
 
     reset: () => void;
 }
 
-export const usePaymentEngine = create<PaymentEngine>((set, get) => ({
+export const usePaymentEngine = create<PaymentEngine>((set) => ({
     currentIntent: null,
     status: 'idle',
     loading: false,
     clientRequestId: null,
 
-    createPaymentIntent: async (payload) => {
-        // Generate UUID to lock UI / track request locally
-        const reqId = crypto.randomUUID();
-
-        set({
-            loading: true,
-            clientRequestId: reqId,
-            status: 'idle'
-        });
+    createPaymentIntent: async ({ order_id, payment_type, shift_id, external_reference, idempotencyKey }) => {
+        set({ loading: true, clientRequestId: idempotencyKey, status: 'idle' });
 
         try {
-            const { data, error } = await supabase
-                .from('payment_intents')
-                .insert({
-                    ...payload,
-                    status: 'pending'
-                })
-                .select('*')
-                .single();
-
-            if (error) throw error;
-
-            set({
-                currentIntent: data,
-                status: data.status,
-                loading: false
+            // ✅ THROUGH FIREWALL ONLY — no direct table write
+            const data = await callRPC<{ intent_id: string }>('staff', 'create_payment_intent', {
+                p_order_id: order_id,
+                p_payment_type: payment_type,
+                p_shift_id: shift_id || null,
+                p_external_reference: external_reference || null,
+                _idempotency_key: idempotencyKey
             });
 
-            // Refetch immediately after creation as required
-            await get().refreshIntent(data.id);
-
+            set({ status: 'pending', loading: false });
             return data;
         } catch (error) {
             set({ loading: false, status: 'error' });
@@ -73,28 +69,21 @@ export const usePaymentEngine = create<PaymentEngine>((set, get) => ({
         }
     },
 
-    refreshIntent: async (intentId?: string) => {
-        const idToFetch = intentId || get().currentIntent?.id;
-        if (!idToFetch) return;
-
+    confirmPaymentIntent: async ({ intentId, externalReference, idempotencyKey }) => {
         set({ loading: true });
         try {
-            const { data, error } = await supabase
-                .from('payment_intents')
-                .select('*')
-                .eq('id', idToFetch)
-                .single();
-
-            if (error) throw error;
-
-            set({
-                currentIntent: data,
-                status: data.status,
-                loading: false
-            });
+            const data = await callRPC<{ success: boolean; transaction_id: string }>(
+                'staff', 'confirm_payment_intent', {
+                p_intent_id: intentId,
+                p_external_reference: externalReference || null,
+                _idempotency_key: idempotencyKey
+            }
+            );
+            set({ status: 'confirmed', loading: false });
+            return data;
         } catch (e) {
-            console.error('[engine] Payment intent refresh failed:', e);
-            set({ loading: false });
+            set({ loading: false, status: 'error' });
+            throw e;
         }
     },
 

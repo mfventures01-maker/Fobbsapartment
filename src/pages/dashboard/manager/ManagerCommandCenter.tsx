@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { callRPC } from '@/lib/rpcClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShiftState } from '@/contexts/ShiftContext';
+import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
 import {
     Clock, ShoppingBag, Landmark,
     ChevronRight, Building2,
@@ -110,6 +111,13 @@ const ManagerCommandCenter: React.FC = () => {
     const [activeShifts, setActiveShifts] = useState<Shift[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // 🛸 ANTI-GRAVITY: Per-action idempotent mutation hooks with built-in mutex
+    const { execute: doApprovePayment, isLoading: approvingPayment } = useIdempotentMutation('staff', 'confirm_payment_intent');
+    const { execute: doRejectPayment, isLoading: rejectingPayment } = useIdempotentMutation('manager', 'reject_payment_intent');
+    const { execute: doApproveShiftOpen, isLoading: approvingShiftOpen } = useIdempotentMutation('manager', 'approve_shift_open');
+    const { execute: doRejectShiftOpen, isLoading: rejectingShiftOpen } = useIdempotentMutation('manager', 'reject_shift_open');
+    const { execute: doApproveShiftClose, isLoading: approvingShiftClose } = useIdempotentMutation('manager', 'approve_shift_close');
+
     // --- HYDRATION ---
     const hydrate = useCallback(async () => {
         if (!authority.businessId) return;
@@ -146,12 +154,13 @@ const ManagerCommandCenter: React.FC = () => {
         hydrate();
     }, [hydrate]);
 
-    // --- ACTIONS ---
+    // --- ACTIONS (MUTEX-PROTECTED VIA useIdempotentMutation) ---
     const handlePaymentApprove = async (id: string) => {
+        if (approvingPayment) return;
         const ref = window.prompt('Enter Reference (Optional):');
         const loadingProgress = toast.loading('Confirming Settlement...');
         try {
-            await confirmPaymentIntent(id, ref || '');
+            await doApprovePayment({ p_intent_id: id, p_external_reference: ref || null });
             toast.success('Payment Verified', { id: loadingProgress });
             hydrate();
         } catch (err: any) {
@@ -160,15 +169,12 @@ const ManagerCommandCenter: React.FC = () => {
     };
 
     const handlePaymentReject = async (id: string) => {
+        if (rejectingPayment) return;
         const reason = window.prompt('Enter rejection reason:');
         if (!reason) return;
         const loadingProgress = toast.loading('Rejecting Intent...');
         try {
-            await callRPC('manager', 'reject_payment_intent', {
-                p_intent_id: id,
-                p_reason: reason,
-                _idempotency_key: crypto.randomUUID()
-            });
+            await doRejectPayment({ p_intent_id: id, p_reason: reason });
             toast.success('Payment Rejected', { id: loadingProgress });
             hydrate();
         } catch (err: any) {
@@ -177,6 +183,7 @@ const ManagerCommandCenter: React.FC = () => {
     };
 
     const handleShiftApprove = async (shiftId: string) => {
+        if (approvingShiftClose) return;
         if (!window.confirm('Verify reconciliation and close shift?')) return;
         const loading = toast.loading('Closing Shift...');
         const { error } = await approveShift(shiftId);
@@ -188,9 +195,10 @@ const ManagerCommandCenter: React.FC = () => {
     };
 
     const handleShiftOpen = async (shiftId: string) => {
+        if (approvingShiftOpen) return;
         const loadingProgress = toast.loading('Opening Shift...');
         try {
-            await approveShiftOpen(shiftId);
+            await doApproveShiftOpen({ p_shift_id: shiftId });
             toast.success('Shift Opened', { id: loadingProgress });
             hydrate();
         } catch (err: any) {
@@ -199,11 +207,12 @@ const ManagerCommandCenter: React.FC = () => {
     };
 
     const handleShiftRejectOpen = async (shiftId: string) => {
+        if (rejectingShiftOpen) return;
         const reason = window.prompt('Reason for rejection:');
         if (!reason) return;
         const loadingProgress = toast.loading('Rejecting Request...');
         try {
-            await rejectShiftOpen(shiftId, reason);
+            await doRejectShiftOpen({ p_shift_id: shiftId, p_reason: reason });
             toast.success('Shift Request Rejected', { id: loadingProgress });
             hydrate();
         } catch (err: any) {

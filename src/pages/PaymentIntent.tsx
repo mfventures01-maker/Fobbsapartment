@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { callRPC } from '@/lib/rpcClient';
-import { supabase } from '@/lib/supabaseClient'; // PERMITTED: realtime channel subscription only
+import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
+import { supabase } from '@/lib/supabaseClient';
 import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
 import { safeNumber } from '@/lib/safeNumber';
 
@@ -19,10 +20,14 @@ const PaymentIntent: React.FC = () => {
     const orderId = searchParams.get('order_id') || searchParams.get('orderId');
     const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
     const [order, setOrder] = useState<OrderData | null>(null);
-    const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // 🛸 ANTI-GRAVITY: Single key for this intent, persisted across retries and page reload
+    const { execute: confirmIntent, isLoading: loading } = useIdempotentMutation<any, any>(
+        'public', 'create_payment_intent', { persist: true }
+    );
 
     const paymentOptions = [
         { id: 'pos', label: 'POS Terminal', icon: <CreditCard className="w-6 h-6" />, color: 'bg-blue-600', description: 'Pay via debit card' },
@@ -41,8 +46,8 @@ const PaymentIntent: React.FC = () => {
             try {
                 // Authority: following protocol C1
                 const data = await callRPC<OrderData>('public', 'get_order_status', {
-                    p_order_id: orderId,
-                    _idempotency_key: crypto.randomUUID()
+                    p_order_id: orderId
+                    // No idempotency key — this is a READ operation
                 });
 
                 if (!data) throw new Error('Order not found');
@@ -77,24 +82,20 @@ const PaymentIntent: React.FC = () => {
     };
 
     const handleConfirm = async () => {
-        if (!paymentMethod || !orderId || !order || loading) return;
+        if (!paymentMethod || !orderId || !order) return;
 
-        setLoading(true);
         setError(null);
 
         try {
-            // Atomic Authority: following protocol C2
-            await callRPC<{ success: boolean }>('public', 'create_payment_intent', {
+            // 🛸 useIdempotentMutation: key stable across retries, persisted across page reload
+            await confirmIntent({
                 p_order_id: orderId,
-                p_payment_method: paymentMethod,
-                _idempotency_key: crypto.randomUUID()
+                p_payment_method: paymentMethod
             });
 
             setSuccess(true);
         } catch (err: any) {
             setError(err.message || 'Failed to save payment method');
-        } finally {
-            setLoading(false);
         }
     };
 

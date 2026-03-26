@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { callRPC } from '@/lib/rpcClient';
+import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShift } from '@/hooks/useShift';
 import { CreditCard, Banknote, Smartphone, CheckCircle, AlertTriangle, ShieldCheck, Loader2, ArrowLeft, Landmark } from 'lucide-react';
@@ -25,7 +26,14 @@ const ConfirmPayment: React.FC = () => {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState(false);
+    // 🛸 ANTI-GRAVITY: Separate stable keys for create and confirm — both persisted across retries
+    const { execute: createIntent, isLoading: creatingIntent } = useIdempotentMutation<any, { intent_id: string }>(
+        'staff', 'create_payment_intent', { persist: true }
+    );
+    const { execute: confirmIntent, isLoading: confirmingIntent } = useIdempotentMutation<any, { success: boolean }>(
+        'staff', 'confirm_payment_intent', { persist: true }
+    );
+    const processing = creatingIntent || confirmingIntent;
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
@@ -51,10 +59,7 @@ const ConfirmPayment: React.FC = () => {
             const orderData = await callRPC<Order & { pending_intent_id?: string; pending_intent_payment_type?: string; pending_intent_reference?: string }>(
                 'staff',
                 'get_order_with_intent',
-                {
-                    p_order_id: orderId,
-                    _idempotency_key: crypto.randomUUID()
-                }
+                { p_order_id: orderId }   // READ — no idempotency key needed
             );
 
             if (!orderData) throw new Error("Order does not exist");
@@ -102,37 +107,32 @@ const ConfirmPayment: React.FC = () => {
             return;
         }
 
-        setProcessing(true);
         setError(null);
 
         try {
             let finalIntentId = intentId;
 
-            // JIT Intent creation if missing — via RPC only (no direct table writes)
+            // JIT Intent creation if missing—each RPC uses its own stable key from useIdempotentMutation
             if (!finalIntentId) {
-                const intentData = await callRPC<{ intent_id: string }>('staff', 'create_payment_intent', {
+                const intentData = await createIntent({
                     p_order_id: order.id,
                     p_payment_type: selectedPayment,
                     p_external_reference: receiptId || null,
-                    p_shift_id: currentShift?.id || null,
-                    _idempotency_key: crypto.randomUUID()
+                    p_shift_id: currentShift?.id || null
                 });
                 finalIntentId = intentData.intent_id;
             }
 
-            // ATOMIC SETTLEMENT — through firewall
-            await callRPC<{ success: boolean }>('staff', 'confirm_payment_intent', {
+            // ATOMIC SETTLEMENT — stable idempotency key prevents double-confirm on retry
+            await confirmIntent({
                 p_intent_id: finalIntentId,
-                p_external_reference: receiptId || null,
-                _idempotency_key: crypto.randomUUID()
+                p_external_reference: receiptId || null
             });
 
             setSuccess(true);
         } catch (err: any) {
             console.error(err);
             setError(err.message || "Payment confirmation failed");
-        } finally {
-            setProcessing(false);
         }
     };
 

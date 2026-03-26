@@ -171,7 +171,14 @@ export function DeterministicShellProvider({
                 )}
             </header>
             <div className="pt-8">
-                {children}
+                {state.status === 'BOOTING' ? (
+                    <div className="min-h-[50vh] flex flex-col items-center justify-center p-20 gap-4 opacity-40">
+                        <Loader2 className="animate-spin w-8 h-8 text-blue-500" />
+                        <span className="text-[10px] uppercase font-black tracking-[0.4em]">Establishing_Mirror_Symmetry...</span>
+                    </div>
+                ) : (
+                    children
+                )}
             </div>
         </ShellContext.Provider>
     );

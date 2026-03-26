@@ -4,7 +4,7 @@ import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
 import { supabase } from '@/lib/supabaseClient';
-import { createPublicOrder } from '@/services/publicService';
+import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
@@ -12,6 +12,11 @@ import { safeNumber } from '@/lib/safeNumber';
 const BarPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
     const navigate = useNavigate();
+
+    // 🛸 ANTI-GRAVITY: Single idempotency key per order intent, persisted across retries
+    const { execute: submitOrder, isLoading: submitting } = useIdempotentMutation<any, any>(
+        'public', 'create_qr_order_gateway', { persist: true }
+    );
 
     // Form State
     const [name, setName] = useState('');
@@ -24,7 +29,6 @@ const BarPublic: React.FC = () => {
     const [delivery, setDelivery] = useState('Room Delivery');
     const [paymentMethod, setPaymentMethod] = useState('POS on Delivery');
     const [tableNumber, setTableNumber] = useState('');
-    const [submitting, setSubmitting] = useState(false);
 
     const addToCart = (item: any) => {
         setCart(prev => {
@@ -55,43 +59,36 @@ const BarPublic: React.FC = () => {
             alert("Please provide your name and phone number");
             return;
         }
-
         if (paymentMethod === 'Bill to Room' && !room) {
             alert("Please provide a Room Number for 'Bill to Room' payment.");
             return;
         }
 
-        setSubmitting(true);
-
         try {
             if (!supabase) throw new Error("Database client not available");
 
-            // 1. Create Order via Universal Gateway (Deterministic Alignment)
-            const gatewayResult = await createPublicOrder(
-                HOTEL_CONFIG.org_id,
-                HOTEL_CONFIG.branch_id,
-                cart.map(item => ({
-                    name: item.name,
-                    qty: item.quantity,
-                    price: item.price
-                })),
-                name,
-                phone,
-                tableNumber || room || 'N/A',
-                {
+            // 🛸 useIdempotentMutation: key generated once, reused on retry, persisted across reload
+            const gatewayResult = await submitOrder({
+                p_org_id: HOTEL_CONFIG.org_id,
+                p_branch_id: HOTEL_CONFIG.branch_id,
+                p_customer_name: name,
+                p_customer_phone: phone,
+                p_cart: cart.map(item => ({ name: item.name, qty: item.quantity, price: item.price })),
+                p_table_id: tableNumber || room || 'N/A',
+                p_metadata: {
                     source: 'qr_menu_bar',
                     room_number: room || 'N/A',
                     delivery_method: delivery,
                     notes: notes,
                     payment_method_preference: paymentMethod
                 }
-            );
+            });
 
-            if (!gatewayResult.success) throw new Error(gatewayResult.error || "Failed to create order");
+            if (!gatewayResult?.success) throw new Error(gatewayResult?.error || "Failed to create order");
 
-            const orderId = (gatewayResult as any).order_id;
+            const orderId = gatewayResult.order_id;
 
-            // 2. Log to Supabase for Dashboard visibility (Legacy/Forensic)
+            // Log to audit trail (fire-and-forget)
             logLeadOrBooking({
                 customer_name: name,
                 customer_phone: phone,
@@ -99,43 +96,27 @@ const BarPublic: React.FC = () => {
                 total_value: subtotal,
                 business_type: 'bar',
                 metadata: {
-                    order_id: orderId,
-                    cart_items: cart,
-                    payment_method: paymentMethod,
-                    delivery_method: delivery,
-                    room_number: room || 'N/A',
-                    table_number: tableNumber || 'N/A',
-                    notes: notes,
-                    channel: channel
+                    order_id: orderId, cart_items: cart, payment_method: paymentMethod,
+                    delivery_method: delivery, room_number: room || 'N/A',
+                    table_number: tableNumber || 'N/A', notes, channel
                 }
             });
 
-            // 3. Optional: WhatsApp Notification (Background)
             if (channel !== 'web') {
-                sendRequest(
-                    'Bar Order',
-                    buildBarOrderMessage,
-                    {
-                        items: cart,
-                        subtotal: subtotal,
-                        payment_method: paymentMethod,
-                        notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
-                        room_number: room || "N/A",
-                        summary: `${cart.length} drinks (₦${safeNumber(subtotal)})`
-                    },
-                    channel as any,
-                    'kitchen'
-                );
+                sendRequest('Bar Order', buildBarOrderMessage, {
+                    items: cart, subtotal,
+                    payment_method: paymentMethod,
+                    notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
+                    room_number: room || "N/A",
+                    summary: `${cart.length} drinks (₦${safeNumber(subtotal)})`
+                }, channel as any, 'kitchen');
             }
 
-            // 4. Redirect to Payment Intent
             navigate(`/payment-intent?order_id=${orderId}`);
 
         } catch (err: any) {
             console.error("Bar submission failed:", err);
             alert("Failed to submit order: " + (err.message || "Unknown error"));
-        } finally {
-            setSubmitting(false);
         }
     };
 

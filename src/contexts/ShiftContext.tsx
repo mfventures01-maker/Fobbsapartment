@@ -8,6 +8,18 @@ import { approveShift as apiApproveShift } from '../services/managerService';
 import { subscribeToOperationalTelemetry } from '../lib/realtimeTelemetry';
 import { SHIFT_STATUS } from '../constants/shiftStatus';
 
+// 🛸 ANTI-GRAVITY: Shift mutation guard — prevents concurrent shift operations
+const useMutationMutex = () => {
+    const isMutating = useRef(false);
+    const acquire = () => {
+        if (isMutating.current) return false;
+        isMutating.current = true;
+        return true;
+    };
+    const release = () => { isMutating.current = false; };
+    return { acquire, release };
+};
+
 export type ShiftState =
     | { status: 'loading' }
     | { status: 'no_shift'; activeBusinessShifts: Shift[] }
@@ -33,6 +45,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { authority, user, staffId } = useAuth();
     const [shiftState, setShiftState] = useState<ShiftState>({ status: 'loading' });
     const isMounted = useRef(true);
+    const { acquire: acquireMutex, release: releaseMutex } = useMutationMutex();
 
     const resolveShift = useCallback(async () => {
         if (authority.status !== 'authorized' || !user || !staffId) {
@@ -112,14 +125,20 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (authority.status !== 'authorized' || !staffId) {
             return { error: { message: 'Not authorized or staff identity unresolved' } };
         }
-
         if (!authority.businessId || !authority.branchId) {
             return { error: { message: 'Business context missing (Org/Branch ID unresolved)' } };
         }
 
-        console.log('[SHIFT] Initiating startShift via deterministic service...');
+        // 🔒 MUTEX: Prevent concurrent shift opens
+        if (!acquireMutex()) {
+            return { error: { message: 'Shift operation already in progress. Please wait.' } };
+        }
+
+        // 🔑 KEY: Generated once here, passed to service
+        const idempotencyKey = crypto.randomUUID();
+        console.log(`[SHIFT] Initiating startShift (key: ${idempotencyKey.slice(0, 8)})`);
         try {
-            const result = await requestShift(authority.businessId, authority.branchId, staffId);
+            const result = await requestShift(authority.businessId, authority.branchId, staffId, idempotencyKey);
             if (!result?.success) {
                 return { error: { message: 'Failed to request shift' } };
             }
@@ -127,15 +146,22 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return { error: null };
         } catch (error: any) {
             return { error };
+        } finally {
+            releaseMutex();
         }
     };
 
     const endShift = async () => {
         if (!user || shiftState.status !== SHIFT_STATUS.OPEN) return { error: { message: 'No active shift to end' } };
 
-        console.log('[SHIFT] Initiating end_shift RPC via service...');
+        if (!acquireMutex()) {
+            return { error: { message: 'Shift operation already in progress. Please wait.' } };
+        }
+
+        const idempotencyKey = crypto.randomUUID();
+        console.log(`[SHIFT] Initiating end_shift (key: ${idempotencyKey.slice(0, 8)})`);
         try {
-            const data = await apiEndShift();
+            const data = await apiEndShift(idempotencyKey);
             if (!data || !data.success) {
                 return { error: { message: 'Failed to end shift' } };
             }
@@ -143,50 +169,56 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return { error: null };
         } catch (error: any) {
             return { error };
+        } finally {
+            releaseMutex();
         }
     };
 
     const submitDeclaration = async ({ cash, pos, transfer }: { cash: number; pos: number; transfer: number }) => {
-        // DECLARATION GUARD
         if (!staffId || !authority?.businessId || !authority?.branchId) return { error: { message: 'Incomplete identity context' }, data: undefined };
 
-        const activeShift = await getActiveShift(
-            authority.businessId,
-            authority.branchId,
-            staffId,
-            authority.role || 'staff'
-        );
-        if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
-            return { error: { message: 'No shift pending declaration or session desync' }, data: undefined };
-        }
-
-        // DECLARATION SUBMISSION LOCK
-        if (activeShift.staff_id !== staffId) {
-            console.error('[SHIFT] Ownership mismatch detected!', {
-                activeStaff: activeShift.staff_id,
-                resolvedStaff: staffId
-            });
-            throw new Error('Shift ownership mismatch');
+        if (!acquireMutex()) {
+            return { error: { message: 'Shift operation already in progress.' }, data: undefined };
         }
 
         try {
-            const data = await apiSubmitDeclaration(cash, pos, transfer, activeShift.id);
+            const activeShift = await getActiveShift(
+                authority.businessId,
+                authority.branchId,
+                staffId,
+                authority.role || 'staff'
+            );
+            if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
+                return { error: { message: 'No shift pending declaration or session desync' }, data: undefined };
+            }
+
+            if (activeShift.staff_id !== staffId) {
+                console.error('[SHIFT] Ownership mismatch detected!', { activeStaff: activeShift.staff_id, resolvedStaff: staffId });
+                throw new Error('Shift ownership mismatch');
+            }
+
+            // 🔑 KEY: Generated once, passed to service
+            const idempotencyKey = crypto.randomUUID();
+            console.log(`[SHIFT] Submitting declaration (key: ${idempotencyKey.slice(0, 8)})`);
+
+            const data = await apiSubmitDeclaration(cash, pos, transfer, activeShift.id, idempotencyKey);
             if (data?.success) {
                 await resolveShift();
                 return { error: null, data };
             }
-            if (!data || !data.success) {
-                return { error: { message: 'Submission failed' }, data: undefined };
-            }
-            return { error: { message: 'Unknown state' }, data: undefined };
+            return { error: { message: 'Submission failed' }, data: undefined };
         } catch (error: any) {
             return { error, data: undefined };
+        } finally {
+            releaseMutex();
         }
     };
 
     const approveShift = async (shiftId: string) => {
+        if (!acquireMutex()) return { error: { message: 'Shift operation already in progress.' } };
+        const idempotencyKey = crypto.randomUUID();
         try {
-            const data = await apiApproveShift(shiftId);
+            const data = await apiApproveShift(shiftId, idempotencyKey);
             if (data?.success) {
                 await resolveShift();
                 return { error: null };
@@ -194,16 +226,19 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return { error: { message: 'Approval failed' } };
         } catch (error: any) {
             return { error };
+        } finally {
+            releaseMutex();
         }
     };
 
     const rejectShift = async (shiftId: string, reason: string) => {
+        if (!acquireMutex()) return { error: { message: 'Shift operation already in progress.' } };
+        const idempotencyKey = crypto.randomUUID();
         try {
-            // ✅ Step 1: Transition to callRPC (Purification Protocol)
             const result = await callRPC<any>('manager', 'reject_shift', {
                 p_shift_id: shiftId,
                 p_reason: reason,
-                _idempotency_key: crypto.randomUUID()
+                _idempotency_key: idempotencyKey
             });
 
             if (result?.success) {
@@ -213,6 +248,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return { error: { message: 'Rejection failed' } };
         } catch (err: any) {
             return { error: err };
+        } finally {
+            releaseMutex();
         }
     };
 

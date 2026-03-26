@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { callRPC } from '../lib/rpcClient';
+import { identityCache } from '../lib/identityCache';
 import { Profile } from '../types/database';
 
 export type UserRole = 'admin' | 'manager' | 'staff' | 'owner' | 'kitchen' | 'ceo' | 'super_admin';
@@ -113,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resolveAuthority = async (currentSession: Session | null) => {
     if (!currentSession?.user) {
       console.log('[AUTH] No session found. Setting status = unauthorized');
+      identityCache.clear();
       if (isMounted.current) {
         setAuthorityStatus('unauthorized');
         setCurrentRole(null);
@@ -127,17 +129,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    console.log("[AUTH] Initial Session Check - START");
-    setAuthorityStatus('loading');
+    const userId = currentSession.user.id;
+    const cached = identityCache.get(userId);
+
+    // 🏆 SCL-02: Prevent Flicker
+    // If we have a valid cache, we are 'authorized' immediately.
+    if (cached && cached.role) {
+      console.log('[AUTH] 🚀 Identity Bridge HIT: skipping loading state');
+      if (isMounted.current) {
+        setAuthorityStatus('authorized');
+        setSession(currentSession);
+        setUser(currentSession.user);
+        setCurrentRole(cached.role);
+        setOrgId(cached.business_id);
+        setLocationId(cached.branch_id);
+        setDepartmentId(cached.department_id);
+        setDepartmentName(cached.department_name);
+        setStaffId(cached.staff_id);
+        setProfile({
+          user_id: userId,
+          role: cached.role,
+          business_id: cached.business_id,
+          full_name: cached.full_name || 'Staff'
+        });
+      }
+    } else {
+      if (isMounted.current) {
+        setAuthorityStatus('loading');
+      }
+    }
 
     try {
-      console.log("[AUTH] Calling get_my_identity RPC...");
+      console.log("[AUTH] 🔥 Forensic resolution start");
       // 🔐 STEP 2: IDENTITY RESOLUTION (RPC Master Control)
       // This is the ONLY path to system readiness.
       const identity = await callRPC<any>('public', 'get_my_identity', {
         _idempotency_key: crypto.randomUUID()
       });
-      console.log("[AUTH] get_my_identity RESPONSE:", identity);
+      console.log("[AUTH] ✅ Identity resolved:", identity);
 
       if (!identity || !identity.role) {
         console.error('[AUTH] ❌ Identity Resolution Failure: No role assigned.');
