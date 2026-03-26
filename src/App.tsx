@@ -17,6 +17,8 @@ import Login from './pages/auth/Login';
 import DashboardEngine from './pages/dashboard/DashboardEngine';
 import HotelLanding from './pages/HotelLanding';
 import RestaurantPublic from './pages/RestaurantPublic';
+import BarPublic from './pages/public/BarPublic';
+import ServicesHubPublic from './pages/public/ServicesHubPublic';
 
 // 🔬 DIAGNOSTICS OVERLAY
 function DiagnosticsOverlay() {
@@ -109,6 +111,13 @@ export default function App() {
               <Route path="/login" element={<AuthGate><Login /></AuthGate>} />
               <Route path="/staff-login" element={<AuthGate><Login /></AuthGate>} />
               <Route path="/menu/:branchId" element={<RestaurantPublic />} />
+
+              {/* 🛸 ANTI-GRAVITY: Public portal routes — previously dead-link loops */}
+              <Route path="/restaurant" element={<RestaurantPublic />} />
+              <Route path="/bar" element={<BarPublic />} />
+              <Route path="/services" element={<ServicesHubPublic />} />
+              {/* Services sub-routes: /services/cleaning, /services/transport, etc. */}
+              <Route path="/services/:type" element={<ServicesHubPublic />} />
 
               {/* PROTECTED ROUTES (Staff/Admin/Kitchen) */}
               <Route

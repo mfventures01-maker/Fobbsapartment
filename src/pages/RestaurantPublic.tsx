@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { callRPC } from "@/lib/rpcClient";
 import { useDeterministicPolling } from "@/hooks/useDeterministicPolling";
 import { useSafeArray } from "@/hooks/useSafeArray";
+import toast from "react-hot-toast";
 
 export default function RestaurantPublic() {
     const { branchId } = useParams<{ branchId: string }>();
@@ -32,7 +33,7 @@ export default function RestaurantPublic() {
                 payload: { p_branch_id: branchId },
                 error: err
             });
-            alert(err.message);
+            toast.error(err?.message || 'Failed to load menu. Please refresh.');
         }
     };
 

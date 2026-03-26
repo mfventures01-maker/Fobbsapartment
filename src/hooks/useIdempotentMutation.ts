@@ -15,7 +15,7 @@ export function useIdempotentMutation<TParams = Record<string, any>, TResult = a
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const requestKey = useRef<string | null>(null);
-    const storageKey = `${STORAGE_PREFIX}${rpcName}`;
+    const storageKey = `${STORAGE_PREFIX}${terminal}_${rpcName}`;
 
     // 🔄 On mount: restore persisted key if page was reloaded mid-request
     useEffect(() => {
