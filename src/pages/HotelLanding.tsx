@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { HOTEL_CONFIG, Room } from '@/config/cars.config';
 import { getWhatsAppTargetNumber, buildHotelBookingMessage, openWhatsApp, openTelegram, BookingForm, calculateNights } from '@/lib/channelRouting';
@@ -13,6 +13,11 @@ const HotelLanding: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [generatedId, setGeneratedId] = useState<string>('');
+
+    // 🛸 ANTI-GRAVITY: Stable booking ID — generated ONCE per booking attempt
+    const bookingIdRef = useRef<string | null>(null);
+    // 🛸 ANTI-GRAVITY: Mutex for WhatsApp/Telegram confirm — prevents double-log
+    const [confirming, setConfirming] = useState(false);
 
     const [formData, setFormData] = useState<BookingForm>({
         guestName: '',
@@ -34,16 +39,19 @@ const HotelLanding: React.FC = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setShowConfirmation(false);
+        // ✅ Reset idempotency refs for next fresh booking
+        bookingIdRef.current = null;
     };
 
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedRoom) return;
 
-        // Generate ID only once per session/attempt
-        const newId = generateBookingId(HOTEL_CONFIG.business_code);
-        setGeneratedId(newId);
-
+        // 🛸 ANTI-GRAVITY: Generate booking ID ONCE per attempt — stable across re-submits
+        if (!bookingIdRef.current) {
+            bookingIdRef.current = generateBookingId(HOTEL_CONFIG.business_code);
+        }
+        setGeneratedId(bookingIdRef.current);
         setShowConfirmation(true);
     };
 
@@ -54,7 +62,8 @@ const HotelLanding: React.FC = () => {
     };
 
     const handleConfirmAndSend = (channel: 'whatsapp' | 'telegram') => {
-        if (!selectedRoom) return;
+        if (!selectedRoom || confirming) return;   // 🔒 MUTEX: block concurrent clicks
+        setConfirming(true);
 
         const finalFormData = { ...formData, bookingId: generatedId };
         const msg = buildHotelBookingMessage(finalFormData, selectedRoom);
@@ -62,32 +71,32 @@ const HotelLanding: React.FC = () => {
         const nights = calculateNights(formData.checkIn, formData.checkOut);
         const total = selectedRoom.pricePerNight * nights;
 
-        // Log the official attempt
-        logLeadOrBooking({
-            booking_id: generatedId,
-            customer_name: formData.guestName,
-            customer_phone: formData.phone,
-            item_name: selectedRoom.name,
-            total_value: total,
-            business_type: HOTEL_CONFIG.business_type,
-            metadata: {
-                checkIn: formData.checkIn,
-                checkOut: formData.checkOut,
-                guests: formData.guests,
-                nights,
-                channel
+        try {
+            // 🛸 Idempotency: generatedId is stable (bookingIdRef) — no duplicate log on retry
+            logLeadOrBooking({
+                booking_id: generatedId,
+                customer_name: formData.guestName,
+                customer_phone: formData.phone,
+                item_name: selectedRoom.name,
+                total_value: total,
+                business_type: HOTEL_CONFIG.business_type,
+                metadata: {
+                    checkIn: formData.checkIn,
+                    checkOut: formData.checkOut,
+                    guests: formData.guests,
+                    nights,
+                    channel
+                }
+            });
+
+            if (channel === 'whatsapp') {
+                openWhatsApp(getWhatsAppTargetNumber('frontdesk'), msg);
+            } else if (channel === 'telegram' && HOTEL_CONFIG.channels.telegram_handle) {
+                openTelegram(HOTEL_CONFIG.channels.telegram_handle, msg);
             }
-        });
-
-        if (channel === 'whatsapp') {
-            openWhatsApp(getWhatsAppTargetNumber('frontdesk'), msg);
-        } else if (channel === 'telegram' && HOTEL_CONFIG.channels.telegram_handle) {
-            openTelegram(HOTEL_CONFIG.channels.telegram_handle, msg);
+        } finally {
+            setConfirming(false);
         }
-
-        // Optional: Close modal or show "Sent" state. 
-        // For v1, we leave it open so they can retry if popup blocked, 
-        // or manually close.
     };
 
     const today = new Date().toISOString().split('T')[0];
@@ -477,19 +486,21 @@ const HotelLanding: React.FC = () => {
                                     <div className="space-y-3 pt-2">
                                         <button
                                             onClick={() => handleConfirmAndSend('whatsapp')}
-                                            className="w-full py-4 bg-[#25D366] text-white rounded-xl font-bold shadow-lg shadow-green-500/20 hover:bg-[#20bd5a] transition-all flex items-center justify-center space-x-2"
+                                            disabled={confirming}
+                                            className="w-full py-4 bg-[#25D366] text-white rounded-xl font-bold shadow-lg shadow-green-500/20 hover:bg-[#20bd5a] transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             <Send className="w-5 h-5" />
-                                            <span>Confirm & Send to WhatsApp</span>
+                                            <span>{confirming ? 'Sending...' : 'Confirm & Send to WhatsApp'}</span>
                                         </button>
 
                                         {HOTEL_CONFIG.channels.telegram_handle && (
                                             <button
                                                 onClick={() => handleConfirmAndSend('telegram')}
-                                                className="w-full py-4 bg-[#0088cc] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0077b5] transition-all flex items-center justify-center space-x-2"
+                                                disabled={confirming}
+                                                className="w-full py-4 bg-[#0088cc] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0077b5] transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                             >
                                                 <Send className="w-5 h-5" />
-                                                <span>Confirm & Send to Telegram</span>
+                                                <span>{confirming ? 'Sending...' : 'Confirm & Send to Telegram'}</span>
                                             </button>
                                         )}
 

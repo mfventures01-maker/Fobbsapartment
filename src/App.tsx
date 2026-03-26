@@ -20,7 +20,7 @@ import RestaurantPublic from './pages/RestaurantPublic';
 
 // 🔬 DIAGNOSTICS OVERLAY
 function DiagnosticsOverlay() {
-  const { user, role, isAuthenticated, isLoading, businessId, branchId } = useAuth();
+  const { user, role, isAuthenticated, isLoading, orgId, locationId } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
 
@@ -62,8 +62,8 @@ function DiagnosticsOverlay() {
       <div>👤 USER: {user?.email || 'GUEST'}</div>
       <div>🎭 ROLE: {role || 'NONE'}</div>
       <div>🔐 AUTH: {isLoading ? '⏳ LOADING' : isAuthenticated ? '✅ READY' : '❌ NO_SESSION'}</div>
-      <div>🏢 BIZ: {businessId?.substring(0, 8) || 'NONE'}...</div>
-      <div>📍 LOC: {branchId?.substring(0, 8) || 'NONE'}...</div>
+      <div>🏢 ORG: {orgId?.substring(0, 8) || 'NONE'}...</div>
+      <div>📍 LOC: {locationId?.substring(0, 8) || 'NONE'}...</div>
       <div style={{ marginTop: '5px', color: '#888' }}>{window.location.pathname}</div>
       <hr style={{ borderColor: '#333', margin: '8px 0' }} />
       <button
@@ -107,6 +107,7 @@ export default function App() {
               {/* PUBLIC ROUTES */}
               <Route path="/" element={<HotelLanding />} />
               <Route path="/login" element={<AuthGate><Login /></AuthGate>} />
+              <Route path="/staff-login" element={<AuthGate><Login /></AuthGate>} />
               <Route path="/menu/:branchId" element={<RestaurantPublic />} />
 
               {/* PROTECTED ROUTES (Staff/Admin/Kitchen) */}
