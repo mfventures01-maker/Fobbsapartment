@@ -163,9 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("[AUTH] 🔥 Forensic resolution start");
       // 🔐 STEP 2: IDENTITY RESOLUTION (RPC Master Control)
       // This is the ONLY path to system readiness.
-      const identity = await callRPC<any>('public', 'get_my_identity', {
-        _idempotency_key: crypto.randomUUID()
-      });
+      const identity = await callRPC<any>('public', 'get_my_identity', {});
+      // ✅ No idempotency key — get_my_identity is a READ, not a mutation
       console.log("[AUTH] ✅ Identity resolved:", identity);
 
       if (!identity || !identity.role) {
@@ -183,7 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 🏢 CONSTRICTED BRANCH RESOLUTION PIPELINE (LAW 3: AUTH -> BRANCH)
       let resolvedBranchId = identity.branch_id;
       if (!resolvedBranchId) {
-        const res = await callRPC<any>("public", "get_my_branches", { _idempotency_key: crypto.randomUUID() });
+        const res = await callRPC<any>("public", "get_my_branches", {});
+        // ✅ No idempotency key — get_my_branches is a READ, not a mutation
         const branches = res?.branches;
 
         if (!branches?.length) {
