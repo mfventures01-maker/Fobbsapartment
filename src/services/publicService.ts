@@ -14,7 +14,7 @@ export async function createPublicOrder(
     cart: any[],
     customerName?: string,
     customerPhone?: string,
-    tableId?: string,
+    tableId?: string | null,
     metadata?: any,
     idempotencyKey?: string          // ← Caller provides the key
 ) {

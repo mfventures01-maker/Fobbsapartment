@@ -25,15 +25,15 @@ export const sanitizeUUID = (value: any): string | null => {
 // ============================================
 
 export const rpcSchemas: Record<string, { required: string[] }> = {
-    confirm_payment_intent: {
-        required: ['payment_intent_id', 'amount', 'payment_method', 'staff_id', 'shift_id', 'terminal_type', 'business_id', 'branch_id']
-    },
-    get_system_state: {
-        required: ['p_business_id', 'p_branch_id', 'p_terminal_type']
-    },
-    resolve_active_shift: {
-        required: ['business_id', 'branch_id', 'staff_id', 'terminal_type']
-    },
+    // ─── IDENTITY & AUTH (READ — no required mutation fields) ───────────────
+    get_my_identity: { required: [] },
+    get_my_branches: { required: [] },
+
+    // ─── MENU (READ) ────────────────────────────────────────────────────────
+    get_qr_menu: { required: ['p_branch_id'] },
+    get_order_status: { required: ['p_order_id'] },
+
+    // ─── ORDER GATEWAYS (MUTATION) ──────────────────────────────────────────
     create_qr_order_gateway: {
         required: ['p_org_id', 'p_branch_id', 'p_cart']
     },
@@ -43,9 +43,40 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
     add_order_item: {
         required: ['p_order_id', 'p_name', 'p_price', 'p_quantity']
     },
-    submit_shift_declaration: {
-        required: ['p_shift_id', 'p_staff_id', 'p_branch_id', 'p_declaration_amount']
+
+    // ─── PAYMENT (MUTATION) ─────────────────────────────────────────────────
+    create_payment_intent: {
+        required: ['p_order_id', 'p_payment_type']
     },
+    confirm_payment_intent: {
+        required: ['p_intent_id']
+    },
+
+    // ─── SHIFT LIFECYCLE (MUTATION) ─────────────────────────────────────────
+    resolve_active_shift: {
+        required: ['business_id', 'branch_id', 'staff_id', 'terminal_type']
+    },
+    open_staff_shift: {
+        required: ['p_business_id', 'p_branch_id', 'p_staff_id']
+    },
+    end_shift: {
+        required: []   // shift_id injected from context
+    },
+    submit_shift_declaration: {
+        required: ['p_shift_id', 'p_cash', 'p_pos', 'p_transfer']
+    },
+
+    // ─── MANAGER ACTIONS (MUTATION) ─────────────────────────────────────────
+    approve_shift_close: { required: ['p_shift_id'] },
+    approve_shift_open: { required: ['p_shift_id'] },
+    reject_shift_open: { required: ['p_shift_id', 'p_reason'] },
+
+    // ─── SYSTEM STATE (READ) ────────────────────────────────────────────────
+    get_system_state: {
+        required: ['p_business_id', 'p_branch_id', 'p_terminal_type']
+    },
+
+    // ─── LOGGING (FIRE-AND-FORGET) ───────────────────────────────────────────
     log_deterministic_event: {
         required: ['p_branch_id', 'p_terminal_type', 'p_event_type', 'p_rpc_name', 'p_payload', 'p_identity']
     },
@@ -76,11 +107,14 @@ const normalizeNairaToKobo = (payload: any) => {
 };
 
 const assertValidPayload = (payload: any, rpcName: string) => {
+    // Keys that contain '_id' as substring but are NOT UUID entity references
+    const UUID_EXEMPT_KEYS = new Set(['_idempotency_key', 'p_idempotency_key', 'terminal_type', 'p_terminal_type']);
+
     const invalidFields = Object.entries(payload).filter(([key, value]) => {
-        // 🛡️ UUID SANITIZATION
-        if (key.includes('_id') || key.includes('id_') || key === 'id') {
+        // 🛡️ UUID SANITIZATION — only check actual entity reference fields
+        if (!UUID_EXEMPT_KEYS.has(key) && (key.includes('_id') || key.includes('id_') || key === 'id')) {
             if (value === "unassigned" || value === "null" || value === "") return true;
-            return value !== null && value !== undefined && !isValidUUID(value);
+            return value !== null && value !== undefined && typeof value !== 'object' && !isValidUUID(value);
         }
 
         // 🇳🇬 NIGERIAN AMOUNT VALIDATION

@@ -3,11 +3,12 @@ import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
-import { supabase } from '@/lib/supabaseClient';
+import toast from 'react-hot-toast';
 import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
+import { sanitizeUUID } from '@/lib/rpcClient';
 
 const BarPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
@@ -56,17 +57,15 @@ const BarPublic: React.FC = () => {
     const handleSubmit = async (channel: 'whatsapp' | 'telegram' | 'web') => {
         if (cart.length === 0) return;
         if (!name || !phone) {
-            alert("Please provide your name and phone number");
+            toast.error("Please provide your name and phone number");
             return;
         }
         if (paymentMethod === 'Bill to Room' && !room) {
-            alert("Please provide a Room Number for 'Bill to Room' payment.");
+            toast.error("Room number required for 'Bill to Room' payment.");
             return;
         }
 
         try {
-            if (!supabase) throw new Error("Database client not available");
-
             // 🛸 useIdempotentMutation: key generated once, reused on retry, persisted across reload
             const gatewayResult = await submitOrder({
                 p_org_id: HOTEL_CONFIG.org_id,
@@ -74,7 +73,9 @@ const BarPublic: React.FC = () => {
                 p_customer_name: name,
                 p_customer_phone: phone,
                 p_cart: cart.map(item => ({ name: item.name, qty: item.quantity, price: item.price })),
-                p_table_id: tableNumber || room || 'N/A',
+                // ✅ TYPE CONTRACT: p_table_id must be a valid UUID or null
+                // 'N/A' is a string that fails the UUID guard — send null instead
+                p_table_id: sanitizeUUID(tableNumber) || sanitizeUUID(room) || null,
                 p_metadata: {
                     source: 'qr_menu_bar',
                     room_number: room || 'N/A',
@@ -116,7 +117,7 @@ const BarPublic: React.FC = () => {
 
         } catch (err: any) {
             console.error("Bar submission failed:", err);
-            alert("Failed to submit order: " + (err.message || "Unknown error"));
+            toast.error("Failed to submit order: " + (err.message || "Unknown error"));
         }
     };
 

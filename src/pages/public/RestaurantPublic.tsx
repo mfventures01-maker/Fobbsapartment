@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildRoomServiceMessage } from '@/lib/channelRouting';
-import { callRPC } from '@/lib/rpcClient';
+import { callRPC, sanitizeUUID } from '@/lib/rpcClient';
 import { createPublicOrder } from '@/services/publicService';
-import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Loader2, Globe } from 'lucide-react';
+import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, Loader2, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
+import toast from 'react-hot-toast';
 
 const RestaurantPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
@@ -86,12 +87,12 @@ const RestaurantPublic: React.FC = () => {
     const handleSubmit = async (channel: 'whatsapp' | 'telegram' | 'web') => {
         if (cart.length === 0) return;
         if (!name || !phone) {
-            alert("Please provide your name and phone number");
+            toast.error("Please provide your name and phone number");
             return;
         }
 
         if (paymentMethod === 'Bill to Room' && !room) {
-            alert("Please provide a Room Number for 'Bill to Room' payment.");
+            toast.error("Room number required for 'Bill to Room' payment.");
             return;
         }
 
@@ -110,7 +111,9 @@ const RestaurantPublic: React.FC = () => {
                 })),
                 name,
                 phone,
-                tableNumber || room || 'N/A',
+                // ✅ TYPE CONTRACT: tableId must be a valid UUID or null
+                // 'N/A' string fails the UUID guard in rpcClient.assertValidPayload
+                sanitizeUUID(tableNumber) || sanitizeUUID(room) || null,
                 {
                     source: 'qr_menu',
                     room_number: room || 'N/A',
@@ -144,7 +147,7 @@ const RestaurantPublic: React.FC = () => {
             navigate(`/payment-intent?order_id=${orderId}`);
         } catch (err: any) {
             console.error("Submission failed:", err);
-            alert("Order failed: " + (err.message || "Unknown error"));
+            toast.error("Order failed: " + (err.message || "Unknown error"));
         } finally {
             setSubmitting(false);
         }
