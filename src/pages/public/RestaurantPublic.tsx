@@ -3,15 +3,20 @@ import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildRoomServiceMessage } from '@/lib/channelRouting';
 import { callRPC, sanitizeUUID } from '@/lib/rpcClient';
-import { createPublicOrder } from '@/services/publicService';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, Loader2, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
 import toast from 'react-hot-toast';
+import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
 
 const RestaurantPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
     const navigate = useNavigate();
+
+    // 🛸 ANTI-GRAVITY: Single idempotency key per order intent, persisted across retries
+    const { execute: submitOrder, isLoading: submitting } = useIdempotentMutation<any, any>(
+        'public', 'create_qr_order_gateway', { persist: true }
+    );
 
     // 🌐 PUBLIC LAYER: Deterministic Menu State
     const [menuItems, setMenuItems] = useState<any[]>([]);
@@ -26,7 +31,6 @@ const RestaurantPublic: React.FC = () => {
     const [notes, setNotes] = useState('');
     const [delivery, setDelivery] = useState('Room Delivery');
     const [paymentMethod, setPaymentMethod] = useState('POS on Delivery');
-    const [submitting, setSubmitting] = useState(false);
 
     // Order State
     const [cart, setCart] = useState<{ id: string, name: string, price: number, quantity: number }[]>([]);
@@ -96,36 +100,33 @@ const RestaurantPublic: React.FC = () => {
             return;
         }
 
-        setSubmitting(true);
-
         try {
-            // 🧱 Determinstic Public Order Gateway
-            const gatewayResult = await createPublicOrder(
-                HOTEL_CONFIG.org_id,
-                HOTEL_CONFIG.branch_id,
-                cart.map(item => ({
+            // 🛸 useIdempotentMutation: key generated once, reused on retry, persisted across reload
+            const gatewayResult = await submitOrder({
+                p_org_id: HOTEL_CONFIG.org_id,
+                p_branch_id: HOTEL_CONFIG.branch_id,
+                p_customer_name: name,
+                p_customer_phone: phone,
+                p_cart: cart.map(item => ({
                     id: item.id,
                     name: item.name,
                     qty: item.quantity,
                     price: item.price
                 })),
-                name,
-                phone,
-                // ✅ TYPE CONTRACT: tableId must be a valid UUID or null
-                // 'N/A' string fails the UUID guard in rpcClient.assertValidPayload
-                sanitizeUUID(tableNumber) || sanitizeUUID(room) || null,
-                {
+                // ✅ TYPE CONTRACT: p_table_id must be a valid UUID or null
+                p_table_id: sanitizeUUID(tableNumber) || sanitizeUUID(room) || null,
+                p_metadata: {
                     source: 'qr_menu',
                     room_number: room || 'N/A',
                     delivery_method: delivery,
                     notes: notes,
                     payment_method_preference: paymentMethod
                 }
-            );
+            });
 
-            if (!gatewayResult.success) throw new Error(gatewayResult.error || "Order creation failed");
+            if (!gatewayResult?.success) throw new Error(gatewayResult?.error || "Order creation failed");
 
-            const orderId = (gatewayResult as any).order_id;
+            const orderId = gatewayResult.order_id;
 
             if (channel !== 'web') {
                 sendRequest(
@@ -148,8 +149,6 @@ const RestaurantPublic: React.FC = () => {
         } catch (err: any) {
             console.error("Submission failed:", err);
             toast.error("Order failed: " + (err.message || "Unknown error"));
-        } finally {
-            setSubmitting(false);
         }
     };
 
