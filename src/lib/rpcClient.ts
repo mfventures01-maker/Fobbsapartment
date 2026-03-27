@@ -2,9 +2,9 @@
 // Purpose: Deterministic RPC transmission with Zero-Tolerance UUID sanitization.
 // Law: "If it enters, it is correct. If it is wrong, it never enters."
 
-import { supabase } from './supabaseClient';
-// rawClient is now the singleton from supabaseClient.ts
-const rawClient = supabase;
+import { getSupabaseClientRaw } from './supabaseClient';
+// rawClient is now explicitly bypassing the proxy exclusively for the RPC gateway
+const rawClient = getSupabaseClientRaw();
 
 // ============================================
 // 🔒 ANTI-GRAVITY UTILITIES (PHASE 1)

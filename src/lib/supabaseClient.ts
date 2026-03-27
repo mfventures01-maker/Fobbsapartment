@@ -30,6 +30,9 @@ function getSupabaseClient(): SupabaseClient {
     return supabaseInstance;
 }
 
+// 🛡️ AUTHORIZED GATEWAY BYPASS (For rpcClient.ts ONLY)
+export const getSupabaseClientRaw = () => getSupabaseClient();
+
 // 🔒 LOCK DOWN - ANTI-GRAVITY PROXY ENFORCEMENT
 const baseClient = getSupabaseClient();
 
