@@ -27,13 +27,13 @@ const ConfirmPayment: React.FC = () => {
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
     // 🛸 ANTI-GRAVITY: Separate stable keys for create and confirm — both persisted across retries
-    const { execute: createIntent, isLoading: creatingIntent } = useIdempotentMutation<any, { intent_id: string }>(
-        'staff', 'create_payment_intent', { persist: true }
+    const { execute: settleOrder, isLoading: settlingOrder } = useIdempotentMutation<any, { success: boolean }>(
+        'staff', 'settle_order', { persist: true }
     );
     const { execute: confirmIntent, isLoading: confirmingIntent } = useIdempotentMutation<any, { success: boolean }>(
         'staff', 'confirm_payment_intent', { persist: true }
     );
-    const processing = creatingIntent || confirmingIntent;
+    const processing = settlingOrder || confirmingIntent;
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
@@ -110,24 +110,20 @@ const ConfirmPayment: React.FC = () => {
         setError(null);
 
         try {
-            let finalIntentId = intentId;
-
-            // JIT Intent creation if missing—each RPC uses its own stable key from useIdempotentMutation
-            if (!finalIntentId) {
-                const intentData = await createIntent({
+            if (intentId) {
+                // If intent already exists (e.g. from QR menu or previous failure), just confirm it
+                await confirmIntent({
+                    p_intent_id: intentId,
+                    p_external_reference: receiptId || null
+                });
+            } else {
+                // 🛸 ATOMIC SETTLEMENT: Create intent, record transaction, and close order in 1 SQL call
+                await settleOrder({
                     p_order_id: order.id,
                     p_payment_type: selectedPayment,
-                    p_external_reference: receiptId || null,
-                    p_shift_id: currentShift?.id || null
+                    p_external_reference: receiptId || null
                 });
-                finalIntentId = intentData.intent_id;
             }
-
-            // ATOMIC SETTLEMENT — stable idempotency key prevents double-confirm on retry
-            await confirmIntent({
-                p_intent_id: finalIntentId,
-                p_external_reference: receiptId || null
-            });
 
             setSuccess(true);
         } catch (err: any) {

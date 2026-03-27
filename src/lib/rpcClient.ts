@@ -45,6 +45,9 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
     },
 
     // ─── PAYMENT (MUTATION) ─────────────────────────────────────────────────
+    settle_order: {
+        required: ['p_order_id', 'p_payment_type']
+    },
     create_payment_intent: {
         required: ['p_order_id', 'p_payment_type']
     },
