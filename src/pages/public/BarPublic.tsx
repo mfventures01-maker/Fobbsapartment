@@ -4,20 +4,18 @@ import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildBarOrderMessage } from '@/lib/channelRouting';
 import { logLeadOrBooking } from '@/lib/logging';
 import toast from 'react-hot-toast';
-import { useIdempotentMutation } from '@/hooks/useIdempotentMutation';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, MapPin, Wine, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
-import { sanitizeUUID } from '@/lib/rpcClient';
+import { sanitizeUUID, callRPC } from '@/lib/rpcClient';
 
 const BarPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
     const navigate = useNavigate();
 
-    // 🛸 ANTI-GRAVITY: Single idempotency key per order intent, persisted across retries
-    const { execute: submitOrder, isLoading: submitting } = useIdempotentMutation<any, any>(
-        'public', 'create_qr_order_gateway', { persist: true }
-    );
+    // 🛸 ANTI-GRAVITY: Strict Payload Control
+    const [submitting, setSubmitting] = useState(false);
+    const idempotencyKeyRef = React.useRef<string | null>(null);
 
     // Form State
     const [name, setName] = useState('');
@@ -66,16 +64,24 @@ const BarPublic: React.FC = () => {
         }
 
         try {
-            // 🛸 useIdempotentMutation: key generated once, reused on retry, persisted across reload
-            const gatewayResult = await submitOrder({
+            setSubmitting(true);
+
+            if (!idempotencyKeyRef.current) {
+                idempotencyKeyRef.current = crypto.randomUUID();
+            }
+
+            const payload = {
+                p_idempotency_key: idempotencyKeyRef.current,
                 p_org_id: HOTEL_CONFIG.org_id,
                 p_branch_id: HOTEL_CONFIG.branch_id,
-                p_customer_name: name,
-                p_customer_phone: phone,
+                p_business_id: HOTEL_CONFIG.org_id,
                 p_cart: cart.map(item => ({ name: item.name, qty: item.quantity, price: item.price })),
-                // ✅ TYPE CONTRACT: p_table_id must be a valid UUID or null
-                // 'N/A' is a string that fails the UUID guard — send null instead
+                p_customer_name: name || null,
+                p_customer_phone: phone || null,
                 p_table_id: sanitizeUUID(tableNumber) || sanitizeUUID(room) || null,
+                p_terminal_type: 'public',
+                p_shift_id: null,
+                p_staff_id: null,
                 p_metadata: {
                     source: 'qr_menu_bar',
                     room_number: room || 'N/A',
@@ -83,7 +89,16 @@ const BarPublic: React.FC = () => {
                     notes: notes,
                     payment_method_preference: paymentMethod
                 }
-            });
+            };
+
+            console.log('🛸 RPC PAYLOAD', JSON.stringify(payload, null, 2));
+
+            const keys = Object.keys(payload);
+            if (keys.length !== 12 || !keys.every(k => k.startsWith('p_'))) {
+                throw new Error("🚫 STRICT PAYLOAD VIOLATION: Payload must contain EXACTLY 12 matching keys.");
+            }
+
+            const gatewayResult = await callRPC('public', 'create_qr_order_gateway', payload);
 
             if (!gatewayResult?.success) throw new Error(gatewayResult?.error || "Failed to create order");
 
@@ -118,6 +133,8 @@ const BarPublic: React.FC = () => {
         } catch (err: any) {
             console.error("Bar submission failed:", err);
             toast.error("Failed to submit order: " + (err.message || "Unknown error"));
+        } finally {
+            setSubmitting(false);
         }
     };
 

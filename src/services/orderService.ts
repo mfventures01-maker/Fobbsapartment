@@ -16,15 +16,21 @@ export async function createPublicOrder(
     metadata?: any
 ) {
     try {
-        const data = await callRPC<string>('public', 'create_qr_order_gateway', {
+        const payload = {
+            p_idempotency_key: crypto.randomUUID(),
             p_org_id: businessId,
             p_branch_id: locationId,
+            p_business_id: businessId,
+            p_cart: cart,
             p_customer_name: customerName || null,
             p_customer_phone: customerPhone || null,
-            p_cart: cart,
             p_table_id: tableId || null,
+            p_terminal_type: 'public',
+            p_shift_id: null,
+            p_staff_id: null,
             p_metadata: metadata || {}
-        });
+        };
+        const data = await callRPC<string>('public', 'create_qr_order_gateway', payload);
         // Backend returns a single UUID string
         return { success: true, order_id: data };
     } catch (err: any) {

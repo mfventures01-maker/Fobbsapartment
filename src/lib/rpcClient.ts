@@ -199,6 +199,16 @@ class RPCClient {
                 staff_id: payload.staff_id || context.staff_id,
                 terminal_type: terminal
             };
+        } else if (functionName === 'create_qr_order_gateway') {
+            // 🛸 SURGEON PROTOCOL: EXACT 12-KEY ALIGNMENT
+            fullPayload = payload;
+
+            console.log('🛸 RPC PAYLOAD', JSON.stringify(fullPayload, null, 2));
+            const keys = Object.keys(fullPayload);
+            if (keys.length !== 12 || !keys.every(k => k.startsWith('p_'))) {
+                console.error("Payload Structure Failed:", Object.keys(fullPayload));
+                throw new Error("🚫 STRICT PAYLOAD VIOLATION: create_qr_order_gateway payload must contain EXACTLY 12 matching keys.");
+            }
         } else {
             if (functionName === 'get_active_shift') {
                 console.warn("[DEPRECATED] get_active_shift call detected. Routing should favor resolve_active_shift.");

@@ -19,16 +19,21 @@ export async function createPublicOrder(
     idempotencyKey?: string          // ← Caller provides the key
 ) {
     try {
-        const data = await callRPC<{ order_id: string; total: number }>('public', 'create_qr_order_gateway', {
+        const payload = {
+            p_idempotency_key: idempotencyKey || crypto.randomUUID(),
             p_org_id: businessId,
             p_branch_id: locationId,
+            p_business_id: businessId,
+            p_cart: cart,
             p_customer_name: customerName || null,
             p_customer_phone: customerPhone || null,
-            p_cart: cart,
             p_table_id: tableId || null,
-            p_metadata: metadata || {},
-            _idempotency_key: idempotencyKey   // ← Stable; callers must provide this
-        });
+            p_terminal_type: 'public',
+            p_shift_id: null,
+            p_staff_id: null,
+            p_metadata: metadata || {}
+        };
+        const data = await callRPC<{ order_id: string; total: number }>('public', 'create_qr_order_gateway', payload);
         return { success: true, ...data };
     } catch (err: any) {
         console.error('[PUBLIC SERVICE] Order Error:', err.message);
