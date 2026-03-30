@@ -1,6 +1,17 @@
-
 export type RoomType = 'Studio' | '1-Bedroom' | '2-Bedroom' | 'Penthouse';
 
+// 🛡️ ANTI-LEAK SHIELD: The CARSS Truth Shift State Machine
+export type ShiftStatus =
+  | 'requested'
+  | 'open'
+  | 'pending_declaration'
+  | 'awaiting_approval'
+  | 'closed';
+
+export interface Shift {
+  id: string;
+  status: ShiftStatus; // This locks the door.
+}
 export interface Apartment {
   id: string;
   name: string;
