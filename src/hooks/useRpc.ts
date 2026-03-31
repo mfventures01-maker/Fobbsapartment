@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import { rpcClient, type TerminalType } from '../lib/rpcClient';
+import { rpcClient } from '../lib/rpcClient';
 import { useTerminal } from './useTerminal';
-import { useShift } from '../contexts/ShiftContext';
+import { useShift } from './useShift';
 
 export function useRpc() {
-    const { terminalId, branchId, terminalType } = useTerminal();
-    const { activeShift } = useShift();
+    const { branchId, terminalType } = useTerminal();
+    const { currentShift } = useShift();
 
     const call = useCallback(async <TPayload, TResponse>(
         functionName: string,
@@ -15,8 +15,8 @@ export function useRpc() {
             requireShift?: boolean; // If true, block when no shift
         }
     ) => {
-        // ENFORCE SHIFT REQUIREMENT
-        if (options?.requireShift && !activeShift) {
+        // ENFORCE SHIFT REQUIREMENT (Zero Drift Protocol)
+        if (options?.requireShift && !currentShift) {
             return {
                 data: null,
                 error: {
@@ -31,13 +31,16 @@ export function useRpc() {
             };
         }
 
-        // Let the RPC client handle the call
-        return rpcClient.call<TPayload, TResponse>({
-            function: functionName,
-            payload,
-            idempotency_key: options?.idempotencyKey
-        });
-    }, [activeShift, branchId, terminalType]);
+        // Let the RPC client handle the call with correct parameter ordering
+        return rpcClient.call<TResponse>(
+            functionName,
+            {
+                ...payload,
+                p_idempotency_key: options?.idempotencyKey
+            },
+            terminalType
+        );
+    }, [currentShift, branchId, terminalType]);
 
     return { call };
 }

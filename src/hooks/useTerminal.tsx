@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { callRPC, type TerminalType } from '../lib/rpcClient';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { callRPC } from '../lib/rpcClient';
+import { type TerminalType } from '../lib/rpcFirewall';
 
 interface TerminalContextValue {
     terminalId: string;
@@ -47,14 +48,14 @@ export function TerminalProvider({
     }, [branchId, state.deviceId, state.terminalId, terminalType]);
 
     return (
-        <TerminalContext.Provider value= {{
+        <TerminalContext.Provider value={{
             ...state,
             isLoading: false,
-                error: null
-    }
-}>
-    { children }
-    </TerminalContext.Provider>
+            error: null
+        }
+        }>
+            {children}
+        </TerminalContext.Provider>
     );
 }
 
