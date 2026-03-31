@@ -8,6 +8,7 @@ import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, Ma
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
 import { sanitizeUUID, callRPC } from '@/lib/rpcClient';
+import { supabase } from '@/lib/supabaseClient';
 
 const BarPublic: React.FC = () => {
     const { sendRequest } = usePublicRequest();
@@ -98,11 +99,20 @@ const BarPublic: React.FC = () => {
                 throw new Error("🚫 STRICT PAYLOAD VIOLATION: Payload must contain EXACTLY 12 matching keys.");
             }
 
-            const gatewayResult = await callRPC('public', 'create_qr_order_gateway', payload);
+            const { data, error } = await supabase.rpc('create_qr_order_gateway', payload);
 
-            if (!gatewayResult?.success) throw new Error(gatewayResult?.error || "Failed to create order");
+            const result = { data, error };
 
-            const orderId = gatewayResult.order_id;
+            // 🚨 TRUTH LOG (DO NOT MODIFY)
+            console.log("RPC RESPONSE:", result);
+
+            if (error) {
+                console.error("❌ RPC ERROR:", error);
+            } else {
+                console.log("📦 ORDER DATA:", data);
+            }
+
+            const orderId = data?.order_id || null;
 
             // Log to audit trail (fire-and-forget)
             logLeadOrBooking({

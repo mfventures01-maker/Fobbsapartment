@@ -3,6 +3,7 @@ import { usePublicRequest } from '@/hooks/usePublicRequest';
 import { HOTEL_CONFIG } from '@/config/cars.config';
 import { buildRoomServiceMessage } from '@/lib/channelRouting';
 import { callRPC, sanitizeUUID } from '@/lib/rpcClient';
+import { supabase } from '@/lib/supabaseClient';
 import { Send, ArrowLeft, Plus, Minus, ShoppingBag, User, Phone as PhoneIcon, Loader2, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { safeNumber } from '@/lib/safeNumber';
@@ -137,11 +138,20 @@ const RestaurantPublic: React.FC = () => {
                 throw new Error("🚫 STRICT PAYLOAD VIOLATION: Payload must contain EXACTLY 12 matching keys.");
             }
 
-            const gatewayResult = await callRPC('public', 'create_qr_order_gateway', payload);
+            const { data, error } = await supabase.rpc('create_qr_order_gateway', payload);
 
-            if (!gatewayResult?.success) throw new Error(gatewayResult?.error || "Order creation failed");
+            const result = { data, error };
 
-            const orderId = gatewayResult.order_id;
+            // 🚨 TRUTH LOG (DO NOT MODIFY)
+            console.log("RPC RESPONSE:", result);
+
+            if (error) {
+                console.error("❌ RPC ERROR:", error);
+            } else {
+                console.log("📦 ORDER DATA:", data);
+            }
+
+            const orderId = data?.order_id || null;
 
             if (channel !== 'web') {
                 sendRequest(
