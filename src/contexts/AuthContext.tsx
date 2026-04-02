@@ -11,7 +11,7 @@ export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  ANTI-GRAVITY LAW §1: hydrated=true is the ONLY gate that permits       ║
-// ║  downstream RPC calls. It is set ONLY after get_my_identity() succeeds. ║
+// ║  downstream RPC calls. It is set ONLY after profiles table confirms it. ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 export interface Authority {
   status: AuthorityStatus;
@@ -21,7 +21,7 @@ export interface Authority {
   departmentId: string | null;
   departmentName: string | null;
   /**
-   * hydrated=true means: profile role has been verified by the backend RPC.
+   * hydrated=true means: profile role has been verified from the profiles table.
    * hydrated=false means: do NOT execute any RPC calls — identity is unconfirmed.
    */
   hydrated: boolean;
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [staffId, setStaffId] = useState<string | null>(null);
   const [shiftId, setShiftId] = useState<string | null>(null);
 
-  // ── Hydration flag: only true after RPC confirmation ──────────────────────
+  // ── Hydration flag: only true after profiles table confirmation ───────────
   const [hydrated, setHydrated] = useState(false);
 
   const isMounted = useRef(true);
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ── CORE IDENTITY RESOLUTION ───────────────────────────────────────────────
   const resolveAuthority = async (currentSession: Session | null) => {
-    // ── TRACE POINT 1: AUTH EVENT ENTRY ─────────────────────────────────────
+    // ── TRACE POINT 1: AUTH EVENT ENTRY ──────────────────────────────────────
     console.log('[HYDRATION_TRACE] AUTH_EVENT', JSON.stringify({
       event: currentSession ? 'SESSION_FOUND' : 'NO_SESSION',
       sessionExists: !!currentSession
@@ -160,14 +160,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const userId = currentSession.user.id;
 
-    // ── CACHE: Fast UI pre-render ONLY — does NOT unlock hydration gate ──────
+    // ── CACHE: Fast UI pre-render ONLY — does NOT unlock hydration gate ───────
     // The cache populates role/branch visually to prevent flicker,
-    // but hydrated stays FALSE until the RPC confirms identity below.
+    // but hydrated stays FALSE until the profiles table confirms identity below.
     const cached = identityCache.get(userId);
     if (cached && cached.role) {
-      console.log('[AUTH] 🚀 Identity Bridge HIT: pre-rendering from cache (hydration gate stays CLOSED until RPC)');
+      console.log('[AUTH] 🚀 Identity Bridge HIT: pre-rendering from cache (hydration gate stays CLOSED until profiles query)');
       if (isMounted.current) {
-        // Pre-populate UI state for immediate render — status stays 'loading'
         setSession(currentSession);
         setUser(currentSession.user);
         setCurrentRole(cached.role);
@@ -183,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: cached.full_name || 'Staff'
         });
         // NOTE: authorityStatus stays 'loading', hydrated stays false
-        // Downstream is blocked until RPC confirms below
+        // Downstream is blocked until profiles table confirms below
       }
     } else {
       if (isMounted.current) {
@@ -192,37 +191,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // ── RPC MASTER RESOLUTION: THE ONLY PATH TO SYSTEM READINESS ─────────────
+    // ── DIRECT PROFILES TABLE QUERY: NO RPC DEPENDENCY ────────────────────────
+    // Bypasses get_my_identity_simple entirely — direct source of truth.
     const _hydrateStart = Date.now();
     try {
-      // ── TRACE POINT 2: RPC INVOCATION ──────────────────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_CALL:get_my_identity_simple', JSON.stringify({
+      // ── TRACE POINT 2: QUERY INVOCATION ────────────────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_CALL:profiles_table', JSON.stringify({
         timestamp: new Date().toISOString(),
         attempt: true
       }));
 
       // ╔══════════════════════════════════════════════════════════╗
-      // ║ ANTI-GRAVITY LAW §2: Role MUST come from business_memberships  ║
-      // ║ via get_my_identity(). Supabase Auth role is NEVER used.       ║
+      // ║ ANTI-GRAVITY LAW §2: Role MUST come from profiles table. ║
+      // ║ No RPC. No Supabase Auth role. Direct source of truth.   ║
       // ╚══════════════════════════════════════════════════════════╝
-      const identity = await callRPC<any>('public', 'get_my_identity_simple', {});
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, branch_id, business_id, department_id, department_name, staff_id')
+        .eq('user_id', userId)
+        .single();
 
-      // ── TRACE POINT 3: RPC RESPONSE ────────────────────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity_simple', JSON.stringify({
-        success: !!identity,
-        data: identity,
-        error: null
-      }));
-
-      // ── REQUIRED VERIFICATION LOGS ──────────────────────────────
-      console.log('[AUTH] User ID:', currentSession.user.id);
-      console.log('[AUTH] Profile (from get_my_identity):', identity);
-      console.log('[AUTH] Final Role:', identity?.role);
-      console.log('[AUTH] Branch ID:', identity?.branch_id);
-
-      // ── HARD STOP: No role = no access ──────────────────────────
-      if (!identity || !identity.role) {
-        console.error('[AUTH] ❌ HARD STOP: Identity Resolution Failure. No role assigned by get_my_identity().');
+      // ── TRACE POINT 3: QUERY RESPONSE ──────────────────────────────────────
+      if (profileError || !profileData) {
+        console.log('[HYDRATION_TRACE] RPC_RESPONSE:profiles_table', JSON.stringify({
+          success: false,
+          data: null,
+          error: profileError?.message || 'No profile row found'
+        }));
+        console.error('[AUTH] ❌ HARD STOP: profiles table query failed.', profileError);
         if (isMounted.current) {
           setHydrated(false);
           setAuthorityStatus('unauthorized');
@@ -232,10 +228,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // ── HARD STOP: Reject invalid/Supabase system roles ─────────
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:profiles_table', JSON.stringify({
+        success: true,
+        data: {
+          role: profileData.role,
+          branch_id: profileData.branch_id,
+          canHydrate: !!profileData.role && profileData.role !== 'authenticated'
+        }
+      }));
+
+      // Build identity object from profile row
+      const identity = {
+        user_id: userId,
+        role: profileData.role,
+        branch_id: profileData.branch_id,
+        business_id: profileData.business_id,
+        department_id: profileData.department_id,
+        department_name: profileData.department_name,
+        staff_id: profileData.staff_id,
+      };
+
+      // ── REQUIRED VERIFICATION LOGS ────────────────────────────────────────
+      console.log('[AUTH] User ID:', currentSession.user.id);
+      console.log('[AUTH] Profile (from profiles table):', identity);
+      console.log('[AUTH] Final Role:', identity.role);
+      console.log('[AUTH] Branch ID:', identity.branch_id);
+
+      // ── HARD STOP: No role = no access ───────────────────────────────────
+      if (!identity.role) {
+        console.error('[AUTH] ❌ HARD STOP: Identity Resolution Failure. profiles.role is null.');
+        if (isMounted.current) {
+          setHydrated(false);
+          setAuthorityStatus('unauthorized');
+          setUser(currentSession.user);
+          setSession(currentSession);
+        }
+        return;
+      }
+
+      // ── HARD STOP: Reject Supabase system roles ───────────────────────────
       const INVALID_ROLES = ['authenticated', 'anon', 'service_role', 'postgres'];
       if (INVALID_ROLES.includes(identity.role)) {
-        console.error(`[AUTH] ❌ HARD STOP: Supabase system role detected ("${identity.role}"). This must never reach the frontend.`);
+        console.error(`[AUTH] ❌ HARD STOP: System role detected ("${identity.role}"). Must never reach frontend.`);
         if (isMounted.current) {
           setHydrated(false);
           setAuthorityStatus('unauthorized');
@@ -243,12 +277,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      console.log(`[AUTH] ✅ Business role confirmed via RPC: "${identity.role}"`);
+      console.log(`[AUTH] ✅ Business role confirmed from profiles table: "${identity.role}"`);
 
-      // ── BRANCH RESOLUTION (fallback if not in identity) ──────────
+      // ── BRANCH FALLBACK (if profiles row missing branch_id) ───────────────
       let resolvedBranchId = identity.branch_id;
       if (!resolvedBranchId) {
-        console.warn('[AUTH] Branch ID missing from identity — attempting get_my_branches()');
+        console.warn('[AUTH] Branch ID missing from profile — attempting get_my_branches()');
         const res = await callRPC<any>('public', 'get_my_branches', {});
         const branches = res?.branches;
         if (!branches?.length) {
@@ -263,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log(`[AUTH] 🌿 Branch Auto-Resolved: ${resolvedBranchId}`);
       }
 
-      // ── WRITE VERIFIED IDENTITY TO CACHE ─────────────────────────
+      // ── WRITE VERIFIED IDENTITY TO CACHE ─────────────────────────────────
       identityCache.set({
         user_id: userId,
         role: identity.role,
@@ -276,7 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timestamp: new Date().toISOString(),
       });
 
-      // ── ATOMIC STATE COMMIT: All or nothing ───────────────────────
+      // ── ATOMIC STATE COMMIT: All or nothing ──────────────────────────────
       if (isMounted.current) {
         setOrgId(identity.business_id);
         setLocationId(resolvedBranchId);
@@ -303,7 +337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setHydrated(true);
         setAuthorityStatus('authorized');
 
-        // ── TRACE POINT 4: AUTH STATE RESOLUTION ───────────────────────────
+        // ── TRACE POINT 4: AUTH STATE RESOLUTION ─────────────────────────────
         console.log('[HYDRATION_TRACE] AUTH_RESOLVED', JSON.stringify({
           user_id: currentSession.user.id,
           role: identity.role,
@@ -312,7 +346,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hydrated: true
         }));
 
-        // ── TRACE POINT 5: HYDRATION GATE DECISION ─────────────────────────
+        // ── TRACE POINT 5: HYDRATION GATE DECISION ───────────────────────────
         console.log('[HYDRATION_TRACE] HYDRATION_GATE', JSON.stringify({
           hydrated: true,
           allowDownstream: true,
@@ -328,8 +362,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (err: any) {
-      // ── TRACE POINT 3 (ERROR PATH): RPC RESPONSE ───────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity_simple', JSON.stringify({
+      // ── TRACE POINT 3 (ERROR PATH) ────────────────────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:profiles_table', JSON.stringify({
         success: false,
         data: null,
         error: err?.message || String(err)
@@ -386,7 +420,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  // ── AUTHORITY OBJECT: single shape consumed by all downstream contexts ────
+  // ── AUTHORITY OBJECT: single shape consumed by all downstream contexts ─────
   const authority: Authority = {
     status: authorityStatus,
     role: currentRole,
