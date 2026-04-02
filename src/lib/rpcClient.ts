@@ -152,7 +152,16 @@ class RPCClient {
         if (terminal === 'public' || PUBLIC_RPC_ALLOWLIST.has(functionName)) return;
 
         const authority = this.currentContext?.authority;
-        if (authority && authority.hydrated === false) {
+        const isBlocked = authority && authority.hydrated === false;
+
+        // ─── TRACE POINT 7: RPC FIREWALL CHECK ──────────────────────────────
+        console.log('[HYDRATION_TRACE] RPC_FIREWALL', JSON.stringify({
+            rpcName: functionName,
+            blocked: !!isBlocked,
+            reason: isBlocked ? 'NOT_HYDRATED' : null
+        }));
+
+        if (isBlocked) {
             throw new Error(
                 `⛔ [HYDRATION GATE] RPC "${functionName}" blocked. ` +
                 `Identity not yet hydrated by backend. Wait for authority.hydrated=true.`

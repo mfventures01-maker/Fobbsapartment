@@ -48,6 +48,13 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { acquire: acquireMutex, release: releaseMutex } = useMutationMutex();
 
     const resolveShift = useCallback(async () => {
+        // ─── TRACE POINT 6: SHIFT RESOLUTION ATTEMPT ───────────────────────────
+        console.log('[HYDRATION_TRACE] SHIFT_TRIGGER', JSON.stringify({
+            attempted: !!(user && staffId),
+            blocked: !authority.hydrated,
+            branch_id: authority.branchId ?? null
+        }));
+
         // ⛔ ANTI-GRAVITY HYDRATION GATE: block until RPC identity is confirmed
         if (!authority.hydrated || !user || !staffId) {
             console.log('[SHIFT STATE] ⛔ Hydration gate closed — shift resolution blocked (hydrated=%s)', authority.hydrated);

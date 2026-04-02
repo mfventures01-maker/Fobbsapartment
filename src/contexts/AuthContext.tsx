@@ -132,6 +132,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ── CORE IDENTITY RESOLUTION ───────────────────────────────────────────────
   const resolveAuthority = async (currentSession: Session | null) => {
+    // ── TRACE POINT 1: AUTH EVENT ENTRY ─────────────────────────────────────
+    console.log('[HYDRATION_TRACE] AUTH_EVENT', JSON.stringify({
+      event: currentSession ? 'SESSION_FOUND' : 'NO_SESSION',
+      sessionExists: !!currentSession
+    }));
+
     if (!currentSession?.user) {
       console.log('[AUTH] No session found. Setting status = unauthorized');
       identityCache.clear();
@@ -187,14 +193,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // ── RPC MASTER RESOLUTION: THE ONLY PATH TO SYSTEM READINESS ─────────────
+    const _hydrateStart = Date.now();
     try {
-      console.log('[AUTH] 🔥 Forensic resolution start — calling get_my_identity()');
+      // ── TRACE POINT 2: RPC INVOCATION ──────────────────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_CALL:get_my_identity', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        attempt: true
+      }));
 
       // ╔══════════════════════════════════════════════════════════╗
       // ║ ANTI-GRAVITY LAW §2: Role MUST come from business_memberships  ║
       // ║ via get_my_identity(). Supabase Auth role is NEVER used.       ║
       // ╚══════════════════════════════════════════════════════════╝
       const identity = await callRPC<any>('public', 'get_my_identity', {});
+
+      // ── TRACE POINT 3: RPC RESPONSE ────────────────────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity', JSON.stringify({
+        success: !!identity,
+        data: identity,
+        error: null
+      }));
 
       // ── REQUIRED VERIFICATION LOGS ──────────────────────────────
       console.log('[AUTH] User ID:', currentSession.user.id);
@@ -284,6 +302,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // ╚══════════════════════════════════════════════════════════╝
         setHydrated(true);
         setAuthorityStatus('authorized');
+
+        // ── TRACE POINT 4: AUTH STATE RESOLUTION ───────────────────────────
+        console.log('[HYDRATION_TRACE] AUTH_RESOLVED', JSON.stringify({
+          user_id: currentSession.user.id,
+          role: identity.role,
+          business_id: identity.business_id,
+          branch_id: resolvedBranchId,
+          hydrated: true
+        }));
+
+        // ── TRACE POINT 5: HYDRATION GATE DECISION ─────────────────────────
+        console.log('[HYDRATION_TRACE] HYDRATION_GATE', JSON.stringify({
+          hydrated: true,
+          allowDownstream: true,
+          time_to_hydrate_ms: Date.now() - _hydrateStart
+        }));
+
         console.log('[AUTH] 🔓 Authority Gate: OPEN. Hydration complete. Downstream SSOT enabled.');
         console.log('[AUTH] Hydration summary:', {
           role: identity.role,
@@ -292,7 +327,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           staff_id: identity.staff_id,
         });
       }
-    } catch (err) {
+    } catch (err: any) {
+      // ── TRACE POINT 3 (ERROR PATH): RPC RESPONSE ───────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity', JSON.stringify({
+        success: false,
+        data: null,
+        error: err?.message || String(err)
+      }));
       console.error('[AUTH] 💥 Forensic resolution failure:', err);
       if (isMounted.current) {
         setHydrated(false);
