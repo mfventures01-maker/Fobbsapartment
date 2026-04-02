@@ -140,6 +140,26 @@ class RPCClient {
         this.currentContext = context;
     }
 
+    // ⛔ ANTI-GRAVITY LAW §4: Hydration gate check
+    // If the authority object exists in context, block transactional calls until hydrated.
+    private assertHydrated(functionName: string, terminal: string): void {
+        // Public/read operations are always allowed
+        const PUBLIC_RPC_ALLOWLIST = new Set([
+            'get_my_identity', 'get_my_branches', 'get_qr_menu',
+            'get_order_status', 'create_qr_order_gateway', 'log_frontend_error',
+            'get_system_state'
+        ]);
+        if (terminal === 'public' || PUBLIC_RPC_ALLOWLIST.has(functionName)) return;
+
+        const authority = this.currentContext?.authority;
+        if (authority && authority.hydrated === false) {
+            throw new Error(
+                `⛔ [HYDRATION GATE] RPC "${functionName}" blocked. ` +
+                `Identity not yet hydrated by backend. Wait for authority.hydrated=true.`
+            );
+        }
+    }
+
     private validatePayload(rpcName: string, payload: any) {
         const schema = rpcSchemas[rpcName];
         if (!schema) {
@@ -172,6 +192,9 @@ class RPCClient {
     }
 
     async call<T = any>(functionName: string, payload: any = {}, terminal: string = 'staff'): Promise<T> {
+        // ⛔ ANTI-GRAVITY LAW §4: Hydration gate — first check, no exceptions
+        this.assertHydrated(functionName, terminal);
+
         const start = Date.now();
         const context = this.getTerminalContext();
 

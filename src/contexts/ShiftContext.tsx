@@ -48,7 +48,9 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { acquire: acquireMutex, release: releaseMutex } = useMutationMutex();
 
     const resolveShift = useCallback(async () => {
-        if (authority.status !== 'authorized' || !user || !staffId) {
+        // ⛔ ANTI-GRAVITY HYDRATION GATE: block until RPC identity is confirmed
+        if (!authority.hydrated || !user || !staffId) {
+            console.log('[SHIFT STATE] ⛔ Hydration gate closed — shift resolution blocked (hydrated=%s)', authority.hydrated);
             if (isMounted.current) setShiftState({ status: 'loading' });
             return;
         }
@@ -100,13 +102,16 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             console.error('[SHIFT] Resolve error:', err);
             if (isMounted.current) setShiftState({ status: 'error', error: err.message });
         }
-    }, [authority, user]);
+    }, [authority, user, staffId]);
 
     useEffect(() => {
         isMounted.current = true;
-        resolveShift();
+        // Only attempt shift resolution once the hydration gate is open
+        if (authority.hydrated) {
+            resolveShift();
+        }
 
-        if (authority.branchId) {
+        if (authority.hydrated && authority.branchId) {
             const unsubscribeTelemetry = subscribeToOperationalTelemetry(authority.branchId, {
                 onShiftUpdate: () => {
                     console.log('[SHIFT STATE] Realtime shift update received, resolving...');
@@ -119,11 +124,16 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 unsubscribeTelemetry();
             };
         }
-    }, [resolveShift, user, authority.branchId]);
+
+        return () => {
+            isMounted.current = false;
+        };
+    }, [resolveShift, user, authority.hydrated, authority.branchId]);
 
     const startShift = async () => {
-        if (authority.status !== 'authorized' || !staffId) {
-            return { error: { message: 'Not authorized or staff identity unresolved' } };
+        // ⛔ ANTI-GRAVITY HYDRATION GATE
+        if (!authority.hydrated || !staffId) {
+            return { error: { message: 'Identity not hydrated. Cannot start shift until backend confirms role.' } };
         }
         if (!authority.businessId || !authority.branchId) {
             return { error: { message: 'Business context missing (Org/Branch ID unresolved)' } };
