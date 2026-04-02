@@ -295,7 +295,7 @@ export class DeterministicShell {
     }
 
     private async resolveBranchId(): Promise<string> {
-        const data = await this.callRPC<any>('get_my_identity', {});
+        const data = await this.callRPC<any>('get_my_identity_simple', {});
         this.branchId = sanitizeUUID(data.branch_id);
         return data.branch_id;
     }

@@ -196,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const _hydrateStart = Date.now();
     try {
       // ── TRACE POINT 2: RPC INVOCATION ──────────────────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_CALL:get_my_identity', JSON.stringify({
+      console.log('[HYDRATION_TRACE] RPC_CALL:get_my_identity_simple', JSON.stringify({
         timestamp: new Date().toISOString(),
         attempt: true
       }));
@@ -205,10 +205,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ║ ANTI-GRAVITY LAW §2: Role MUST come from business_memberships  ║
       // ║ via get_my_identity(). Supabase Auth role is NEVER used.       ║
       // ╚══════════════════════════════════════════════════════════╝
-      const identity = await callRPC<any>('public', 'get_my_identity', {});
+      const identity = await callRPC<any>('public', 'get_my_identity_simple', {});
 
       // ── TRACE POINT 3: RPC RESPONSE ────────────────────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity', JSON.stringify({
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity_simple', JSON.stringify({
         success: !!identity,
         data: identity,
         error: null
@@ -329,7 +329,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err: any) {
       // ── TRACE POINT 3 (ERROR PATH): RPC RESPONSE ───────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity', JSON.stringify({
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:get_my_identity_simple', JSON.stringify({
         success: false,
         data: null,
         error: err?.message || String(err)

@@ -23,7 +23,7 @@ export const sanitizeUUID = (value: any): string | null => {
 
 export const rpcSchemas: Record<string, { required: string[] }> = {
     // ─── IDENTITY & AUTH (READ — no required mutation fields) ───────────────
-    get_my_identity: { required: [] },
+    get_my_identity_simple: { required: [] },
     get_my_branches: { required: [] },
 
     // ─── MENU (READ) ────────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ class RPCClient {
     private assertHydrated(functionName: string, terminal: string): void {
         // Public/read operations are always allowed
         const PUBLIC_RPC_ALLOWLIST = new Set([
-            'get_my_identity', 'get_my_branches', 'get_qr_menu',
+            'get_my_identity_simple', 'get_my_branches', 'get_qr_menu',
             'get_order_status', 'create_qr_order_gateway', 'log_frontend_error',
             'get_system_state'
         ]);

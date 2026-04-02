@@ -10,14 +10,15 @@ export interface BaseRPCPayload {
 
 export interface RPCRegistry {
     // 🔐 AUTH & IDENTITY
-    get_my_identity: {
-        params: { p_terminal_type?: String };
+    get_my_identity_simple: {
+        params: {};
         returns: {
             user_id: string;
             role: string;
             business_id: string;
             branch_id: string;
             staff_id?: string;
+            canHydrate?: boolean;
         };
     };
 

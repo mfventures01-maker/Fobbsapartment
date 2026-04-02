@@ -134,7 +134,7 @@ export class CARSSClient {
 
         // Fallback for standalone/CLI usage only
         console.warn(`[${this.terminalType}] ⚠️ Identity not provided. Performing fallback fetch (Race Condition Risk).`);
-        const identityResult = await this.callRPC<DeterministicIdentity>('get_my_identity', {});
+        const identityResult = await this.callRPC<DeterministicIdentity>('get_my_identity_simple', {});
 
         this.identity = {
             ...identityResult,
