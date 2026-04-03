@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
 import FullScreenLoader from '@/components/FullScreenLoader';
+import { useCarssVerifier } from '@/hooks/useCarssVerifier';
 
 // Super Admin
 import SuperAdminDashboard from '@/pages/dashboard/super_admin/SuperAdminDashboard';
@@ -27,6 +28,9 @@ import StoreOperationsPanel from '@/pages/dashboard/store/StoreOperationsPanel';
 import KitchenTerminal from '@/pages/dashboard/kitchen/KitchenTerminal';
 
 const DashboardEngine: React.FC = () => {
+    // 🛡️ [ANTI-GRAVITY] Forensic state verifier
+    useCarssVerifier();
+
     const { authority } = useAuth();
 
     if (authority.status === 'loading') return <FullScreenLoader />;
