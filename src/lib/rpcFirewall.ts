@@ -7,6 +7,7 @@ export type TerminalType = 'staff' | 'kitchen' | 'store' | 'manager' | 'ceo' | '
 export const TERMINAL_RPC_ACCESS: Record<TerminalType, string[]> = {
     public: [
         'get_my_identity_simple',
+        'resolve_hydration_offline_safe',
         'get_my_branches',
         'get_system_state',
         'get_qr_menu',

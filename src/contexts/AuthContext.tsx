@@ -11,7 +11,7 @@ export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  ANTI-GRAVITY LAW §1: hydrated=true is the ONLY gate that permits       ║
-// ║  downstream RPC calls. It is set ONLY after profiles table confirms it. ║
+// ║  downstream RPC calls. resolve_hydration_offline_safe is the truth RPC. ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 export interface Authority {
   status: AuthorityStatus;
@@ -20,10 +20,6 @@ export interface Authority {
   branchId: string | null;
   departmentId: string | null;
   departmentName: string | null;
-  /**
-   * hydrated=true means: profile role has been verified from the profiles table.
-   * hydrated=false means: do NOT execute any RPC calls — identity is unconfirmed.
-   */
   hydrated: boolean;
 }
 
@@ -57,7 +53,7 @@ const AUTHORITY_INITIAL: Authority = {
   branchId: null,
   departmentId: null,
   departmentName: null,
-  hydrated: false,       // ← Gate starts CLOSED
+  hydrated: false,
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -95,10 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [staffId, setStaffId] = useState<string | null>(null);
   const [shiftId, setShiftId] = useState<string | null>(null);
-
-  // ── Hydration flag: only true after profiles table confirmation ───────────
   const [hydrated, setHydrated] = useState(false);
-
   const isMounted = useRef(true);
 
   const isOrgAdmin = currentRole === 'admin' || currentRole === 'owner' || currentRole === 'ceo' || currentRole === 'super_admin';
@@ -106,9 +99,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ── SHIFT GATE: only fires when fully hydrated ────────────────────────────
   useEffect(() => {
     const resolveShift = async () => {
-      // ⛔ HYDRATION GATE — block shift resolution until identity is confirmed
       if (!hydrated || !locationId) {
-        console.log('[SHIFT] ⛔ Hydration gate: blocking shift resolution (hydrated=%s, branchId=%s)', hydrated, locationId);
+        console.log('[SHIFT] ⛔ Hydration gate: blocking shift resolution (hydrated=%s)', hydrated);
         return;
       }
       try {
@@ -126,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('[SHIFT] No active shift found. Some actions will be blocked.');
       }
     };
-
     resolveShift();
   }, [hydrated, locationId, staffId]);
 
@@ -139,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
 
     if (!currentSession?.user) {
-      console.log('[AUTH] No session found. Setting status = unauthorized');
       identityCache.clear();
       if (isMounted.current) {
         setHydrated(false);
@@ -160,12 +150,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const userId = currentSession.user.id;
 
-    // ── CACHE: Fast UI pre-render ONLY — does NOT unlock hydration gate ───────
-    // The cache populates role/branch visually to prevent flicker,
-    // but hydrated stays FALSE until the profiles table confirms identity below.
+    // ── CACHE: Fast UI pre-render ONLY — hydration gate stays CLOSED ──────────
     const cached = identityCache.get(userId);
     if (cached && cached.role) {
-      console.log('[AUTH] 🚀 Identity Bridge HIT: pre-rendering from cache (hydration gate stays CLOSED until profiles query)');
+      console.log('[AUTH] 🚀 Cache HIT: pre-rendering UI (hydration gate stays CLOSED until RPC)');
       if (isMounted.current) {
         setSession(currentSession);
         setUser(currentSession.user);
@@ -181,8 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           business_id: cached.business_id,
           full_name: cached.full_name || 'Staff'
         });
-        // NOTE: authorityStatus stays 'loading', hydrated stays false
-        // Downstream is blocked until profiles table confirms below
       }
     } else {
       if (isMounted.current) {
@@ -191,72 +177,99 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // ── DIRECT PROFILES TABLE QUERY: NO RPC DEPENDENCY ────────────────────────
-    // Bypasses get_my_identity_simple entirely — direct source of truth.
+    // ── DETERMINISTIC HYDRATION: resolve_hydration_offline_safe ──────────────
+    // Primary: new deterministic RPC (includes staff_id + active_shift)
+    // Fallback: direct profiles table query (if RPC not yet deployed)
     const _hydrateStart = Date.now();
     try {
-      // ── TRACE POINT 2: QUERY INVOCATION ────────────────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_CALL:profiles_table', JSON.stringify({
+      // ── TRACE POINT 2: RPC INVOCATION ────────────────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_CALL:resolve_hydration_offline_safe', JSON.stringify({
         timestamp: new Date().toISOString(),
         attempt: true
       }));
 
-      // ╔══════════════════════════════════════════════════════════╗
-      // ║ ANTI-GRAVITY LAW §2: Role MUST come from profiles table. ║
-      // ║ No RPC. No Supabase Auth role. Direct source of truth.   ║
-      // ╚══════════════════════════════════════════════════════════╝
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, branch_id, business_id, department_id, department_name, staff_id')
-        .eq('user_id', userId)
-        .single();
+      let profileData: any = null;
 
-      // ── TRACE POINT 3: QUERY RESPONSE ──────────────────────────────────────
-      if (profileError || !profileData) {
-        console.log('[HYDRATION_TRACE] RPC_RESPONSE:profiles_table', JSON.stringify({
-          success: false,
-          data: null,
-          error: profileError?.message || 'No profile row found'
-        }));
-        console.error('[AUTH] ❌ HARD STOP: profiles table query failed.', profileError);
-        if (isMounted.current) {
-          setHydrated(false);
-          setAuthorityStatus('unauthorized');
-          setUser(currentSession.user);
-          setSession(currentSession);
+      // ╔══════════════════════════════════════════════════════════╗
+      // ║ ANTI-GRAVITY LAW §2: resolve_hydration_offline_safe is   ║
+      // ║ the single source of truth. Falls back to profiles table ║
+      // ║ if RPC is not yet deployed. Never uses JWT role.         ║
+      // ╚══════════════════════════════════════════════════════════╝
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('resolve_hydration_offline_safe');
+
+      if (!rpcError && rpcData?.canHydrate) {
+        // ✅ RPC succeeded
+        profileData = rpcData;
+      } else {
+        // ⚠️ Fallback: direct profiles table query
+        console.warn('[AUTH] ⚠️ RPC unavailable, falling back to profiles table:', rpcError?.message || 'canHydrate=false');
+
+        const { data: pData, error: pError } = await supabase
+          .from('profiles')
+          .select('role, branch_id, business_id, department, full_name')
+          .eq('user_id', userId)
+          .single();
+
+        if (pError || !pData) {
+          console.log('[HYDRATION_TRACE] RPC_RESPONSE:resolve_hydration_offline_safe', JSON.stringify({
+            success: false,
+            data: null,
+            error: pError?.message || 'Profile not found'
+          }));
+          console.error('[AUTH] ❌ HARD STOP: Both RPC and profiles table failed.', pError);
+          if (isMounted.current) {
+            setHydrated(false);
+            setAuthorityStatus('unauthorized');
+            setUser(currentSession.user);
+            setSession(currentSession);
+          }
+          return;
         }
-        return;
+
+        profileData = {
+          canHydrate: true,
+          user_id: userId,
+          role: pData.role,
+          branch_id: pData.branch_id,
+          business_id: pData.business_id,
+          staff_id: null,
+          active_shift: null,
+          full_name: pData.full_name,
+          department: pData.department,
+        };
       }
 
-      console.log('[HYDRATION_TRACE] RPC_RESPONSE:profiles_table', JSON.stringify({
+      // ── TRACE POINT 3: RESPONSE ───────────────────────────────────────────
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:resolve_hydration_offline_safe', JSON.stringify({
         success: true,
         data: {
           role: profileData.role,
           branch_id: profileData.branch_id,
-          canHydrate: !!profileData.role && profileData.role !== 'authenticated'
+          canHydrate: profileData.canHydrate
         }
       }));
 
-      // Build identity object from profile row
+      // Build unified identity object
       const identity = {
         user_id: userId,
         role: profileData.role,
         branch_id: profileData.branch_id,
         business_id: profileData.business_id,
-        department_id: profileData.department_id,
-        department_name: profileData.department_name,
-        staff_id: profileData.staff_id,
+        department_id: profileData.department ?? null,
+        department_name: profileData.department ?? null,
+        staff_id: profileData.staff_id ?? null,
+        active_shift: profileData.active_shift ?? null,
       };
 
-      // ── REQUIRED VERIFICATION LOGS ────────────────────────────────────────
       console.log('[AUTH] User ID:', currentSession.user.id);
-      console.log('[AUTH] Profile (from profiles table):', identity);
+      console.log('[AUTH] Profile (from resolve_hydration_offline_safe):', identity);
       console.log('[AUTH] Final Role:', identity.role);
       console.log('[AUTH] Branch ID:', identity.branch_id);
 
-      // ── HARD STOP: No role = no access ───────────────────────────────────
+      // ── HARD STOP: No role ────────────────────────────────────────────────
       if (!identity.role) {
-        console.error('[AUTH] ❌ HARD STOP: Identity Resolution Failure. profiles.role is null.');
+        console.error('[AUTH] ❌ HARD STOP: profiles.role is null.');
         if (isMounted.current) {
           setHydrated(false);
           setAuthorityStatus('unauthorized');
@@ -269,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ── HARD STOP: Reject Supabase system roles ───────────────────────────
       const INVALID_ROLES = ['authenticated', 'anon', 'service_role', 'postgres'];
       if (INVALID_ROLES.includes(identity.role)) {
-        console.error(`[AUTH] ❌ HARD STOP: System role detected ("${identity.role}"). Must never reach frontend.`);
+        console.error(`[AUTH] ❌ HARD STOP: System role "${identity.role}" must never reach frontend.`);
         if (isMounted.current) {
           setHydrated(false);
           setAuthorityStatus('unauthorized');
@@ -277,27 +290,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      console.log(`[AUTH] ✅ Business role confirmed from profiles table: "${identity.role}"`);
+      console.log(`[AUTH] ✅ Business role confirmed: "${identity.role}"`);
 
-      // ── BRANCH FALLBACK (if profiles row missing branch_id) ───────────────
+      // ── BRANCH FALLBACK ───────────────────────────────────────────────────
       let resolvedBranchId = identity.branch_id;
       if (!resolvedBranchId) {
-        console.warn('[AUTH] Branch ID missing from profile — attempting get_my_branches()');
+        console.warn('[AUTH] Branch ID missing — attempting get_my_branches()');
         const res = await callRPC<any>('public', 'get_my_branches', {});
         const branches = res?.branches;
         if (!branches?.length) {
-          console.error('[AUTH] ❌ HARD STOP: No branches found. Cannot complete hydration.');
-          if (isMounted.current) {
-            setHydrated(false);
-            setAuthorityStatus('unauthorized');
-          }
+          console.error('[AUTH] ❌ HARD STOP: No branches found.');
+          if (isMounted.current) { setHydrated(false); setAuthorityStatus('unauthorized'); }
           return;
         }
         resolvedBranchId = branches[0].id;
         console.log(`[AUTH] 🌿 Branch Auto-Resolved: ${resolvedBranchId}`);
       }
 
-      // ── WRITE VERIFIED IDENTITY TO CACHE ─────────────────────────────────
+      // ── WRITE CACHE ───────────────────────────────────────────────────────
       identityCache.set({
         user_id: userId,
         role: identity.role,
@@ -310,13 +320,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timestamp: new Date().toISOString(),
       });
 
-      // ── ATOMIC STATE COMMIT: All or nothing ──────────────────────────────
+      // ── ATOMIC STATE COMMIT ───────────────────────────────────────────────
       if (isMounted.current) {
         setOrgId(identity.business_id);
         setLocationId(resolvedBranchId);
         setDepartmentId(identity.department_id);
         setDepartmentName(identity.department_name);
         setStaffId(identity.staff_id);
+        if (identity.active_shift) setShiftId(identity.active_shift);
 
         setProfile({
           user_id: currentSession.user.id,
@@ -337,7 +348,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setHydrated(true);
         setAuthorityStatus('authorized');
 
-        // ── TRACE POINT 4: AUTH STATE RESOLUTION ─────────────────────────────
+        // ── TRACE POINT 4 ─────────────────────────────────────────────────
         console.log('[HYDRATION_TRACE] AUTH_RESOLVED', JSON.stringify({
           user_id: currentSession.user.id,
           role: identity.role,
@@ -346,29 +357,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           hydrated: true
         }));
 
-        // ── TRACE POINT 5: HYDRATION GATE DECISION ───────────────────────────
+        // ── TRACE POINT 5 ─────────────────────────────────────────────────
         console.log('[HYDRATION_TRACE] HYDRATION_GATE', JSON.stringify({
           hydrated: true,
           allowDownstream: true,
           time_to_hydrate_ms: Date.now() - _hydrateStart
         }));
 
-        console.log('[AUTH] 🔓 Authority Gate: OPEN. Hydration complete. Downstream SSOT enabled.');
-        console.log('[AUTH] Hydration summary:', {
-          role: identity.role,
-          branch_id: resolvedBranchId,
-          business_id: identity.business_id,
-          staff_id: identity.staff_id,
-        });
+        console.log('[AUTH] 🔓 Authority Gate OPEN. Downstream SSOT enabled.');
       }
     } catch (err: any) {
-      // ── TRACE POINT 3 (ERROR PATH) ────────────────────────────────────────
-      console.log('[HYDRATION_TRACE] RPC_RESPONSE:profiles_table', JSON.stringify({
+      console.log('[HYDRATION_TRACE] RPC_RESPONSE:resolve_hydration_offline_safe', JSON.stringify({
         success: false,
         data: null,
         error: err?.message || String(err)
       }));
-      console.error('[AUTH] 💥 Forensic resolution failure:', err);
+      console.error('[AUTH] 💥 Hydration failure:', err);
       if (isMounted.current) {
         setHydrated(false);
         setAuthorityStatus('unauthorized');
@@ -420,7 +424,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  // ── AUTHORITY OBJECT: single shape consumed by all downstream contexts ─────
   const authority: Authority = {
     status: authorityStatus,
     role: currentRole,
@@ -428,19 +431,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     branchId: locationId,
     departmentId,
     departmentName,
-    hydrated,  // ← the gate
+    hydrated,
   };
 
   const signInAsDemo = async (role: UserRole) => {
     const demoEmail = `${role.toLowerCase()}@fobbs.com`;
-    const demoPassword = 'password123';
-    console.log(`[AUTH] 🛡️ Deterministic Demo Access: ${role}`);
-    await supabase.auth.signInWithPassword({ email: demoEmail, password: demoPassword });
+    console.log(`[AUTH] 🛡️ Demo Access: ${role}`);
+    await supabase.auth.signInWithPassword({ email: demoEmail, password: 'password123' });
   };
 
-  // 🔄 Sync RPC Injection Context (Law: Identity must flow before any RPC)
   useEffect(() => {
-    // Only inject when hydrated — RPCClient must not send stale/null context
     if (hydrated) {
       import('@/lib/rpcClient').then(mod => {
         mod.setRPCInjectionContext({ staffId, shiftId, authority, locationId });
