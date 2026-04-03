@@ -207,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { data: pData, error: pError } = await supabase
           .from('profiles')
-          .select('role, branch_id, business_id, department, full_name')
+          .select('role, branch_id, department, full_name')
           .eq('user_id', userId)
           .single();
 
@@ -227,12 +227,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
+        // Resolve business_id via branches table (avoids profiles.business_id column dependency)
+        let resolvedBusinessId: string | null = null;
+        if (pData.branch_id) {
+          const { data: branchRow } = await supabase
+            .from('branches')
+            .select('business_id')
+            .eq('id', pData.branch_id)
+            .single();
+          resolvedBusinessId = branchRow?.business_id ?? null;
+        }
+
         profileData = {
           canHydrate: true,
           user_id: userId,
           role: pData.role,
           branch_id: pData.branch_id,
-          business_id: pData.business_id,
+          business_id: resolvedBusinessId,
           staff_id: null,
           active_shift: null,
           full_name: pData.full_name,

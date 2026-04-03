@@ -1,9 +1,7 @@
 -- ============================================================
--- ANTI-GRAVITY: resolve_hydration_offline_safe
--- Single source of truth for frontend identity hydration.
--- Reads from profiles + staff_profiles + business_memberships.
--- No parameters. Uses auth.uid() internally.
--- Returns everything the frontend needs in one call.
+-- ANTI-GRAVITY: resolve_hydration_offline_safe v2
+-- Fixes: profiles.business_id may not exist in all environments.
+-- Solution: reads business_id via branches.business_id join instead.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.resolve_hydration_offline_safe()
@@ -13,10 +11,15 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_user_id    uuid;
-  v_profile    record;
-  v_staff_id   uuid;
-  v_shift_id   uuid;
+  v_user_id     uuid;
+  v_role        text;
+  v_branch_id   uuid;
+  v_full_name   text;
+  v_department  text;
+  v_is_active   boolean;
+  v_business_id uuid;
+  v_staff_id    uuid;
+  v_shift_id    uuid;
 BEGIN
   -- 1. Confirm authenticated session
   v_user_id := auth.uid();
@@ -27,15 +30,14 @@ BEGIN
     );
   END IF;
 
-  -- 2. Read identity from profiles table (primary source of truth)
+  -- 2. Read core identity from profiles (no business_id — use branch join instead)
   SELECT
     p.role,
     p.branch_id,
-    p.business_id,
     p.full_name,
     p.department,
-    p.is_active
-  INTO v_profile
+    COALESCE(p.is_active, true)
+  INTO v_role, v_branch_id, v_full_name, v_department, v_is_active
   FROM public.profiles p
   WHERE p.user_id = v_user_id
   LIMIT 1;
@@ -48,7 +50,7 @@ BEGIN
     );
   END IF;
 
-  IF NOT v_profile.is_active THEN
+  IF NOT v_is_active THEN
     RETURN jsonb_build_object(
       'canHydrate', false,
       'error', 'ACCOUNT_INACTIVE',
@@ -56,16 +58,22 @@ BEGIN
     );
   END IF;
 
-  -- 3. Resolve staff_id from staff_profiles (if exists)
+  -- 3. Resolve business_id from branches table (correct relational path)
+  IF v_branch_id IS NOT NULL THEN
+    SELECT b.business_id INTO v_business_id
+    FROM public.branches b
+    WHERE b.id = v_branch_id
+    LIMIT 1;
+  END IF;
+
+  -- 4. Resolve staff_id from staff_profiles
   SELECT id INTO v_staff_id
   FROM public.staff_profiles
   WHERE user_id = v_user_id
   LIMIT 1;
 
-  -- 4. Resolve active shift (if staff has a running shift)
+  -- 5. Resolve active shift (graceful — skip if table missing or no shift)
   IF v_staff_id IS NOT NULL THEN
-    -- Check business_memberships table for active shift
-    -- Gracefully skip if table doesn't exist
     BEGIN
       SELECT id INTO v_shift_id
       FROM public.business_memberships
@@ -77,26 +85,25 @@ BEGIN
     END;
   END IF;
 
-  -- 5. Return full hydration payload
+  -- 6. Return full hydration payload
   RETURN jsonb_build_object(
     'canHydrate',   true,
     'user_id',      v_user_id,
-    'role',         v_profile.role,
-    'branch_id',    v_profile.branch_id,
-    'business_id',  v_profile.business_id,
+    'role',         v_role,
+    'branch_id',    v_branch_id,
+    'business_id',  v_business_id,
     'staff_id',     v_staff_id,
     'active_shift', v_shift_id,
-    'full_name',    v_profile.full_name,
-    'department',   v_profile.department
+    'full_name',    v_full_name,
+    'department',   v_department
   );
 END;
 $$;
 
--- Grant execution to authenticated users only
+-- Permissions
 REVOKE ALL ON FUNCTION public.resolve_hydration_offline_safe() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.resolve_hydration_offline_safe() TO authenticated;
 
 COMMENT ON FUNCTION public.resolve_hydration_offline_safe() IS
-  'Deterministic hydration RPC. No parameters. Uses auth.uid(). '
-  'Returns role, branch_id, business_id, staff_id, active_shift. '
-  'canHydrate=false means the frontend must block all downstream operations.';
+  'v2: Resolves business_id via branches join, not profiles.business_id. '
+  'Parameterless — uses auth.uid(). Returns canHydrate + full identity payload.';
