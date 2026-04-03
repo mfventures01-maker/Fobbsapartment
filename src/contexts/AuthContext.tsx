@@ -175,31 +175,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             branch_id, 
             department, 
             full_name,
-            staff_profiles!inner (
+            staff_profiles (
               id,
               full_name,
               role
             )
           `)
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
-        if (pError || !profileWithStaff) {
-          console.log('[HYDRATION_TRACE] RPC_RESPONSE:resolve_hydration_offline_safe', JSON.stringify({
-            success: false,
-            data: null,
-            error: pError?.message || 'Profile not found'
-          }));
-          console.error('[AUTH] ❌ HARD STOP: Both RPC and profiles table failed.', pError);
+        if (pError) {
+          console.error('[HYDRATION_TRACE] SQL_ERROR: fallback failure', pError);
+          // Hard fail ONLY on database error, not record absence
           if (isMounted.current) {
             setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
-            setUser(currentSession.user);
-            setSession(currentSession);
           }
           return;
         }
 
-        const staff = (profileWithStaff as any).staff_profiles;
+        // Case C: No profile found
+        if (!profileWithStaff) {
+          console.warn('[HYDRATION_TRACE] Case C: No profile found for user');
+          if (isMounted.current) {
+            setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
+          }
+          return;
+        }
+
+        // Case B: Profile exists, staff link might be null (soft join)
+        // Note: PostgREST returns related object for 1:1 or array for 1:M.
+        // staff_profiles is expected to be 1:1 in this context.
+        const staffRaw = (profileWithStaff as any).staff_profiles;
+        const staff = Array.isArray(staffRaw) ? staffRaw[0] : staffRaw;
 
         // Resolve business_id via branches table
         let resolvedBusinessId: string | null = null;
@@ -208,17 +215,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .from('branches')
             .select('business_id')
             .eq('id', profileWithStaff.branch_id)
-            .single();
+            .single(); // Branches resolution remains strict
           resolvedBusinessId = branchRow?.business_id ?? null;
         }
 
+        // Truth-aligned resolution: accept what exists
         profileData = {
           canHydrate: true,
           user_id: userId,
           role: profileWithStaff.role,
           branch_id: profileWithStaff.branch_id,
           business_id: resolvedBusinessId,
-          staff_id: staff?.id || null, // ✅ NOW WE HAVE staff_id from join
+          staff_id: staff?.id || null, // ✅ LAW 6: Partial authority OK
           active_shift: null,
           full_name: profileWithStaff.full_name,
           department: profileWithStaff.department,
