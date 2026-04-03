@@ -10,12 +10,21 @@ if (!rootElement) {
 }
 
 import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ShiftProvider } from './contexts/ShiftContext';
+import { CartProvider } from './contexts/CartContext';
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <App />
+      <AuthProvider>
+        <ShiftProvider>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </ShiftProvider>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { callRPC } from '../lib/rpcClient';
+import { callRPC, setRPCInjectionContext } from '../lib/rpcClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/database';
 import { getActiveShift } from '../services/staffService';
@@ -56,8 +56,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }));
 
         // ⛔ ANTI-GRAVITY HYDRATION GATE: block until RPC identity is confirmed
-        if (!authority.hydrated || !user || !staffId) {
-            console.log('[SHIFT STATE] ⛔ Hydration gate closed — shift resolution blocked (hydrated=%s)', authority.hydrated);
+        if (!authority.hydrated || !staffId || !authority.branchId) {
+            console.log('[SHIFT] ⛔ Waiting for hydration...');
             if (isMounted.current) setShiftState({ status: 'loading' });
             return;
         }
@@ -71,12 +71,15 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             businessShifts = [];
 
             // STEP 2 — Resolve personal shift for terminal control
+            // 🛡️ Deterministic RPC call per Task 4: p_prefix alignment
             const shift = await getActiveShift(
                 authority.businessId || '',
                 authority.branchId || '',
                 staffId,
                 authority.role || 'staff'
             );
+
+            console.log('[SHIFT] ✅ Shift resolved with valid staff_id', staffId);
 
             // STEP 3 — UI State orbit around DB state
             if (isMounted.current) {
@@ -110,6 +113,21 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (isMounted.current) setShiftState({ status: 'error', error: err.message });
         }
     }, [authority, user, staffId]);
+
+    useEffect(() => {
+        // ─── RPC CONTEXT INJECTION (SHIFT LAYER) ──────────────────────────────
+        // Injects active shiftId into rpcClient firewall for transactional guard
+        if (authority.hydrated) {
+            const activeShiftId = shiftState.status === SHIFT_STATUS.OPEN ? shiftState.shift.id : null;
+            setRPCInjectionContext({
+                authority,
+                user,
+                staffId,
+                branchId: authority.branchId,
+                shiftId: activeShiftId
+            });
+        }
+    }, [authority, user, staffId, shiftState]);
 
     useEffect(() => {
         isMounted.current = true;

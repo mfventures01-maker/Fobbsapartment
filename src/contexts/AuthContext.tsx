@@ -36,7 +36,6 @@ interface AuthContextType {
   departmentName: string | null;
   profile: Profile | null;
   staffId: string | null;
-  shiftId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   role: UserRole | null;
@@ -69,7 +68,6 @@ const AuthContext = createContext<AuthContextType>({
   departmentName: null,
   profile: null,
   staffId: null,
-  shiftId: null,
   isLoading: true,
   isAuthenticated: false,
   role: null,
@@ -90,36 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [departmentName, setDepartmentName] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [staffId, setStaffId] = useState<string | null>(null);
-  const [shiftId, setShiftId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const isMounted = useRef(true);
 
   const isOrgAdmin = currentRole === 'admin' || currentRole === 'owner' || currentRole === 'ceo' || currentRole === 'super_admin';
 
-  // ── SHIFT GATE: only fires when fully hydrated ────────────────────────────
-  useEffect(() => {
-    const resolveShift = async () => {
-      if (!hydrated || !locationId) {
-        console.log('[SHIFT] ⛔ Hydration gate: blocking shift resolution (hydrated=%s)', hydrated);
-        return;
-      }
-      try {
-        const shift = await callRPC('staff', 'resolve_active_shift', {
-          staff_id: staffId,
-          branch_id: locationId,
-          business_id: orgId,
-          terminal_type: 'staff'
-        });
-        if (shift?.shift_id && isMounted.current) {
-          setShiftId(shift.shift_id);
-          console.log('[SHIFT] ✅ Active shift resolved:', shift.shift_id);
-        }
-      } catch (err) {
-        console.warn('[SHIFT] No active shift found. Some actions will be blocked.');
-      }
-    };
-    resolveShift();
-  }, [hydrated, locationId, staffId]);
+
 
   // ── CORE IDENTITY RESOLUTION ───────────────────────────────────────────────
   const resolveAuthority = async (currentSession: Session | null) => {
@@ -141,7 +115,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDepartmentName(null);
         setProfile(null);
         setStaffId(null);
-        setShiftId(null);
         setUser(null);
         setSession(null);
       }
@@ -338,7 +311,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDepartmentId(identity.department_id);
         setDepartmentName(identity.department_name);
         setStaffId(identity.staff_id);
-        if (identity.active_shift) setShiftId(identity.active_shift);
 
         setProfile({
           user_id: currentSession.user.id,
@@ -412,7 +384,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setDepartmentName(null);
           setProfile(null);
           setStaffId(null);
-          setShiftId(null);
           setUser(null);
           setSession(null);
         }
@@ -451,13 +422,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signInWithPassword({ email: demoEmail, password: 'password123' });
   };
 
-  useEffect(() => {
-    if (hydrated) {
-      import('@/lib/rpcClient').then(mod => {
-        mod.setRPCInjectionContext({ staffId, shiftId, authority, locationId });
-      });
-    }
-  }, [hydrated, staffId, shiftId, authority, locationId]);
+
 
   return (
     <AuthContext.Provider value={{
@@ -473,7 +438,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       departmentName,
       profile,
       staffId,
-      shiftId,
       isLoading: authorityStatus === 'loading',
       isAuthenticated: !!session,
       role: currentRole,

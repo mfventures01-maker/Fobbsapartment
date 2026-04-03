@@ -55,7 +55,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
 
     // ─── SHIFT LIFECYCLE (MUTATION) ─────────────────────────────────────────
     resolve_active_shift: {
-        required: ['business_id', 'branch_id', 'staff_id', 'terminal_type']
+        required: ['p_branch_id', 'p_staff_id']
     },
     open_staff_shift: {
         required: ['p_business_id', 'p_branch_id', 'p_staff_id']
@@ -222,12 +222,10 @@ class RPCClient {
 
         if (functionName === 'resolve_active_shift') {
             // 🛡️ [ANTI-GRAVITY] STRICT PAYLOAD NORMALIZATION
-            // Canonical shift engine forbids legacy/duplicated parameters.
+            // Aligned with p_ prefix from 20260321140000_staff_terminal_backend_law.sql
             fullPayload = {
-                business_id: payload.business_id || context.business_id,
-                branch_id: payload.branch_id || context.branch_id,
-                staff_id: payload.staff_id || context.staff_id,
-                terminal_type: terminal
+                p_branch_id: payload.p_branch_id || payload.branch_id || context.branch_id,
+                p_staff_id: payload.p_staff_id || payload.staff_id || context.staff_id
             };
         } else if (functionName === 'create_qr_order_gateway') {
             // 🛸 SURGEON PROTOCOL: EXACT 12-KEY ALIGNMENT

@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { runAntiGravityInspector, mountAntiGravityPanel } from './lib/antiGravityInspector';
 
 // 🛡️ ANTI-GRAVITY CONTEXT PROVIDERS
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useAuth } from './contexts/AuthContext';
 import { SystemStateProvider } from './contexts/SystemStateProvider';
 import { BranchProvider } from './contexts/BranchContext';
 
@@ -99,46 +99,44 @@ const AuthGate = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <SystemStateProvider>
-        <BranchProvider>
-          <Toaster position="top-right" />
+    <SystemStateProvider>
+      <BranchProvider>
+        <Toaster position="top-right" />
 
-          <Suspense fallback={<FullScreenLoader />}>
-            <Routes>
-              {/* PUBLIC ROUTES */}
-              <Route path="/" element={<HotelLanding />} />
-              <Route path="/login" element={<AuthGate><Login /></AuthGate>} />
-              <Route path="/staff-login" element={<AuthGate><Login /></AuthGate>} />
-              <Route path="/menu/:branchId" element={<RestaurantPublic />} />
+        <Suspense fallback={<FullScreenLoader />}>
+          <Routes>
+            {/* PUBLIC ROUTES */}
+            <Route path="/" element={<HotelLanding />} />
+            <Route path="/login" element={<AuthGate><Login /></AuthGate>} />
+            <Route path="/staff-login" element={<AuthGate><Login /></AuthGate>} />
+            <Route path="/menu/:branchId" element={<RestaurantPublic />} />
 
-              {/* 🛸 ANTI-GRAVITY: Public portal routes — previously dead-link loops */}
-              <Route path="/restaurant" element={<RestaurantPublic />} />
-              <Route path="/bar" element={<BarPublic />} />
-              <Route path="/services" element={<ServicesHubPublic />} />
-              {/* Services sub-routes: /services/cleaning, /services/transport, etc. */}
-              <Route path="/services/:type" element={<ServicesHubPublic />} />
+            {/* 🛸 ANTI-GRAVITY: Public portal routes — previously dead-link loops */}
+            <Route path="/restaurant" element={<RestaurantPublic />} />
+            <Route path="/bar" element={<BarPublic />} />
+            <Route path="/services" element={<ServicesHubPublic />} />
+            {/* Services sub-routes: /services/cleaning, /services/transport, etc. */}
+            <Route path="/services/:type" element={<ServicesHubPublic />} />
 
-              {/* PROTECTED ROUTES (Staff/Admin/Kitchen) */}
-              <Route
-                path="/dashboard/*"
-                element={
-                  <ProtectedRoute>
-                    <DashboardEngine />
-                  </ProtectedRoute>
-                }
-              />
+            {/* PROTECTED ROUTES (Staff/Admin/Kitchen) */}
+            <Route
+              path="/dashboard/*"
+              element={
+                <ProtectedRoute>
+                  <DashboardEngine />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* FALLBACKS */}
-              <Route path="/unauthorized" element={<div className="h-screen flex items-center justify-center bg-gray-900 text-white"><h1>🚫 ACCESS DENIED: Anti-Gravity Violation</h1></div>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
+            {/* FALLBACKS */}
+            <Route path="/unauthorized" element={<div className="h-screen flex items-center justify-center bg-gray-900 text-white"><h1>🚫 ACCESS DENIED: Anti-Gravity Violation</h1></div>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
 
-          {/* PERSISTENT MONITORING */}
-          <DiagnosticsOverlay />
-        </BranchProvider>
-      </SystemStateProvider>
-    </AuthProvider>
+        {/* PERSISTENT MONITORING */}
+        <DiagnosticsOverlay />
+      </BranchProvider>
+    </SystemStateProvider>
   );
 }
