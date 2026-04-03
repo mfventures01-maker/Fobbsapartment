@@ -20,6 +20,7 @@ export interface Authority {
   branchId: string | null;
   departmentId: string | null;
   departmentName: string | null;
+  staffId: string | null;
   hydrated: boolean;
 }
 
@@ -52,6 +53,7 @@ const AUTHORITY_INITIAL: Authority = {
   branchId: null,
   departmentId: null,
   departmentName: null,
+  staffId: null,
   hydrated: false,
 };
 
@@ -337,6 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: identity.role,
           business_id: identity.business_id,
           branch_id: resolvedBranchId,
+          staff_id: identity.staff_id,
           hydrated: true
         }));
 
@@ -413,6 +416,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     branchId: locationId,
     departmentId,
     departmentName,
+    staffId,
     hydrated,
   };
 

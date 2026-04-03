@@ -42,7 +42,8 @@ interface ShiftContextType {
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
 export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { authority, user, staffId } = useAuth();
+    const { authority, user } = useAuth();
+    const staffId = authority?.staffId;
     const [shiftState, setShiftState] = useState<ShiftState>({ status: 'loading' });
     const isMounted = useRef(true);
     const { acquire: acquireMutex, release: releaseMutex } = useMutationMutex();
@@ -57,7 +58,11 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         // ⛔ ANTI-GRAVITY HYDRATION GATE: block until RPC identity is confirmed
         if (!authority.hydrated || !staffId || !authority.branchId) {
-            console.log('[SHIFT] ⛔ Waiting for hydration...');
+            console.log('[SHIFT] ⛔ Waiting for hydration...', {
+                hydrated: authority.hydrated,
+                staffId: staffId,
+                branchId: authority.branchId
+            });
             if (isMounted.current) setShiftState({ status: 'loading' });
             return;
         }
