@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { callRPC, setRPCInjectionContext } from '../lib/rpcClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/database';
@@ -76,13 +77,12 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             businessShifts = [];
 
             // STEP 2 — Resolve personal shift for terminal control
-            // 🛡️ Deterministic RPC call per Task 4: p_prefix alignment
-            const shift = await getActiveShift(
-                authority.businessId || '',
-                authority.branchId || '',
-                staffId,
-                authority.role || 'staff'
-            );
+            const { data: shift, error } = await supabase.rpc('resolve_active_shift', {
+                p_staff_id: staffId,
+                p_branch_id: authority.branchId
+            });
+
+            if (error) throw error;
 
             console.log('[SHIFT] ✅ Shift resolved with valid staff_id', staffId);
 

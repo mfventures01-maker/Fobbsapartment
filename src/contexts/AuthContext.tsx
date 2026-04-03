@@ -14,14 +14,15 @@ export type AuthorityStatus = "loading" | "authorized" | "unauthorized";
 // ║  downstream RPC calls. resolve_hydration_offline_safe is the truth RPC. ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 export interface Authority {
-  status: AuthorityStatus;
-  role: UserRole | null;
-  businessId: string | null;
+  user_id: string | null;
+  role: string | null;
   branchId: string | null;
+  businessId: string | null;
+  staffId: string | null;
   departmentId: string | null;
   departmentName: string | null;
-  staffId: string | null;
   hydrated: boolean;
+  status: AuthorityStatus;
 }
 
 interface AuthContextType {
@@ -47,14 +48,15 @@ interface AuthContextType {
 }
 
 const AUTHORITY_INITIAL: Authority = {
-  status: 'loading',
+  user_id: null,
   role: null,
-  businessId: null,
   branchId: null,
+  businessId: null,
+  staffId: null,
   departmentId: null,
   departmentName: null,
-  staffId: null,
   hydrated: false,
+  status: 'loading',
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -82,18 +84,11 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [authorityStatus, setAuthorityStatus] = useState<AuthorityStatus>('loading');
-  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [locationId, setLocationId] = useState<string | null>(null);
-  const [departmentId, setDepartmentId] = useState<string | null>(null);
-  const [departmentName, setDepartmentName] = useState<string | null>(null);
+  const [authority, setAuthority] = useState<Authority>(AUTHORITY_INITIAL);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [staffId, setStaffId] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
   const isMounted = useRef(true);
 
-  const isOrgAdmin = currentRole === 'admin' || currentRole === 'owner' || currentRole === 'ceo' || currentRole === 'super_admin';
+  const isOrgAdmin = authority.role === 'admin' || authority.role === 'owner' || authority.role === 'ceo' || authority.role === 'super_admin';
 
 
 
@@ -108,15 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentSession?.user) {
       identityCache.clear();
       if (isMounted.current) {
-        setHydrated(false);
-        setAuthorityStatus('unauthorized');
-        setCurrentRole(null);
-        setOrgId(null);
-        setLocationId(null);
-        setDepartmentId(null);
-        setDepartmentName(null);
-        setProfile(null);
-        setStaffId(null);
+        setAuthority(AUTHORITY_INITIAL);
         setUser(null);
         setSession(null);
       }
@@ -132,23 +119,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isMounted.current) {
         setSession(currentSession);
         setUser(currentSession.user);
-        setCurrentRole(cached.role);
-        setOrgId(cached.business_id);
-        setLocationId(cached.branch_id);
-        setDepartmentId(cached.department_id);
-        setDepartmentName(cached.department_name);
-        setStaffId(cached.staff_id);
-        setProfile({
+        setAuthority({
+          ...AUTHORITY_INITIAL,
           user_id: userId,
           role: cached.role,
+          branchId: cached.branch_id,
+          businessId: cached.business_id,
+          staffId: cached.staff_id,
+          departmentId: cached.department_id,
+          departmentName: cached.department_name,
+          status: 'authorized',
+          hydrated: false // Gate stays closed until refreshed
+        });
+        setProfile({
+          user_id: userId,
+          role: cached.role as any,
           business_id: cached.business_id,
           full_name: cached.full_name || 'Staff'
         });
-      }
-    } else {
-      if (isMounted.current) {
-        setAuthorityStatus('loading');
-        setHydrated(false);
       }
     }
 
@@ -177,16 +165,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // ✅ RPC succeeded
         profileData = rpcData;
       } else {
-        // ⚠️ Fallback: direct profiles table query
-        console.warn('[AUTH] ⚠️ RPC unavailable, falling back to profiles table:', rpcError?.message || 'canHydrate=false');
+        // ⚠️ Fallback: direct profiles table query + staff_profiles join
+        console.warn('[AUTH] ⚠️ RPC unavailable, falling back to profiles table join');
 
-        const { data: pData, error: pError } = await supabase
+        const { data: profileWithStaff, error: pError } = await supabase
           .from('profiles')
-          .select('role, branch_id, department, full_name')
+          .select(`
+            role, 
+            branch_id, 
+            department, 
+            full_name,
+            staff_profiles!inner (
+              id,
+              full_name,
+              role
+            )
+          `)
           .eq('user_id', userId)
           .single();
 
-        if (pError || !pData) {
+        if (pError || !profileWithStaff) {
           console.log('[HYDRATION_TRACE] RPC_RESPONSE:resolve_hydration_offline_safe', JSON.stringify({
             success: false,
             data: null,
@@ -194,21 +192,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }));
           console.error('[AUTH] ❌ HARD STOP: Both RPC and profiles table failed.', pError);
           if (isMounted.current) {
-            setHydrated(false);
-            setAuthorityStatus('unauthorized');
+            setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
             setUser(currentSession.user);
             setSession(currentSession);
           }
           return;
         }
 
-        // Resolve business_id via branches table (avoids profiles.business_id column dependency)
+        const staff = (profileWithStaff as any).staff_profiles;
+
+        // Resolve business_id via branches table
         let resolvedBusinessId: string | null = null;
-        if (pData.branch_id) {
+        if (profileWithStaff.branch_id) {
           const { data: branchRow } = await supabase
             .from('branches')
             .select('business_id')
-            .eq('id', pData.branch_id)
+            .eq('id', profileWithStaff.branch_id)
             .single();
           resolvedBusinessId = branchRow?.business_id ?? null;
         }
@@ -216,13 +215,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profileData = {
           canHydrate: true,
           user_id: userId,
-          role: pData.role,
-          branch_id: pData.branch_id,
+          role: profileWithStaff.role,
+          branch_id: profileWithStaff.branch_id,
           business_id: resolvedBusinessId,
-          staff_id: null,
+          staff_id: staff?.id || null, // ✅ NOW WE HAVE staff_id from join
           active_shift: null,
-          full_name: pData.full_name,
-          department: pData.department,
+          full_name: profileWithStaff.full_name,
+          department: profileWithStaff.department,
         };
       }
 
@@ -257,10 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!identity.role) {
         console.error('[AUTH] ❌ HARD STOP: profiles.role is null.');
         if (isMounted.current) {
-          setHydrated(false);
-          setAuthorityStatus('unauthorized');
-          setUser(currentSession.user);
-          setSession(currentSession);
+          setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
         }
         return;
       }
@@ -270,8 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (INVALID_ROLES.includes(identity.role)) {
         console.error(`[AUTH] ❌ HARD STOP: System role "${identity.role}" must never reach frontend.`);
         if (isMounted.current) {
-          setHydrated(false);
-          setAuthorityStatus('unauthorized');
+          setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
         }
         return;
       }
@@ -286,7 +281,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const branches = res?.branches;
         if (!branches?.length) {
           console.error('[AUTH] ❌ HARD STOP: No branches found.');
-          if (isMounted.current) { setHydrated(false); setAuthorityStatus('unauthorized'); }
+          if (isMounted.current) { setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' }); }
           return;
         }
         resolvedBranchId = branches[0].id;
@@ -308,38 +303,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // ── ATOMIC STATE COMMIT ───────────────────────────────────────────────
       if (isMounted.current) {
-        setOrgId(identity.business_id);
-        setLocationId(resolvedBranchId);
-        setDepartmentId(identity.department_id);
-        setDepartmentName(identity.department_name);
-        setStaffId(identity.staff_id);
+        const authorityData: Authority = {
+          user_id: userId,
+          role: profileData.role,
+          branchId: resolvedBranchId,
+          businessId: profileData.business_id,
+          staffId: profileData.staff_id,
+          departmentId: profileData.department ?? null,
+          departmentName: profileData.department ?? null,
+          hydrated: true,
+          status: 'authorized'
+        };
 
+        setAuthority(authorityData);
         setProfile({
-          user_id: currentSession.user.id,
-          role: identity.role as any,
-          business_id: identity.business_id,
-          department: identity.department_id,
-          full_name: currentSession.user.user_metadata?.full_name || 'User',
+          user_id: userId,
+          role: profileData.role as any,
+          business_id: profileData.business_id,
+          full_name: profileData.full_name || 'User',
+          department: profileData.department
         });
-
         setUser(currentSession.user);
         setSession(currentSession);
-        setCurrentRole(identity.role as UserRole);
-
-        // ╔══════════════════════════════════════════════════════════╗
-        // ║ ANTI-GRAVITY LAW §3: hydrated=true is set LAST.         ║
-        // ║ All setters above must complete before gate opens.       ║
-        // ╚══════════════════════════════════════════════════════════╝
-        setHydrated(true);
-        setAuthorityStatus('authorized');
 
         // ── TRACE POINT 4 ─────────────────────────────────────────────────
         console.log('[HYDRATION_TRACE] AUTH_RESOLVED', JSON.stringify({
           user_id: currentSession.user.id,
-          role: identity.role,
-          business_id: identity.business_id,
-          branch_id: resolvedBranchId,
-          staff_id: identity.staff_id,
+          role: authorityData.role,
+          business_id: authorityData.businessId,
+          branch_id: authorityData.branchId,
+          staff_id: authorityData.staffId,
           hydrated: true
         }));
 
@@ -360,15 +353,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
       console.error('[AUTH] 💥 Hydration failure:', err);
       if (isMounted.current) {
-        setHydrated(false);
-        setAuthorityStatus('unauthorized');
+        setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
       }
     }
   };
 
   useEffect(() => {
-    isMounted.current = true;
+    if (authority.hydrated) {
+      import('@/lib/rpcClient').then(mod => {
+        mod.setRPCInjectionContext({
+          staffId: authority.staffId,
+          authority,
+          locationId: authority.branchId
+        });
+      });
+    }
+  }, [authority]);
 
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       console.log('[AUTH] Initial Session Check');
       resolveAuthority(initialSession);
@@ -378,15 +380,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log(`[AUTH] Event: ${event}`);
       if (event === 'SIGNED_OUT') {
         if (isMounted.current) {
-          setHydrated(false);
-          setAuthorityStatus('unauthorized');
-          setCurrentRole(null);
-          setOrgId(null);
-          setLocationId(null);
-          setDepartmentId(null);
-          setDepartmentName(null);
-          setProfile(null);
-          setStaffId(null);
+          setAuthority(AUTHORITY_INITIAL);
           setUser(null);
           setSession(null);
         }
@@ -409,17 +403,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  const authority: Authority = {
-    status: authorityStatus,
-    role: currentRole,
-    businessId: orgId,
-    branchId: locationId,
-    departmentId,
-    departmentName,
-    staffId,
-    hydrated,
-  };
-
   const signInAsDemo = async (role: UserRole) => {
     const demoEmail = `${role.toLowerCase()}@fobbs.com`;
     console.log(`[AUTH] 🛡️ Demo Access: ${role}`);
@@ -433,18 +416,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       session,
       authority,
-      authorityStatus,
-      currentRole,
+      authorityStatus: authority.status,
+      currentRole: authority.role as any,
       isOrgAdmin,
-      orgId,
-      locationId,
-      departmentId,
-      departmentName,
+      orgId: authority.businessId,
+      locationId: authority.branchId,
+      departmentId: authority.departmentId,
+      departmentName: authority.departmentName,
       profile,
-      staffId,
-      isLoading: authorityStatus === 'loading',
+      staffId: authority.staffId,
+      isLoading: authority.status === 'loading',
       isAuthenticated: !!session,
-      role: currentRole,
+      role: authority.role as any,
       signOut,
       signInWithPassword,
       signInAsDemo,
