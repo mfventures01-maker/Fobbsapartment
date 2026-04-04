@@ -12,6 +12,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // 🛸 ANTI-GRAVITY: Only roles that operate within a single branch need hydration gate
     const needsBranchHydration = !!user
+        && authority.hydrated
         && !!authority.role
         && BRANCH_SCOPED_ROLES.includes(authority.role)
         && !!authority.businessId
@@ -47,7 +48,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         const run = async () => {
             try {
-                await hydrateSystem(authority.businessId!, authority.branchId!);
+                await hydrateSystem();
 
                 if (!active) return;
 

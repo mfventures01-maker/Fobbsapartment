@@ -87,12 +87,12 @@ const StaffOperationalTerminal: React.FC = () => {
 
     // --- HYDRATION ---
     const hydrate = useCallback(async () => {
-        if (!authority.businessId || !authority.branchId) return;
+        if (!authority.hydrated || !authority.branchId) return;
         const data = await callRPC<InventoryItem[]>('staff', 'get_active_inventory', {
             p_branch_id: authority.branchId
         });
         setInventory(data || []);
-    }, [authority.businessId, authority.branchId]);
+    }, [authority.hydrated, authority.branchId]);
 
     useEffect(() => {
         hydrate();
@@ -166,7 +166,7 @@ const StaffOperationalTerminal: React.FC = () => {
             setActiveIntent(intent);
             setCart([]);
             setCustomerName('');
-            refreshSystem(authority.businessId, authority.branchId);
+            refreshSystem();
         } catch (err: any) {
             toast.error(err.message, { id: loading });
         }
@@ -184,7 +184,7 @@ const StaffOperationalTerminal: React.FC = () => {
 
             toast.success('Funds Verified & Logged', { id: loading });
             setActiveIntent(null);
-            refreshSystem(authority.businessId!, authority.branchId!);
+            refreshSystem();
         } catch (err: any) {
             toast.error(err.message, { id: loading });
         }

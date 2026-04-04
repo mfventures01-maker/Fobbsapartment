@@ -26,7 +26,7 @@ export const BranchProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     useEffect(() => {
         const fetchBranches = async () => {
-            if (authority.status !== 'authorized' || !authority.businessId) {
+            if (!authority.hydrated || authority.status !== 'authorized' || !authority.businessId) {
                 setLoading(false);
                 return;
             }
