@@ -78,7 +78,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
 
     // ─── SYSTEM STATE (READ) ────────────────────────────────────────────────
     get_system_state: {
-        required: [] // Parameterless: Resolves context internally
+        required: ['payload'] // Hotel Edition: Single JSONB payload
     },
 
     // ─── LOGGING (FIRE-AND-FORGET) ───────────────────────────────────────────
