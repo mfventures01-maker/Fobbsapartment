@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { hydrateSystem, useSystemStore } from '../store/systemStore';
+import { verifyHotelHydration } from '../utils/hotelHydrationTester';
 
 // Roles that need branch-level system hydration before rendering
 const BRANCH_SCOPED_ROLES = ['staff', 'manager', 'kitchen'];
@@ -52,12 +53,19 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
                 if (!active) return;
 
+                // 🏅 [ANTI-GRAVITY] STEP 6: FORENSIC VERIFICATION (HYDRATION X-RAY)
+                console.log("[HYDRATION] System State Hydrated. Running forensic verification...");
+                const results = await verifyHotelHydration(authority);
+
+                // If any critical terminal fails, we don't block UNLESS it's a fatal DB error (Step 6 log only)
+                console.log("[HYDRATION] Verification Matrix Results:", results);
+
                 setIsHydrated(true);
-                console.log("[HYDRATION] System State Hydrated Successfully!");
+                console.log("[HYDRATION] Portal Sealed: Fully Hydrated = true");
             } catch (err) {
                 if (!active) return;
                 console.error('[HYDRATION ERROR]', err);
-                setHydrationTimedOut(true); // Unlock on error too
+                setHydrationTimedOut(true);
             }
         };
 

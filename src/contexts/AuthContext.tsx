@@ -323,6 +323,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'authorized'
         };
 
+        // 🏅 [ANTI-GRAVITY] STEP 1 & 2: PORTAL COMMIT (L1-L2)
+        console.log('[HYDRATION_TRACE] IDENTITY_COMMIT', JSON.stringify({
+          userId: authorityData.user_id,
+          role: authorityData.role,
+          businessId: authorityData.businessId,
+          branchId: authorityData.branchId,
+          staffId: authorityData.staffId,
+          status: authorityData.status,
+          hydrated: true
+        }));
+
         setAuthority(authorityData);
         setProfile({
           user_id: userId,
@@ -345,6 +356,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }));
 
         // ── TRACE POINT 5 ─────────────────────────────────────────────────
+        console.log('[HYDRATION_TRACE] LAYER_2_CONTEXT_RESOLVED', JSON.stringify({
+          staff_id: authorityData.staffId ?? 'null',
+          business_id: authorityData.businessId ?? 'null',
+          branch_id: authorityData.branchId ?? 'null'
+        }));
+
         console.log('[HYDRATION_TRACE] HYDRATION_GATE', JSON.stringify({
           hydrated: true,
           allowDownstream: true,
