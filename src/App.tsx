@@ -97,7 +97,26 @@ const AuthGate = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+import { useHydrationGate } from './hooks/useHydrationGate';
+
 export default function App() {
+  const isHydrated = useHydrationGate();
+  const { session } = useAuth();
+
+  // 🛸 ANTI-GRAVITY HYDRATION GATE (Step 3)
+  // We only gate if there's an active session (authenticated ignition)
+  // Public pages (no session) pass through, but slices still hydrate in background if URL-relevant
+  if (session && !isHydrated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900">
+        <FullScreenLoader />
+        <p className="mt-4 text-emerald-500 font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse">
+          Synchronizing Domain Slices: [QR | BAR | POS | BOOKINGS]
+        </p>
+      </div>
+    );
+  }
+
   return (
     <SystemStateProvider>
       <BranchProvider>

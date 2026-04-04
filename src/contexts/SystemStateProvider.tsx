@@ -9,17 +9,17 @@ const BRANCH_SCOPED_ROLES = ['staff', 'manager', 'kitchen'];
 export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { authority, user } = useAuth();
     const [isHydrated, setIsHydrated] = useState(false);
-    const [hydrationTimedOut, setHydrationTimedOut] = useState(false);
 
-    // 🛸 ANTI-GRAVITY: Only roles that operate within a single branch need hydration gate
-    const needsBranchHydration = !!user
-        && authority.hydrated
-        && !!authority.role
+    // 🛸 ANTI-GRAVITY: Hydration is the sync of Layer 5 (System State)
+    // ALL authenticated users with an authority should hydrate to populate forensics/telemetry
+    const canHydrate = !!user && authority.hydrated && !!authority.role;
+
+    // 🛸 [LOCK GATING]: Only roles that operate within a single branch MUST block UI until hydration
+    const needsBranchLock = canHydrate
+        && authority.role
         && BRANCH_SCOPED_ROLES.includes(authority.role)
         && !!authority.businessId
         && !!authority.branchId;
-
-    const canHydrate = needsBranchHydration;
 
     console.log("[LIFECYCLE]", {
         user: user?.id,
@@ -32,13 +32,12 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const hasStarted = useRef(false);
 
-    // 🛸 SAFEGUARD: 3s timeout — never let a failed hydrateSystem permanently lock the UI
     useEffect(() => {
         if (!canHydrate || isHydrated) return;
         const timeout = setTimeout(() => {
             console.warn('[HYDRATION] Timeout — releasing lock to prevent dead page.');
-            setHydrationTimedOut(true);
-        }, 3000);
+            setIsHydrated(true); // Release locally to satisfy downstream
+        }, 5000);
         return () => clearTimeout(timeout);
     }, [canHydrate, isHydrated]);
 
@@ -69,7 +68,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
             } catch (err) {
                 if (!active) return;
                 console.error('[HYDRATION ERROR]', err);
-                setHydrationTimedOut(true);
+                setIsHydrated(true);
             }
         };
 
@@ -107,21 +106,11 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     // 🛸 RULE 2: Org-wide roles (super_admin, ceo, owner, admin) → pass through immediately
     // These roles are not branch-scoped and must never be locked by a branch gate
-    if (!needsBranchHydration) {
+    if (!needsBranchLock) {
         return <>{children}</>;
     }
 
-    // 🛸 RULE 3: Branch-scoped role, hydration in progress → show lock
-    // BUT: release after timeout or error to prevent permanent dead page
-    if (!isHydrated && !hydrationTimedOut) {
-        return (
-            <div className="hydration-lock flex flex-col items-center justify-center p-8 bg-white h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-900 mb-4"></div>
-                <p className="text-emerald-950 font-mono text-xs uppercase tracking-widest animate-pulse">Initializing deterministic terminal...</p>
-            </div>
-        );
-    }
-
-    // ✅ Hydrated (or timed out) → release
+    // 🛸 RULE 3: Operational Pass-Through
+    // The visual lock is now managed by the Central Hydration Gate in App.tsx
     return <>{children}</>;
 };

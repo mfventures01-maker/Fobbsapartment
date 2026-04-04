@@ -10,11 +10,14 @@ interface ProtectedRouteProps {
     allowedRoles?: UserRole[];
 }
 
+import { useHydrationGate } from '@/hooks/useHydrationGate';
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     children,
     allowedRoles = DEFAULT_ALLOWED_ROLES
 }) => {
     const { isLoading, isAuthenticated, role } = useAuth();
+    const isHydrated = useHydrationGate();
     const location = useLocation();
 
     useEffect(() => {
@@ -41,6 +44,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     if (!role || !allowedRoles.includes(role)) {
         return <Navigate to="/unauthorized" replace />;
+    }
+
+    // 🛸 AG HYDRATION GATE: Hold rendering until all domain slices are ready
+    if (!isHydrated) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+                <FullScreenLoader />
+                <p className="mt-4 text-emerald-600 font-mono text-xs uppercase tracking-widest animate-pulse">
+                    Synchronizing domain slices: [QR | BAR | POS | BOOKINGS]
+                </p>
+            </div>
+        );
     }
 
     return <>{children}</>;
