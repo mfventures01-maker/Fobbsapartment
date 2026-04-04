@@ -434,7 +434,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signInWithPassword({ email: demoEmail, password: 'password123' });
   };
 
+  useEffect(() => {
+    // 🛸 AG ADAPTATION: FORCE_HYDRATION (Step 5 & 7)
+    // Synchronous re-hydration trigger for AG RESTART SEQUENCE
+    const handleForceHydration = () => {
+      console.log('⚡ AG DIRECTIVE: FORCE_HYDRATION RECEIVED. RE-RESOLVING AUTHORITY...');
+      resolveAuthority(session);
+    };
 
+    window.addEventListener('FORCE_HYDRATION', handleForceHydration);
+
+    // Step 7: Verification exposure
+    // @ts-ignore
+    window.canHydrate = authority.hydrated;
+
+    return () => {
+      window.removeEventListener('FORCE_HYDRATION', handleForceHydration);
+      isMounted.current = false;
+    };
+  }, [session, authority.hydrated]);
 
   return (
     <AuthContext.Provider value={{
