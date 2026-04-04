@@ -221,12 +221,9 @@ class RPCClient {
         });
 
         if (functionName === 'resolve_active_shift') {
-            // 🛡️ [ANTI-GRAVITY] STRICT PAYLOAD NORMALIZATION
-            // Aligned with p_ prefix from 20260321140000_staff_terminal_backend_law.sql
-            fullPayload = {
-                p_branch_id: payload.p_branch_id || payload.branch_id || context.branch_id,
-                p_staff_id: payload.p_staff_id || payload.staff_id || context.staff_id
-            };
+            // 🛡️ [ANTI-GRAVITY] DETERMINISTIC SHIFT ENGINE (LAYER 4)
+            // Parameterless RPC: Rely entirely on auth.uid() internally.
+            fullPayload = {};
         } else if (functionName === 'create_qr_order_gateway') {
             // 🛸 SURGEON PROTOCOL: EXACT 12-KEY ALIGNMENT
             fullPayload = payload;

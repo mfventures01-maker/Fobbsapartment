@@ -4,7 +4,7 @@ import { callRPC, setRPCInjectionContext } from '../lib/rpcClient';
 import { useAuth } from './AuthContext';
 import { Shift } from '../types/database';
 import { getActiveShift } from '../services/staffService';
-import { requestShift, endShift as apiEndShift, submitDeclaration as apiSubmitDeclaration } from '../services/staffService';
+import { endShift as apiEndShift, submitDeclaration as apiSubmitDeclaration } from '../services/staffService';
 import { approveShift as apiApproveShift } from '../services/managerService';
 import { subscribeToOperationalTelemetry } from '../lib/realtimeTelemetry';
 import { SHIFT_STATUS } from '../constants/shiftStatus';
@@ -77,10 +77,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             businessShifts = [];
 
             // STEP 2 — Resolve personal shift for terminal control
-            const { data: shift, error } = await supabase.rpc('resolve_active_shift', {
-                p_staff_id: staffId,
-                p_branch_id: authority.branchId
-            });
+            const { data: shift, error } = await supabase.rpc('resolve_active_shift');
 
             if (error) throw error;
 
@@ -161,27 +158,18 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [resolveShift, user, authority.hydrated, authority.branchId]);
 
     const startShift = async () => {
-        // ⛔ ANTI-GRAVITY HYDRATION GATE
-        if (!authority.hydrated || !staffId) {
-            return { error: { message: 'Identity not hydrated. Cannot start shift until backend confirms role.' } };
-        }
-        if (!authority.businessId || !authority.branchId) {
-            return { error: { message: 'Business context missing (Org/Branch ID unresolved)' } };
+        // 🛡️ [ANTI-GRAVITY] DETERMINISTIC AUTOPILOT (LAYER 4)
+        // Shift creation is now an idempotent side-effect of resolve_active_shift.
+        // No manual request required; just trigger the resolution gate.
+        if (!authority.hydrated) {
+            return { error: { message: 'Identity not hydrated.' } };
         }
 
-        // 🔒 MUTEX: Prevent concurrent shift opens
         if (!acquireMutex()) {
-            return { error: { message: 'Shift operation already in progress. Please wait.' } };
+            return { error: { message: 'Shift operation already in progress.' } };
         }
 
-        // 🔑 KEY: Generated once here, passed to service
-        const idempotencyKey = crypto.randomUUID();
-        console.log(`[SHIFT] Initiating startShift (key: ${idempotencyKey.slice(0, 8)})`);
         try {
-            const result = await requestShift(authority.businessId, authority.branchId, staffId, idempotencyKey);
-            if (!result?.success) {
-                return { error: { message: 'Failed to request shift' } };
-            }
             await resolveShift();
             return { error: null };
         } catch (error: any) {
@@ -222,12 +210,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         try {
-            const activeShift = await getActiveShift(
-                authority.businessId,
-                authority.branchId,
-                staffId,
-                authority.role || 'staff'
-            );
+            const activeShift = await getActiveShift();
             if (!activeShift || activeShift.status !== SHIFT_STATUS.DECLARATION_SUBMITTED) {
                 return { error: { message: 'No shift pending declaration or session desync' }, data: undefined };
             }

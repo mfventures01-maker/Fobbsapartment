@@ -8,19 +8,9 @@ import { Shift } from '../types/database';
  * Read functions (getActiveShift, getShiftById) do NOT use idempotency keys.
  */
 
-export async function getActiveShift(
-    businessId: string,
-    branchId: string,
-    staffId: string,
-    terminalType: string = 'staff'
-): Promise<Shift | null> {
-    // READ-ONLY — no idempotency key
-    const data = await callRPC<Shift | null>('staff', 'resolve_active_shift', {
-        business_id: businessId,
-        branch_id: branchId,
-        staff_id: staffId,
-        terminal_type: terminalType
-    });
+export async function getActiveShift(): Promise<Shift | null> {
+    // READ-ONLY DETERMINISTIC — parameterless per Layer 4 architecture
+    const data = await callRPC<Shift | null>('staff', 'resolve_active_shift', {});
     return data;
 }
 
