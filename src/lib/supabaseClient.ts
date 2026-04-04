@@ -16,6 +16,9 @@ if (typeof window !== "undefined") {
         configurable: false
     });
 
+    // 🛸 [ANTI-GRAVITY] FOR CONSOLE-BASED AUTH & DIAGNOSTICS
+    (window as any).supabase = baseClient;
+
     console.log("🛸 CARSS PORTAL: STABLE");
 }
 

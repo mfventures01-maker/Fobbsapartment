@@ -60,6 +60,10 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 // If any critical terminal fails, we don't block UNLESS it's a fatal DB error (Step 6 log only)
                 console.log("[HYDRATION] Verification Matrix Results:", results);
 
+                // 🛸 [ANTI-GRAVITY] STEP 5: EXPOSE PORTAL STATE FOR FORENSICS
+                // @ts-ignore
+                window.__CARSS_PORTAL_STATE__ = results;
+
                 setIsHydrated(true);
                 console.log("[HYDRATION] Portal Sealed: Fully Hydrated = true");
             } catch (err) {

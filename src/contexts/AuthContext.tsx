@@ -100,6 +100,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionExists: !!currentSession
     }));
 
+    // 🛸 [ANTI-GRAVITY] TEST OVERRIDE (Step 2 DIAGNOSTICS)
+    // Allows manual console-simulated identities
+    const testUser = (window as any).__TEST_USER;
+    if (testUser && testUser.id) {
+      console.log('⚡ AG DIRECTIVE: APPLYING __TEST_USER OVERRIDE...', testUser);
+      if (isMounted.current) {
+        setAuthority({
+          user_id: testUser.id,
+          role: testUser.role,
+          branchId: testUser.branchId,
+          businessId: testUser.businessId,
+          staffId: testUser.staffId || testUser.id,
+          departmentId: testUser.departmentId || null,
+          departmentName: testUser.departmentName || null,
+          hydrated: true, // Manual override forces hydration gate open (Step 3)
+          status: 'authorized'
+        });
+        setProfile({
+          user_id: testUser.id,
+          role: testUser.role,
+          business_id: testUser.businessId,
+          full_name: 'TEST_AGENT'
+        });
+        // Mock a user if none exists
+        if (!currentSession?.user) {
+          setUser({ id: testUser.id } as any);
+        }
+      }
+      return;
+    }
+
     if (!currentSession?.user) {
       identityCache.clear();
       if (isMounted.current) {
