@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentSession?.user) {
       identityCache.clear();
       if (isMounted.current) {
-        setAuthority(AUTHORITY_INITIAL);
+        setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
         setUser(null);
         setSession(null);
       }
@@ -436,7 +436,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log(`[AUTH] Event: ${event}`);
       if (event === 'SIGNED_OUT') {
         if (isMounted.current) {
-          setAuthority(AUTHORITY_INITIAL);
+          setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
           setUser(null);
           setSession(null);
         }
