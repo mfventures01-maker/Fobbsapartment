@@ -26,6 +26,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
     get_my_identity_simple: { required: [] },
     resolve_hydration_offline_safe: { required: [] },
     get_my_branches: { required: [] },
+    get_intent_by_id: { required: ['p_intent_id'] },
 
     // ─── MENU (READ) ────────────────────────────────────────────────────────
     get_qr_menu: { required: ['p_branch_id'] },
@@ -36,7 +37,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
         required: ['p_org_id', 'p_branch_id', 'p_cart']
     },
     universal_order_gateway: {
-        required: ['p_business_id', 'p_branch_id', 'p_staff_id', 'p_items']
+        required: ['p_items'] // Zero-trust: business, branch, staff resolved on server
     },
     add_order_item: {
         required: ['p_order_id', 'p_name', 'p_price', 'p_quantity']
@@ -49,16 +50,19 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
     create_payment_intent: {
         required: ['p_order_id', 'p_payment_type']
     },
+    settle_order_v2: {
+        required: ['p_order_id', 'p_payment_type']
+    },
     confirm_payment_intent: {
         required: ['p_intent_id']
     },
 
     // ─── SHIFT LIFECYCLE (MUTATION) ─────────────────────────────────────────
-    resolve_active_shift: {
-        required: ['p_branch_id', 'p_staff_id']
-    },
     open_staff_shift: {
         required: ['p_business_id', 'p_branch_id', 'p_staff_id']
+    },
+    resolve_active_shift: {
+        required: [] // Parameterless
     },
     end_shift: {
         required: []   // shift_id injected from context
@@ -74,7 +78,7 @@ export const rpcSchemas: Record<string, { required: string[] }> = {
 
     // ─── SYSTEM STATE (READ) ────────────────────────────────────────────────
     get_system_state: {
-        required: ['p_business_id', 'p_branch_id', 'p_terminal_type']
+        required: [] // Parameterless: Resolves context internally
     },
 
     // ─── LOGGING (FIRE-AND-FORGET) ───────────────────────────────────────────
@@ -146,9 +150,8 @@ class RPCClient {
     private assertHydrated(functionName: string, terminal: string): void {
         // Public/read operations are always allowed
         const PUBLIC_RPC_ALLOWLIST = new Set([
-            'get_my_identity_simple', 'resolve_hydration_offline_safe', 'get_my_branches', 'get_qr_menu',
-            'get_order_status', 'create_qr_order_gateway', 'log_frontend_error',
-            'get_system_state'
+            'get_my_identity_simple',
+            'resolve_hydration_offline_safe'
         ]);
         if (terminal === 'public' || PUBLIC_RPC_ALLOWLIST.has(functionName)) return;
 

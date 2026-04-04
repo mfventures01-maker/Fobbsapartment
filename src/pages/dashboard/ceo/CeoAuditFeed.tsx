@@ -1,12 +1,14 @@
 import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { callRPC } from '@/lib/rpcClient';
-import { safeNumber } from '@/lib/safeNumber';
 
 const CeoAuditFeed: React.FC = () => {
+    const { authority } = useAuth();
     const [logs, setLogs] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
+        if (!authority.hydrated) return;
         const fetchLogs = async () => {
             try {
                 // ✅ Authority: Managed via callRPC (CEO Terminal)
@@ -22,7 +24,7 @@ const CeoAuditFeed: React.FC = () => {
             }
         };
         fetchLogs();
-    }, []);
+    }, [authority.hydrated]);
 
     if (loading) return <div className="p-8 text-center text-gray-400">Loading audit trail...</div>;
 
