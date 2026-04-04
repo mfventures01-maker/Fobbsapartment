@@ -70,12 +70,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Dual probe: Verify with DB (Anti-Gravity Rule)
-            const activeShift = await getActiveShift(
-                shiftState.shift.business_id,
-                shiftState.shift.branch_id,
-                shiftState.shift.staff_id,
-                'staff'
-            );
+            const activeShift = await getActiveShift();
             if (!activeShift || activeShift.id !== shiftState.shift.id) {
                 toast.error("SHIFT DESYNC: Your active shift session has expired or changed.");
                 throw new Error("Shift desync");
@@ -88,13 +83,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 price: item.price
             }));
 
-            // 2. Create Order via Gateway
+            // 2. Create Order via Gateway (Zero Trust)
             const gatewayResult = await createStaffOrder(
-                activeShift.business_id,
-                activeShift.branch_id,
-                activeShift.staff_id,
                 orderItems,
-                { source: 'cart_checkout', customer_name: 'Walk-In', paymentMethod }
+                'Walk-In', // customerName
+                { source: 'cart_checkout', preferredMethod: paymentMethod }
             );
 
             toast.success("Order Created! Proceeding to Payment...");

@@ -224,6 +224,10 @@ class RPCClient {
             // 🛡️ [ANTI-GRAVITY] DETERMINISTIC SHIFT ENGINE (LAYER 4)
             // Parameterless RPC: Rely entirely on auth.uid() internally.
             fullPayload = {};
+        } else if (functionName === 'universal_order_gateway' || functionName === 'settle_order_v2') {
+            // 🛡️ [ANTI-GRAVITY] ZERO-TRUST GATEWAY (LAYER 5)
+            // Resolve all IDs (branch, staff, shift) from database truth.
+            fullPayload = payload;
         } else if (functionName === 'create_qr_order_gateway') {
             // 🛸 SURGEON PROTOCOL: EXACT 12-KEY ALIGNMENT
             fullPayload = payload;

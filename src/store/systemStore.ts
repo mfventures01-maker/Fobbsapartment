@@ -11,10 +11,10 @@ export type SystemState = {
     business_id: string | null;
     branch_id: string | null;
     user_id: string | null;
-    orders: any[];
-    kitchen: any[];
-    inventory: any[];
-    shifts: any[];
+    orders: any; // Stats object
+    revenue: any; // Revenue intelligence
+    recent_transactions: any[];
+    alerts: any[];
     timestamp: string | null;
 };
 
@@ -26,31 +26,22 @@ export const useSystemStore = create<SystemStore>((set) => ({
     business_id: null,
     branch_id: null,
     user_id: null,
-    orders: [],
-    kitchen: [],
-    inventory: [],
-    shifts: [],
+    orders: { open_orders: 0, pending_payment: 0, today_total: 0 },
+    revenue: { today: 0, last_hour: 0, shift_total: 0 },
+    recent_transactions: [],
+    alerts: [],
     timestamp: null,
 
     setState: (data: SystemState) => set(data),
 }));
 
-export async function hydrateSystem(businessId: string, branchId: string) {
-    assertUUID(branchId, "branch_id");
-    assertUUID(businessId, "business_id");
-
-    console.log("[HYDRATION]", {
-        businessId,
-        branchId
-    });
-
+export async function hydrateSystem() {
+    // 🛡️ [ANTI-GRAVITY] DETERMINISTIC HYDRATION (LAYER 5)
+    // Parameterless call: Resolve context from SSOT on server.
     const data = await callRPC<SystemState>(
         "manager",
         "get_system_state",
-        {
-            p_business_id: businessId,
-            p_branch_id: branchId
-        }
+        {}
     );
 
     useSystemStore.getState().setState(data);

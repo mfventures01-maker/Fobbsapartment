@@ -62,40 +62,46 @@ export async function submitDeclaration(
 }
 
 export async function createStaffOrder(
-    businessId: string,
-    locationId: string,
-    staffId: string,
     items: any[],
+    customerName?: string,
     metadata?: any,
-    externalReference?: string,
-    idempotencyKey?: string          // ← Caller provides key
+    idempotencyKey?: string
 ) {
+    // 🛡️ ZERO-TRUST GATEWAY — IDs resolved from auth.uid() on server
     const data = await callRPC<{ order_id: string; status: string; payment_intent_id: string }>(
         'staff', 'universal_order_gateway', {
-        p_source: 'staff',
-        p_business_id: businessId,
-        p_branch_id: locationId,
-        p_staff_id: staffId,
         p_items: items,
+        p_customer_name: customerName || 'Staff Guest',
         p_metadata: metadata || {},
-        p_external_reference: externalReference || null,
         _idempotency_key: idempotencyKey
     }
     );
     return { success: true, ...data };
 }
 
-export async function confirmPaymentIntent(
-    intentId: string,
+export async function settleOrderV2(
+    orderId: string,
+    paymentType: string,
     externalReference?: string,
-    idempotencyKey?: string          // ← Caller provides key
+    idempotencyKey?: string
 ) {
     const data = await callRPC<{ success: boolean; transaction_id: string }>(
-        'staff', 'confirm_payment_intent', {
-        p_intent_id: intentId,
-        p_external_reference: externalReference || null,
+        'staff', 'settle_order_v2', {
+        p_order_id: orderId,
+        p_payment_type: paymentType,
+        p_external_reference: externalReference,
         _idempotency_key: idempotencyKey
     }
     );
     return { ...data };
+}
+
+export async function confirmPaymentIntent(
+    intentId: string,
+    externalReference?: string,
+    idempotencyKey?: string
+) {
+    // Deprecated in favor of settleOrderV2 (Atomic settlement + ledger sync)
+    // For backward compatibility, default to cash settlement
+    return await settleOrderV2(intentId, 'cash', externalReference, idempotencyKey);
 }

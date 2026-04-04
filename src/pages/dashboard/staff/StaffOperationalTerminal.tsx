@@ -14,7 +14,7 @@ import { SHIFT_STATUS } from '@/constants/shiftStatus';
 import { useSystemState } from '@/hooks/useSystemState';
 import { safeNumber } from '@/lib/safeNumber';
 import { callRPC } from '@/lib/rpcClient';
-import { createStaffOrder, confirmPaymentIntent } from '@/services/staffService';
+import { createStaffOrder, settleOrderV2 } from '@/services/staffService';
 
 // --- SUB-COMPONENTS (DETERMINISTIC MODULES) ---
 
@@ -144,16 +144,14 @@ const StaffOperationalTerminal: React.FC = () => {
         const loading = toast.loading('Finalizing Order Ledger...');
         try {
             const result = await createStaffOrder(
-                authority.businessId,
-                authority.branchId,
-                staffId,
                 cart.map(i => ({
                     item_id: i.id,
                     name: i.name,
                     quantity: i.quantity,
                     price: i.sale_price
                 })),
-                { customer_name: customerName || 'Walk-in' }
+                customerName || 'Walk-in',
+                { source: 'terminal_checkout' }
             );
 
             if (!result || !result.success) throw new Error('Order creation failed');
@@ -179,15 +177,9 @@ const StaffOperationalTerminal: React.FC = () => {
         if (!activeIntent) return;
         const loading = toast.loading(`Confirming ${method.toUpperCase()} Settlement...`);
         try {
-            // 1. Update Intent with specific method via RPC (Pure SSOT)
-            await callRPC('staff', 'set_intent_payment_method', {
-                p_intent_id: activeIntent.id,
-                p_method: method,
-                _idempotency_key: crypto.randomUUID()
-            });
-
-            // 2. Execute RPC Confirmation
-            const res = await confirmPaymentIntent(activeIntent.id);
+            // 🛡️ [ANTI-GRAVITY] ATOMIC SETTLEMENT (LAYER 5)
+            // Combined method selection, confirmation, and ledger-syncing in one transaction.
+            const res = await settleOrderV2(activeIntent.order_id, method);
             if (!res || !res.success) throw new Error('Payment confirmation failed');
 
             toast.success('Funds Verified & Logged', { id: loading });
