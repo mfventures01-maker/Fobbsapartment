@@ -11,43 +11,41 @@ export function useHydrationGate() {
     const branchId = authority.branchId;
     const staffId = authority.staffId;
 
-    const qrStatus = useQRMenuStore((state) => state.status);
-    const barStatus = useBarCartStore((state) => state.status);
-    const bookingStatus = useRoomBookingStore((state) => state.status);
-    const posStatus = usePOSStore((state) => state.status);
-
-    const fetchQR = useQRMenuStore((state) => state.fetch);
-    const fetchBar = useBarCartStore((state) => state.fetch);
-    const fetchBookings = useRoomBookingStore((state) => state.fetch);
-    const fetchPOS = usePOSStore((state) => state.fetch);
+    const slicesStatus = [
+        useQRMenuStore(state => state.status),
+        useBarCartStore(state => state.status),
+        useRoomBookingStore(state => state.status),
+        usePOSStore(state => state.status),
+    ];
 
     useEffect(() => {
-        // Only hydration-gate if we have a valid session and authority
+        // 🛡️ RE-IGNITION STRATEGY
+        // We only trigger fetch for all domain slices once the Auth identity is resolved
         if (session && branchId) {
-            // 🛸 AG INJECTION: Concurrent Hydration of all domain slices
-            fetchQR(branchId);
-            fetchBar(branchId);
-            fetchBookings(branchId);
+            console.log('[HYDRATION_TRACE] HYDRATION_GATE: AWAKENING DOMAIN SLICES ⚡');
 
-            // Staff-only domain (POS/Shifts)
+            // Concurrent fire-and-forget fetch calls managed by individual stores
+            useQRMenuStore.getState().fetch(branchId);
+            useBarCartStore.getState().fetch(branchId);
+            useRoomBookingStore.getState().fetch(branchId);
+
             if (staffId) {
-                fetchPOS(branchId, staffId);
+                usePOSStore.getState().fetch(branchId, staffId);
             }
         }
     }, [session, branchId, staffId]);
 
-    // Mandatory slices that must succeed before releasing the gate
-    const coreSlices = [qrStatus, barStatus, bookingStatus];
+    // Aggregated success gate
+    // Note: POS is only required if staffId exists
+    const isHydrated = slicesStatus.every((s, index) => {
+        // Index 3 is POS status
+        if (index === 3 && !staffId) return true;
+        return s === 'success';
+    });
 
-    // If staff, posStatus must also succeed
-    if (staffId) coreSlices.push(posStatus);
-
-    const allSuccess = coreSlices.every((s) => s === 'success');
-
-    // Diagnostic log for the forensic trace
-    if (allSuccess) {
+    if (isHydrated) {
         console.log('[HYDRATION_TRACE] HYDRATION_GATE: ALL SLICES SYNCHRONIZED ⚡');
     }
 
-    return allSuccess;
+    return isHydrated;
 }
