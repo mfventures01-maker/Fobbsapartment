@@ -20,33 +20,43 @@ export function useHydrationGate() {
 
     useEffect(() => {
         // 🛸 Step 2: Hydration Gate for Domain Slices
-        // This blocks the app root render until all stores have hydrated successfully
         const hydrateAllStores = async () => {
+            // 🎯 Fix: We only hydrate if we have an active session + branch context
             if (!session || !branchId) return;
 
             console.log('[HYDRATION_TRACE] HYDRATION_GATE: AWAKENING DOMAIN SLICES ⚡');
 
+            // We need staffId for barCartStore and posStore (New RPC Signatures)
+            const currentStaffId = staffId || authority.user_id; // Absolute fallback
+
             // Parallel execution with individual store error/fallback handling
             await Promise.all([
                 useQRMenuStore.getState().hydrate(branchId),
-                useBarCartStore.getState().hydrate(branchId),
+
+                // 🎯 Fix: Pass currentStaffId to barCartStore.hydrate() to match RPC signature
+                currentStaffId ? useBarCartStore.getState().hydrate(branchId, currentStaffId) : Promise.resolve(),
+
                 useRoomBookingStore.getState().hydrate(branchId),
-                staffId ? usePOSStore.getState().hydrate(branchId, staffId) : Promise.resolve(),
+
+                currentStaffId ? usePOSStore.getState().hydrate(branchId, currentStaffId) : Promise.resolve(),
             ]);
         };
 
         hydrateAllStores();
-    }, [session, branchId, staffId]);
+    }, [session, branchId, staffId, authority.user_id]);
 
-    // Mandatory slices that must succeed (or fall back to successful cache)
+    // Aggregated success gate
     const isHydrated = slices.every((s, index) => {
-        // Index 3 is POS status
-        if (index === 3 && !staffId) return true;
+        // Indices needing staff/session: 1 (Bar Cart), 3 (POS)
+        const staffIdResolved = staffId || authority.user_id;
+        if ((index === 1 || index === 3) && !staffIdResolved) return true;
         return s === 'success';
     });
 
     if (isHydrated) {
         console.log('[HYDRATION_TRACE] HYDRATION_GATE: ALL SLICES SYNCHRONIZED ⚡');
+        // @ts-ignore
+        window.canHydrate = true;
     }
 
     return isHydrated;

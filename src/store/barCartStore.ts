@@ -7,7 +7,8 @@ interface BarCartState {
     version: number;
     status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
-    hydrate: (branchId: string) => Promise<void>;
+    // 🛸 Step 1: Staff ID requirement for the new deterministic signature
+    hydrate: (branchId: string, staffId: string) => Promise<void>;
     clearItems: (itemsToRemove: any[]) => void;
 }
 
@@ -18,12 +19,17 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
     status: 'idle',
     error: null,
 
-    hydrate: async (branchId: string) => {
+    hydrate: async (branchId: string, staffId: string) => {
         if (get().status === 'loading') return;
-        console.log('[HYDRATION_TRACE] bar_cart:hydrate:start', { branchId });
+        console.log('[HYDRATION_TRACE] bar_cart:hydrate:start', { branchId, staffId });
         set({ status: 'loading' });
         try {
-            const { data: env, error: rpcError } = await supabase.rpc('get_bar_cart', { p_branch_id: branchId });
+            // 🎯 Fix: Match the new RPC signature: get_bar_cart(p_branch_id, p_staff_id)
+            const { data: env, error: rpcError } = await supabase.rpc('get_bar_cart', {
+                p_branch_id: branchId,
+                p_staff_id: staffId
+            });
+
             if (rpcError) throw rpcError;
 
             const payload = {
@@ -36,7 +42,9 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
 
             localStorage.setItem(`carss_cache_bar_${branchId}`, JSON.stringify(payload));
             set(payload);
+            console.log('[HYDRATION_TRACE] bar_cart:hydrate:SUCCESS', { version: env.version });
         } catch (err: any) {
+            console.warn('[HYDRATION_TRACE] bar_cart:hydrate:RPC_FAILURE — Fallback active', err);
             const cached = localStorage.getItem(`carss_cache_bar_${branchId}`);
             if (cached) {
                 set({ ...JSON.parse(cached), status: 'success' });
@@ -52,6 +60,5 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
             items: state.items.filter(i => !idsToRemove.includes(i.id)),
             data: state.data.filter(i => !idsToRemove.includes(i.id))
         }));
-        console.log('[POS_TRACE] bar_cart:clear_items', { count: itemsToRemove.length });
     }
 }));
