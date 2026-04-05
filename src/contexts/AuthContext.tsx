@@ -100,8 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionExists: !!currentSession
     }));
 
-    // 🛸 [ANTI-GRAVITY] TEST OVERRIDE (Step 2 DIAGNOSTICS)
-    // Allows manual console-simulated identities
+    // 🛸 [ANTI-GRAVITY] TEST OVERRIDE
     const testUser = (window as any).__TEST_USER;
     if (testUser && testUser.id) {
       console.log('⚡ AG DIRECTIVE: APPLYING __TEST_USER OVERRIDE...', testUser);
@@ -114,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           staffId: testUser.staffId || testUser.id,
           departmentId: testUser.departmentId || null,
           departmentName: testUser.departmentName || null,
-          hydrated: true, // Manual override forces hydration gate open (Step 3)
+          hydrated: true,
           status: 'authorized'
         });
         setProfile({
@@ -123,10 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           business_id: testUser.businessId,
           full_name: 'TEST_AGENT'
         });
-        // Mock a user if none exists
-        if (!currentSession?.user) {
-          setUser({ id: testUser.id } as any);
-        }
+        if (!currentSession?.user) setUser({ id: testUser.id } as any);
       }
       return;
     }
@@ -142,6 +138,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const userId = currentSession.user.id;
+
+    // 🛸 [STABILIZE AUTH & IDENTITY LAYER] — Step 1
+    const resolveIdentity = async (sess: any): Promise<any> => {
+      let attempts = 0;
+      const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+      while (attempts < 3) {
+        try {
+          console.log(`[HYDRATION_TRACE] resolve_identity:attempt_${attempts + 1}`, { userId: sess.user.id });
+          const { data, error } = await supabase.rpc('resolve_hydration_offline_safe');
+
+          if (!error && data?.staffId) {
+            console.log('[HYDRATION_TRACE] resolve_identity:SUCCESS', data);
+            return data;
+          }
+
+          if (error) console.error('[HYDRATION_TRACE] resolve_identity:RPC_ERROR', error);
+        } catch (err) {
+          console.error('[HYDRATION_TRACE] resolve_identity:EXCEPTION', err);
+        }
+
+        attempts++;
+        if (attempts < 3) {
+          const delay = 300 * attempts;
+          console.warn(`[HYDRATION_TRACE] resolve_identity:RETRYING_IN_${delay}ms`);
+          await wait(delay);
+        }
+      }
+      throw new Error('Failed to resolve identity after 3 attempts');
+    };
+
+    const runResolve = async () => {
+      try {
+        const data = await resolveIdentity(currentSession);
+
+        if (isMounted.current) {
+          setAuthority({
+            user_id: userId,
+            role: data.role || 'manager',
+            branchId: data.branchId,
+            businessId: data.businessId,
+            staffId: data.staffId,
+            departmentId: data.departmentId || null,
+            departmentName: data.departmentName || null,
+            hydrated: true,
+            status: 'authorized'
+          });
+
+          identityCache.set(userId, {
+            user_id: userId,
+            role: data.role,
+            branchId: data.branchId,
+            businessId: data.businessId,
+            staffId: data.staffId,
+            status: 'authorized'
+          });
+        }
+      } catch (err: any) {
+        console.error('[HYDRATION_TRACE] IDENTITY_RESOLUTION_FATAL', err);
+        if (isMounted.current) {
+          setAuthority({ ...AUTHORITY_INITIAL, status: 'unauthorized' });
+        }
+      }
+    };
+
+    runResolve();
 
     // ── CACHE: Fast UI pre-render ONLY — hydration gate stays CLOSED ──────────
     const cached = identityCache.get(userId);

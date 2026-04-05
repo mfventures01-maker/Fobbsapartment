@@ -6,33 +6,41 @@ interface RoomBookingState {
     version: number;
     status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
-    fetch: (branchId: string) => Promise<void>;
+    hydrate: (branchId: string) => Promise<void>;
 }
 
-export const useRoomBookingStore = create<RoomBookingState>((set) => ({
+export const useRoomBookingStore = create<RoomBookingState>((set, get) => ({
     data: [],
     version: 0,
     status: 'idle',
     error: null,
 
-    fetch: async (branchId: string) => {
-        console.log('[HYDRATION_TRACE] fetch:get_room_bookings', { branchId });
+    hydrate: async (branchId: string) => {
+        if (get().status === 'loading') return;
+        console.log('[HYDRATION_TRACE] room_booking:hydrate:start', { branchId });
         set({ status: 'loading' });
         try {
             const { data: env, error: rpcError } = await supabase.rpc('get_room_bookings', { p_branch_id: branchId });
-
             if (rpcError) throw rpcError;
 
-            set({
+            const payload = {
                 data: env.data || [],
                 version: env.version || 0,
-                status: 'success',
+                status: 'success' as const,
                 error: null
-            });
-            console.log('[HYDRATION_TRACE] success:get_room_bookings', { version: env.version });
+            };
+
+            localStorage.setItem(`carss_cache_room_${branchId}`, JSON.stringify(payload));
+            set(payload);
+            console.log('[HYDRATION_TRACE] room_booking:hydrate:SUCCESS', { version: env.version });
         } catch (err: any) {
-            console.error('[HYDRATION_TRACE] error:get_room_bookings', err);
-            set({ status: 'error', error: err.message });
+            console.warn('[HYDRATION_TRACE] room_booking:hydrate:RPC_FAILURE — Fallback active', err);
+            const cached = localStorage.getItem(`carss_cache_room_${branchId}`);
+            if (cached) {
+                set({ ...JSON.parse(cached), status: 'success' });
+            } else {
+                set({ status: 'error', error: err.message });
+            }
         }
     }
 }));

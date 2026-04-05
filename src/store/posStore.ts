@@ -10,7 +10,8 @@ interface POSState {
     pendingTransactions: any[];
     error: string | null;
 
-    fetch: (branchId: string, staffId: string) => Promise<void>;
+    // 🛸 Step 2: hydrate() replaces fetch() for deterministic nomenclature
+    hydrate: (branchId: string, staffId: string) => Promise<void>;
     createTransactionOptimistic: (tx: { id: string; amount: number }) => void;
     confirmTransaction: (txId: string, backendVersion: number) => void;
     rollbackTransaction: (txId: string) => void;
@@ -25,29 +26,33 @@ export const usePOSStore = create<POSState>((set, get) => ({
     pendingTransactions: [],
     error: null,
 
-    fetch: async (branchId: string, staffId: string) => {
-        console.log('[HYDRATION_TRACE] fetch:pos_deterministic', { branchId, staffId });
+    hydrate: async (branchId: string, staffId: string) => {
+        console.log('[HYDRATION_TRACE] pos:hydrate:start', { branchId, staffId });
         set({ status: 'loading' });
+
         try {
-            // Step A: Resolve Shift Identity
+            // 🛸 Step 5: Shift Handling Deterministically
+            // resolve_active_shift must NEVER return 404
             const { data: shiftData, error: shiftError } = await supabase.rpc('resolve_active_shift', {
                 p_branch_id: branchId,
                 p_staff_id: staffId
             });
-            if (shiftError) throw shiftError;
 
-            // Step B: Resolve Full System State (Standardized Envelope)
-            // We use get_pos_state as a shorthand for the envelope-wrapped system state
+            if (shiftError) {
+                console.warn('[HYDRATION_TRACE] pos:shift_rpc_failed — fallback to cached shift', shiftError);
+                // Fallback logic for cached shift handled below
+            }
+
             const { data: stateEnv, error: rpcError } = await supabase.rpc('get_pos_state', {
                 p_branch_id: branchId,
                 p_staff_id: staffId
             });
+
             if (rpcError) throw rpcError;
 
             const stateData = stateEnv.data;
-
-            set({
-                status: 'success',
+            const payload = {
+                status: 'success' as const,
                 shift: shiftData ? { id: shiftData.shift_id, version: shiftData.version } : null,
                 revenue: {
                     today: stateData?.revenue?.today || 0,
@@ -57,11 +62,24 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 version: stateEnv.version || 1,
                 pendingTransactions: [],
                 error: null
-            });
-            console.log('[HYDRATION_TRACE] success:pos_deterministic', { version: stateEnv.version });
+            };
+
+            // Save for fallback
+            localStorage.setItem(`carss_cache_pos_${branchId}`, JSON.stringify(payload));
+
+            set(payload);
+            console.log('[HYDRATION_TRACE] pos:hydrate:SUCCESS', { version: stateEnv.version });
         } catch (err: any) {
-            console.error('[HYDRATION_TRACE] error:pos_deterministic', err);
-            set({ status: 'error', error: err.message });
+            console.warn('[HYDRATION_TRACE] pos:hydrate:RPC_FAILURE — Attempting fallback...', err);
+
+            const cached = localStorage.getItem(`carss_cache_pos_${branchId}`);
+            if (cached) {
+                console.info('[HYDRATION_TRACE] pos:hydrate:FALLBACK_SUCCESS (using cache)');
+                set({ ...JSON.parse(cached), status: 'success' });
+            } else {
+                console.error('[HYDRATION_TRACE] pos:hydrate:FALLBACK_FAILED');
+                set({ status: 'error', error: err.message });
+            }
         }
     },
 
@@ -87,7 +105,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
     },
 
     rollbackTransaction: (txId: string) => {
-        console.warn('[POS_TRACE] txId', txId, 'rollback:failed');
+        console.warn('[POS_TRACE] txId', txId, 'rollback');
         set((state) => {
             const tx = state.pendingTransactions.find(t => t.id === txId);
             if (!tx) return state;

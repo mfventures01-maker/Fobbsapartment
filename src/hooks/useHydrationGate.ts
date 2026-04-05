@@ -11,7 +11,7 @@ export function useHydrationGate() {
     const branchId = authority.branchId;
     const staffId = authority.staffId;
 
-    const slicesStatus = [
+    const slices = [
         useQRMenuStore(state => state.status),
         useBarCartStore(state => state.status),
         useRoomBookingStore(state => state.status),
@@ -19,25 +19,27 @@ export function useHydrationGate() {
     ];
 
     useEffect(() => {
-        // 🛡️ RE-IGNITION STRATEGY
-        // We only trigger fetch for all domain slices once the Auth identity is resolved
-        if (session && branchId) {
+        // 🛸 Step 2: Hydration Gate for Domain Slices
+        // This blocks the app root render until all stores have hydrated successfully
+        const hydrateAllStores = async () => {
+            if (!session || !branchId) return;
+
             console.log('[HYDRATION_TRACE] HYDRATION_GATE: AWAKENING DOMAIN SLICES ⚡');
 
-            // Concurrent fire-and-forget fetch calls managed by individual stores
-            useQRMenuStore.getState().fetch(branchId);
-            useBarCartStore.getState().fetch(branchId);
-            useRoomBookingStore.getState().fetch(branchId);
+            // Parallel execution with individual store error/fallback handling
+            await Promise.all([
+                useQRMenuStore.getState().hydrate(branchId),
+                useBarCartStore.getState().hydrate(branchId),
+                useRoomBookingStore.getState().hydrate(branchId),
+                staffId ? usePOSStore.getState().hydrate(branchId, staffId) : Promise.resolve(),
+            ]);
+        };
 
-            if (staffId) {
-                usePOSStore.getState().fetch(branchId, staffId);
-            }
-        }
+        hydrateAllStores();
     }, [session, branchId, staffId]);
 
-    // Aggregated success gate
-    // Note: POS is only required if staffId exists
-    const isHydrated = slicesStatus.every((s, index) => {
+    // Mandatory slices that must succeed (or fall back to successful cache)
+    const isHydrated = slices.every((s, index) => {
         // Index 3 is POS status
         if (index === 3 && !staffId) return true;
         return s === 'success';
