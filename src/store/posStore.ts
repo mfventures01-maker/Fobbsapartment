@@ -10,10 +10,11 @@ interface POSState {
     pendingTransactions: any[];
     error: string | null;
 
-    // 🛸 Step 2: hydrate() replaces fetch() for deterministic nomenclature
     hydrate: (branchId: string, staffId: string) => Promise<void>;
     createTransactionOptimistic: (tx: { id: string; amount: number }) => void;
-    confirmTransaction: (txId: string, backendVersion: number) => void;
+    // 🛸 Step 2: New POS deterministic bridge
+    applyOptimisticUpdate: (payload: { txId: string; items: any[] }) => void;
+    commitTransaction: (result: { txId: string; confirmed: boolean; revenue?: number }) => void;
     rollbackTransaction: (txId: string) => void;
 }
 
@@ -29,62 +30,51 @@ export const usePOSStore = create<POSState>((set, get) => ({
     hydrate: async (branchId: string, staffId: string) => {
         console.log('[HYDRATION_TRACE] pos:hydrate:start', { branchId, staffId });
         set({ status: 'loading' });
-
         try {
-            // 🛸 Step 5: Shift Handling Deterministically
-            // resolve_active_shift must NEVER return 404
-            const { data: shiftData, error: shiftError } = await supabase.rpc('resolve_active_shift', {
-                p_branch_id: branchId,
-                p_staff_id: staffId
-            });
+            const { data: shiftData } = await supabase.rpc('resolve_active_shift', { p_branch_id: branchId, p_staff_id: staffId });
+            const { data: stateEnv } = await supabase.rpc('get_pos_state', { p_branch_id: branchId, p_staff_id: staffId });
 
-            if (shiftError) {
-                console.warn('[HYDRATION_TRACE] pos:shift_rpc_failed — fallback to cached shift', shiftError);
-                // Fallback logic for cached shift handled below
-            }
-
-            const { data: stateEnv, error: rpcError } = await supabase.rpc('get_pos_state', {
-                p_branch_id: branchId,
-                p_staff_id: staffId
-            });
-
-            if (rpcError) throw rpcError;
-
-            const stateData = stateEnv.data;
             const payload = {
                 status: 'success' as const,
                 shift: shiftData ? { id: shiftData.shift_id, version: shiftData.version } : null,
-                revenue: {
-                    today: stateData?.revenue?.today || 0,
-                    shift: stateData?.revenue?.shift_total || 0
-                },
-                openOrders: stateData?.orders?.open_orders || 0,
-                version: stateEnv.version || 1,
+                revenue: { today: stateEnv?.data?.revenue?.today || 0, shift: stateEnv?.data?.revenue?.shift_total || 0 },
+                openOrders: stateEnv?.data?.orders?.open_orders || 0,
+                version: stateEnv?.version || 1,
                 pendingTransactions: [],
                 error: null
             };
 
-            // Save for fallback
             localStorage.setItem(`carss_cache_pos_${branchId}`, JSON.stringify(payload));
-
             set(payload);
-            console.log('[HYDRATION_TRACE] pos:hydrate:SUCCESS', { version: stateEnv.version });
         } catch (err: any) {
-            console.warn('[HYDRATION_TRACE] pos:hydrate:RPC_FAILURE — Attempting fallback...', err);
-
             const cached = localStorage.getItem(`carss_cache_pos_${branchId}`);
-            if (cached) {
-                console.info('[HYDRATION_TRACE] pos:hydrate:FALLBACK_SUCCESS (using cache)');
-                set({ ...JSON.parse(cached), status: 'success' });
-            } else {
-                console.error('[HYDRATION_TRACE] pos:hydrate:FALLBACK_FAILED');
-                set({ status: 'error', error: err.message });
-            }
+            if (cached) set({ ...JSON.parse(cached), status: 'success' });
+            else set({ status: 'error', error: err.message });
         }
     },
 
+    applyOptimisticUpdateByTxId: (txId: string, amount: number) => {
+        set((state) => ({
+            revenue: { ...state.revenue, shift: state.revenue.shift + amount },
+            openOrders: state.openOrders + 1,
+        }));
+    },
+
+    applyOptimisticUpdate: (payload) => {
+        const totalAmount = payload.items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+        console.log('[POS_TRACE] txId', payload.txId, 'optimistic:bridge_applied', totalAmount);
+        set((state) => ({
+            pendingTransactions: [...state.pendingTransactions, { id: payload.txId, amount: totalAmount, items: payload.items }],
+            revenue: {
+                ...state.revenue,
+                shift: state.revenue.shift + totalAmount,
+                today: state.revenue.today + totalAmount,
+            },
+            openOrders: state.openOrders + 1,
+        }));
+    },
+
     createTransactionOptimistic: (tx) => {
-        console.log('[POS_TRACE] txId', tx.id, 'optimistic:creating', tx.amount);
         set((state) => ({
             pendingTransactions: [...state.pendingTransactions, tx],
             revenue: {
@@ -96,16 +86,20 @@ export const usePOSStore = create<POSState>((set, get) => ({
         }));
     },
 
-    confirmTransaction: (txId: string, backendVersion: number) => {
-        console.log('[POS_TRACE] txId', txId, 'confirmed:version', backendVersion);
-        set((state) => ({
-            pendingTransactions: state.pendingTransactions.filter(t => t.id !== txId),
-            version: backendVersion,
-        }));
+    commitTransaction: (result) => {
+        console.log('[POS_TRACE] txId', result.txId, 'confirmed:SUCCESS');
+        set((state) => {
+            const tx = state.pendingTransactions.find(t => t.id === result.txId);
+            if (!tx) return state;
+            return {
+                pendingTransactions: state.pendingTransactions.filter(t => t.id !== result.txId),
+                revenue: result.revenue ? { ...state.revenue, shift: result.revenue } : state.revenue,
+            };
+        });
     },
 
-    rollbackTransaction: (txId: string) => {
-        console.warn('[POS_TRACE] txId', txId, 'rollback');
+    rollbackTransaction: (txId) => {
+        console.warn('[POS_TRACE] txId', txId, 'rollback:COMMITTING');
         set((state) => {
             const tx = state.pendingTransactions.find(t => t.id === txId);
             if (!tx) return state;

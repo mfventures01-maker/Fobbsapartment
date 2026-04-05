@@ -3,14 +3,17 @@ import { supabase } from '../lib/supabaseClient';
 
 interface BarCartState {
     data: any[];
+    items: any[];
     version: number;
     status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
     hydrate: (branchId: string) => Promise<void>;
+    clearItems: (itemsToRemove: any[]) => void;
 }
 
 export const useBarCartStore = create<BarCartState>((set, get) => ({
     data: [],
+    items: [],
     version: 0,
     status: 'idle',
     error: null,
@@ -25,6 +28,7 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
 
             const payload = {
                 data: env.data || [],
+                items: env.data || [],
                 version: env.version || 0,
                 status: 'success' as const,
                 error: null
@@ -32,9 +36,7 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
 
             localStorage.setItem(`carss_cache_bar_${branchId}`, JSON.stringify(payload));
             set(payload);
-            console.log('[HYDRATION_TRACE] bar_cart:hydrate:SUCCESS', { version: env.version });
         } catch (err: any) {
-            console.warn('[HYDRATION_TRACE] bar_cart:hydrate:RPC_FAILURE — Fallback active', err);
             const cached = localStorage.getItem(`carss_cache_bar_${branchId}`);
             if (cached) {
                 set({ ...JSON.parse(cached), status: 'success' });
@@ -42,5 +44,14 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
                 set({ status: 'error', error: err.message });
             }
         }
+    },
+
+    clearItems: (itemsToRemove) => {
+        const idsToRemove = itemsToRemove.map(i => i.id);
+        set((state) => ({
+            items: state.items.filter(i => !idsToRemove.includes(i.id)),
+            data: state.data.filter(i => !idsToRemove.includes(i.id))
+        }));
+        console.log('[POS_TRACE] bar_cart:clear_items', { count: itemsToRemove.length });
     }
 }));
