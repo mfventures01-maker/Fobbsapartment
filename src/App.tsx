@@ -99,9 +99,16 @@ const AuthGate = ({ children }: { children: React.ReactNode }) => {
 
 import { useHydrationGate } from './hooks/useHydrationGate';
 
+import { useSystemSync } from './hooks/useSystemSync';
+
 export default function App() {
   const isHydrated = useHydrationGate();
   const { session } = useAuth();
+
+  // 🛸 ANTI-GRAVITY SYSTEM SYNC (Layer 6)
+  // Activates the real-time event-loop and idempotent catch-up loop
+  // This ensures the terminal is a 'Mirror of Truth' from the backend
+  useSystemSync();
 
   // 🛸 ANTI-GRAVITY HYDRATION GATE (Step 3)
   // We only gate if there's an active session (authenticated ignition)
