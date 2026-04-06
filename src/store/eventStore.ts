@@ -6,6 +6,7 @@ interface SystemEvent {
     aggregate_id: string;
     event_type: string;
     payload: any;
+    metadata?: any; // New: metadata.new_state path
     branch_id: string;
     created_at: string;
 }
@@ -18,6 +19,9 @@ interface EventState {
     // Local state maps (The Mirror)
     orders: Record<string, any>;
     inventory: Record<string, Record<string, number>>;
+    bookings: Record<string, any>;
+    shifts: Record<string, any>;
+    staff: Record<string, any>;
 
     // Methods
     pushEvent: (event: SystemEvent) => void;
@@ -31,6 +35,9 @@ export const useEventStore = create<EventState>((set, get) => ({
     eventQueue: [],
     orders: {},
     inventory: {},
+    bookings: {},
+    shifts: {},
+    staff: {},
 
     syncLastEventId: (id) => set({ lastEventId: id }),
 
@@ -55,37 +62,56 @@ export const useEventStore = create<EventState>((set, get) => ({
         console.log(`[EDA_TRACE] APPLY_EVENT:${event.event_type}`, { id: event.id, clock: event.event_id });
 
         set((state) => {
-            const newOrders = { ...state.orders };
-            const newInventory = { ...state.inventory };
+            // 🛠️ DETERMINISTIC STATE RECONCILIATION
+            const newState = {
+                orders: { ...state.orders },
+                inventory: { ...state.inventory },
+                bookings: { ...state.bookings },
+                shifts: { ...state.shifts },
+                staff: { ...state.staff }
+            };
 
-            // 🛠️ DOMAIN SPECIFIC STATE UPDATES (THE MIRROR)
-            const { aggregate_id, event_type, payload } = event;
+            // 🧬 Step 1: Resolve new_state with fallback logic
+            const newStateData = event.metadata?.new_state || event.payload?.new_state;
 
-            if (event_type.startsWith('ORDER_')) {
-                newOrders[aggregate_id] = {
-                    status: payload.new_state.status,
-                    total: payload.new_state.total,
-                    customer: payload.new_state.customer_name,
-                    updated_at: event.created_at
+            if (!newStateData) {
+                console.warn(`[EDA_TRACE] SKIP_EVENT: No new_state found in metadata or payload. EventId: ${event.id}`, event);
+                // Advance clock even if we skip to allow queue progression
+                return {
+                    ...state,
+                    lastEventId: event.event_id,
+                    processedIds: new Set(state.processedIds).add(event.id)
                 };
             }
 
-            if (event_type === 'INVENTORY_UPDATE') {
-                const bid = payload.branch_id;
-                const pid = payload.product_id;
-                if (!newInventory[bid]) newInventory[bid] = {};
-                newInventory[bid][pid] = payload.new_quantity;
+            const { aggregate_id, event_type } = event;
+
+            // 🧩 Step 2: Role/Domain Specific Routing
+            if (event_type.startsWith('ORDER_')) {
+                newState.orders[aggregate_id] = { ...newStateData, updated_at: event.created_at };
+            }
+            else if (event_type.startsWith('BOOKING_')) {
+                newState.bookings[aggregate_id] = { ...newStateData, updated_at: event.created_at };
+            }
+            else if (event_type.startsWith('SHIFT_')) {
+                newState.shifts[aggregate_id] = { ...newStateData, updated_at: event.created_at };
+            }
+            else if (event_type.startsWith('STAFF_')) {
+                newState.staff[aggregate_id] = { ...newStateData, updated_at: event.created_at };
+            }
+            else if (event_type === 'INVENTORY_UPDATE') {
+                const bid = event.branch_id;
+                const pid = aggregate_id; // Usually product_id
+                if (!newState.inventory[bid]) newState.inventory[bid] = {};
+                newState.inventory[bid][pid] = newStateData.quantity;
             }
 
-            // Mark as processed and advance logical clock
+            // 🔒 Step 3: Advance Logical Clock & Persist
             const newProcessed = new Set(state.processedIds).add(event.id);
-
-            // Persist logical clock to local storage for forensic recovery
             localStorage.setItem('carss_last_event_id', event.event_id.toString());
 
             return {
-                orders: newOrders,
-                inventory: newInventory,
+                ...newState,
                 processedIds: newProcessed,
                 lastEventId: event.event_id,
                 eventQueue: state.eventQueue.filter(e => e.id !== event.id)

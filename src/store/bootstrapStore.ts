@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
+import { useEventStore } from './eventStore';
 
 interface BootstrapState {
     isHydrating: boolean;
@@ -51,6 +52,9 @@ export const useBootstrapStore = create<BootstrapState>((set, get) => ({
                 version: snapshot.version,
                 shift: snapshot.execution_context?.shift_id || 'NONE'
             });
+
+            // 🛰️ ANCHOR EVENT CLOCK: Ensure catch-up starts from snapshot version
+            useEventStore.getState().syncLastEventId(snapshot.version);
 
             set({
                 kernel: snapshot,
