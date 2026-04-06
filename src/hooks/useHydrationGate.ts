@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBootstrapStore } from '../store/bootstrapStore';
 import { useQRMenuStore } from '../store/qrMenuStore';
@@ -21,38 +21,46 @@ export function useHydrationGate() {
     const ignite = useBootstrapStore(state => state.ignite);
     const isHydrating = useBootstrapStore(state => state.isHydrating);
     const status = useBootstrapStore(state => state.status);
+    const lastVersion = useBootstrapStore(state => state.lastHydratedVersion);
 
-    // Slices Status (for Aggregated Gate)
+    // Slices Status
     const qrStatus = useQRMenuStore(state => state.status);
     const barStatus = useBarCartStore(state => state.status);
     const bookingStatus = useRoomBookingStore(state => state.status);
     const posStatus = usePOSStore(state => state.status);
 
+    // 🛡️ RE-IGNITION GUARD: Ensure for a given branch identity, we only awaken ONCE.
+    const ignitionContext = useRef<string | null>(null);
+
     useEffect(() => {
+        const currentId = `${branchId}:${staffId}:${session?.user.id}`;
+
         const awaken = async () => {
             // Gate 1: Auth & Branch context
             if (!session || !branchId) return;
 
-            console.log('[HYDRATION_TRACE] KERNEL: INITIATING ONE AWAKENING 🚀');
+            // Gate 2: Guard against re-ignition if identity context hasn't changed
+            if (ignitionContext.current === currentId && status === 'alive') {
+                return;
+            }
+
+            console.log('[HYDRATION_TRACE] KERNEL: INITIATING ONE AWAKENING 🚀', { currentId });
+            ignitionContext.current = currentId;
 
             try {
-                // Step 1: The Singular Awakening (RPC Bootstrap)
-                // This resolves: Identity, Context, Shift, Version
+                // Step 1: The Singular Awakening (Omniscient RPC Bootstrap)
+                // This resolves: Identity, Context, Shift, Version, POS Metrics, QR, Bar, Rooms
                 const snapshot = await ignite(staffId || undefined, branchId);
 
                 if (!snapshot) return;
 
-                // Step 2: Synchronous Slice Propagation (One Reality)
-                // No extra RPCs! We populate every domain from the kernel snapshot.
+                // Step 2: Synchronous Slice Propagation (Zero Secondary RPCs)
                 useQRMenuStore.getState().hydrateFromSnapshot(snapshot);
                 usePOSStore.getState().hydrateFromSnapshot(snapshot);
+                useBarCartStore.getState().hydrateFromSnapshot(snapshot);
+                useRoomBookingStore.getState().hydrateFromSnapshot(snapshot);
 
-                // Parallel hydration for secondary slices not yet in kernel
-                // (Optional: Move these into system_bootstrap for pure determinism)
-                await Promise.all([
-                    useBarCartStore.getState().hydrate(branchId, staffId || authority.user_id!),
-                    useRoomBookingStore.getState().hydrate(branchId)
-                ]);
+                console.log('[HYDRATION_TRACE] KERNEL: ALL SLICES SYNCHRONIZED ⚡');
 
             } catch (err) {
                 console.error('[HYDRATION_TRACE] KERNEL: AWAKENING_FAILED ❌', err);
@@ -60,27 +68,19 @@ export function useHydrationGate() {
         };
 
         awaken();
-    }, [session, branchId, staffId, ignite, authority.user_id]);
+    }, [session?.user.id, branchId, staffId, ignite]);
 
     // Mandatory Gate: App only resolves when all slices are 'success'
-    const allSuccess = [qrStatus, barStatus, bookingStatus].every(s => s === 'success');
-
-    // Shift context gate (optional blocking)
-    const posReady = staffId ? posStatus === 'success' : true;
-
-    const isHydrated = allSuccess && posReady && status === 'alive';
+    const allSuccess = [qrStatus, barStatus, bookingStatus, posStatus].every(s => s === 'success');
+    const isHydrated = allSuccess && status === 'alive';
 
     if (isHydrated && !isHydrating) {
-        console.log('[HYDRATION_TRACE] KERNEL: SYSTEM FULLY SYNCHRONIZED ⚡');
         // @ts-ignore
         window.canHydrate = true;
         // @ts-ignore
         window.__CARSS_PORTAL_STATE__ = {
-            kernel: useBootstrapStore.getState().kernel,
-            slices: {
-                qr: useQRMenuStore.getState().status,
-                pos: usePOSStore.getState().status
-            }
+            kernel_version: lastVersion,
+            identity: { staffId, branchId }
         };
     }
 

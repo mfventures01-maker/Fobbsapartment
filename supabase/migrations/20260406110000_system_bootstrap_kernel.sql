@@ -1,6 +1,6 @@
--- 🛸 ANTI-GRAVITY: SYSTEM BOOTSTRAP KERNEL (LAYER 0) — DETERMINISTIC VERSION REPAIR
--- Purpose: Kill the 'Hydration Loop' by providing a deterministic version clock.
--- Law: Version = State Change. If the database hasn't changed, the version hasn't changed.
+-- 🛸 ANTI-GRAVITY: SYSTEM BOOTSTRAP KERNEL (LAYER 0) — ULTIMATE OMNISCIENCE
+-- Purpose: Resolve the ENTIRE terminal reality (Context, Metrics, Bar, Bookings) in a single slice.
+-- Law: One Awakening. Zero secondary RPCs. Minimal Latency. Absolute Determinism.
 
 BEGIN;
 
@@ -17,6 +17,10 @@ DECLARE
     v_staff_data RECORD;
     v_branch_data RECORD;
     v_shift_data RECORD;
+    v_pos_metrics RECORD;
+    v_qr_menu JSONB;
+    v_bar_items JSONB;
+    v_room_bookings JSONB;
     v_version_clock BIGINT;
     v_result JSONB;
 BEGIN
@@ -47,19 +51,41 @@ BEGIN
       AND status = 'open' 
     LIMIT 1;
 
-    -- 4. 🕒 🧩 THE FIX: DETERMINISTIC VERSION CLOCK
-    -- We derive version from the most recent operational event in the branch.
-    -- If no events, we fallback to the shift version or 0.
+    -- 4. 📦 RESOLVE DOMAIN SLICES (QR, BAR, ROOMS)
+    -- QR Menu
+    SELECT jsonb_agg(m.*) INTO v_qr_menu 
+    FROM public.menu_items m 
+    WHERE m.location_id = v_branch_data.id AND m.is_available = true;
+
+    -- Bar Items
+    SELECT jsonb_agg(b.*) INTO v_bar_items
+    FROM public.bar_inventory b
+    WHERE b.branch_id = v_branch_data.id;
+
+    -- Room Bookings (Active tomorrow/today)
+    SELECT jsonb_agg(r.*) INTO v_room_bookings
+    FROM public.room_bookings r
+    WHERE r.branch_id = v_branch_data.id AND r.status IN ('confirmed', 'checked_in');
+
+    -- 5. 💰 RESOLVE POS METRICS
+    SELECT 
+        COALESCE(SUM(total), 0) as today_revenue,
+        COUNT(*) filter (where status = 'pending' OR status = 'confirmed') as open_orders
+    INTO v_pos_metrics
+    FROM public.orders
+    WHERE location_id = v_branch_data.id 
+      AND created_at >= CURRENT_DATE;
+
+    -- 6. 🕒 🧩 DETERMINISTIC VERSION CLOCK
     SELECT COALESCE(MAX(event_id), 0) INTO v_version_clock
     FROM public.operational_events
     WHERE branch_id = v_branch_data.id;
     
-    -- If v_version_clock is still 0, use shift version if available
     IF v_version_clock = 0 AND v_shift_data.version IS NOT NULL THEN
         v_version_clock := v_shift_data.version;
     END IF;
 
-    -- 5. 🛰️ ASSEMBLE RESULT
+    -- 7. 🛰️ ASSEMBLE ULTIMATE SNAPSHOT
     v_result := jsonb_build_object(
         'status', 'alive',
         'identity', jsonb_build_object(
@@ -80,7 +106,16 @@ BEGIN
             )
             ELSE NULL 
         END,
-        'version', v_version_clock -- ⚡ DETERMINISTIC LOGICAL CLOCK
+        'pos', jsonb_build_object(
+            'today_revenue', v_pos_metrics.today_revenue,
+            'open_orders', v_pos_metrics.open_orders
+        ),
+        'slices', jsonb_build_object(
+            'qr_menu', COALESCE(v_qr_menu, '[]'::jsonb),
+            'bar_items', COALESCE(v_bar_items, '[]'::jsonb),
+            'room_bookings', COALESCE(v_room_bookings, '[]'::jsonb)
+        ),
+        'version', v_version_clock
     );
 
     RETURN v_result;

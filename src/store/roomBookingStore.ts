@@ -7,6 +7,7 @@ interface RoomBookingState {
     status: 'idle' | 'loading' | 'success' | 'error';
     error: string | null;
     hydrate: (branchId: string) => Promise<void>;
+    hydrateFromSnapshot: (snapshot: any) => void;
 }
 
 export const useRoomBookingStore = create<RoomBookingState>((set, get) => ({
@@ -42,5 +43,16 @@ export const useRoomBookingStore = create<RoomBookingState>((set, get) => ({
                 set({ status: 'error', error: err.message });
             }
         }
+    },
+
+    hydrateFromSnapshot: (snapshot: any) => {
+        console.log('[HYDRATION_TRACE] room_booking:snapshot_applied 🧬', { version: snapshot.version });
+        const items = snapshot.slices?.room_bookings || [];
+        set({
+            data: items,
+            version: snapshot.version,
+            status: 'success',
+            error: null
+        });
     }
 }));

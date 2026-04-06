@@ -9,6 +9,7 @@ interface BarCartState {
     error: string | null;
     // 🛸 Step 1: Staff ID requirement for the new deterministic signature
     hydrate: (branchId: string, staffId: string) => Promise<void>;
+    hydrateFromSnapshot: (snapshot: any) => void;
     clearItems: (itemsToRemove: any[]) => void;
 }
 
@@ -52,6 +53,18 @@ export const useBarCartStore = create<BarCartState>((set, get) => ({
                 set({ status: 'error', error: err.message });
             }
         }
+    },
+
+    hydrateFromSnapshot: (snapshot: any) => {
+        console.log('[HYDRATION_TRACE] bar_cart:snapshot_applied 🧬', { version: snapshot.version });
+        const items = snapshot.slices?.bar_items || [];
+        set({
+            data: items,
+            items: items,
+            version: snapshot.version,
+            status: 'success',
+            error: null
+        });
     },
 
     clearItems: (itemsToRemove) => {

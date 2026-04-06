@@ -81,9 +81,10 @@ export const useQRMenuStore = create<QRMenuState>((set, get) => ({
 
     hydrateFromSnapshot: (snapshot: any) => {
         console.log('[HYDRATION_TRACE] qr_menu:snapshot_applied 🧬', { version: snapshot.version });
+        const items = snapshot.slices?.qr_menu || [];
         set({
-            data: snapshot.qr_menu || [],
-            items: snapshot.qr_menu || [],
+            data: items,
+            items: items,
             version: snapshot.version,
             status: 'success'
         });
