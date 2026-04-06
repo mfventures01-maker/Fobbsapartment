@@ -59,12 +59,16 @@ export const usePOSStore = create<POSState>((set, get) => ({
         const ec = snapshot.execution_context;
         const metrics = snapshot.pos || {};
 
+        if (!ec) {
+            console.warn('[HYDRATION_TRACE] LAYER 4: NO_SHIFT (Idle Skip Applied) — Core Mirror Synchronized.');
+        }
+
         set({
             status: 'success',
             shift: ec ? { id: ec.shift_id, version: ec.version } : null,
             revenue: {
                 today: metrics.today_revenue || 0,
-                shift: metrics.today_revenue || 0 // Initial shift estimate (same as today if cold start)
+                shift: metrics.today_revenue || 0
             },
             openOrders: metrics.open_orders || 0,
             version: snapshot.version,
