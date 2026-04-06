@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useShiftState } from '@/contexts/ShiftContext';
+import { usePOSStore } from '@/store/posStore';
 
 /**
  * 🛡️ CARSS VERIFIER HOOK
@@ -9,7 +9,8 @@ import { useShiftState } from '@/contexts/ShiftContext';
  */
 export function useCarssVerifier() {
     const { authority } = useAuth();
-    const { shiftState } = useShiftState();
+    const posShift = usePOSStore(state => state.shift);
+    const posStatus = usePOSStore(state => state.status);
 
     useEffect(() => {
         // Only run report once we reach initial hydration or any gate update
@@ -29,8 +30,8 @@ export function useCarssVerifier() {
                 id: authority.staffId || 'N/A'
             },
             'LAYER 4 (Shift)': {
-                result: shiftState.status === 'loading' ? '⏳ LOADING' : '✅ DETERMINISTIC',
-                id: shiftState.status.toUpperCase()
+                result: posStatus === 'loading' ? '⏳ LOADING' : (posShift ? '✅ DETERMINISTIC' : '⚠️ NO_SHIFT'),
+                id: posShift ? `${posShift.id} (v${posShift.version})` : 'N/A'
             }
         };
 
@@ -38,7 +39,7 @@ export function useCarssVerifier() {
             console.group('🛸 [CARSS_VERIFIER] FORENSIC STATE REPORT');
             console.table(report);
 
-            const isFullyDeterministic = authority.user_id && authority.branchId && authority.staffId && shiftState.status !== 'loading';
+            const isFullyDeterministic = authority.user_id && authority.branchId && authority.staffId && posStatus !== 'loading';
 
             if (isFullyDeterministic) {
                 console.log('%c✅ SYSTEM_VERIFIED: ABSOLUTE DETERMINISM ACHIEVED (LAYER 1-4)', 'color: #10b981; font-weight: bold;');
@@ -47,5 +48,5 @@ export function useCarssVerifier() {
             }
             console.groupEnd();
         }
-    }, [authority, shiftState.status]);
+    }, [authority, posStatus]);
 }

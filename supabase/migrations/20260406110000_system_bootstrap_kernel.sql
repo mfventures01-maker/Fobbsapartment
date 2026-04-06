@@ -1,6 +1,6 @@
--- 🛸 ANTI-GRAVITY: SYSTEM BOOTSTRAP KERNEL (LAYER 0)
--- Purpose: Provide the single, authoritative entry point for terminal ignition.
--- Law: One Awakening. Every terminal resolves its entire reality in a single atomic snapshot.
+-- 🛸 ANTI-GRAVITY: SYSTEM BOOTSTRAP KERNEL (LAYER 0) — DETERMINISTIC VERSION REPAIR
+-- Purpose: Kill the 'Hydration Loop' by providing a deterministic version clock.
+-- Law: Version = State Change. If the database hasn't changed, the version hasn't changed.
 
 BEGIN;
 
@@ -17,11 +17,10 @@ DECLARE
     v_staff_data RECORD;
     v_branch_data RECORD;
     v_shift_data RECORD;
-    v_version_timestamp BIGINT;
+    v_version_clock BIGINT;
     v_result JSONB;
 BEGIN
     -- 1. 🧬 RESOLVE IDENTITY & CONTEXT
-    -- If parameters are null, attempt to resolve from auth.uid()
     IF p_staff_id IS NULL THEN
         SELECT id, branch_id, org_id INTO v_staff_data FROM public.staff WHERE user_id = auth.uid() LIMIT 1;
     ELSE
@@ -39,8 +38,7 @@ BEGIN
     JOIN public.businesses biz ON b.business_id = biz.id
     WHERE b.id = COALESCE(p_branch_id, v_staff_data.branch_id);
 
-    -- 3. ⚖️ RESOLVE ACTIVE SHIFT (Deterministic)
-    -- This enforces the 'Execution Context' law: Every staff action must belong to a shift.
+    -- 3. ⚖️ RESOLVE ACTIVE SHIFT (Execution Context)
     SELECT id, status, version 
     INTO v_shift_data 
     FROM public.shifts 
@@ -49,11 +47,17 @@ BEGIN
       AND status = 'open' 
     LIMIT 1;
 
-    -- If no shift exists, we don't force one here (let the app handle Open Shift UI),
-    -- but we return the null state deterministically.
-
-    -- 4. 🕒 GENERATE VERSION SNAPSHOT
-    v_version_timestamp := EXTRACT(EPOCH FROM NOW())::BIGINT;
+    -- 4. 🕒 🧩 THE FIX: DETERMINISTIC VERSION CLOCK
+    -- We derive version from the most recent operational event in the branch.
+    -- If no events, we fallback to the shift version or 0.
+    SELECT COALESCE(MAX(event_id), 0) INTO v_version_clock
+    FROM public.operational_events
+    WHERE branch_id = v_branch_data.id;
+    
+    -- If v_version_clock is still 0, use shift version if available
+    IF v_version_clock = 0 AND v_shift_data.version IS NOT NULL THEN
+        v_version_clock := v_shift_data.version;
+    END IF;
 
     -- 5. 🛰️ ASSEMBLE RESULT
     v_result := jsonb_build_object(
@@ -76,7 +80,7 @@ BEGIN
             )
             ELSE NULL 
         END,
-        'version', v_version_timestamp
+        'version', v_version_clock -- ⚡ DETERMINISTIC LOGICAL CLOCK
     );
 
     RETURN v_result;
