@@ -10,6 +10,8 @@ interface QRMenuState {
     optimisticUpdates: any[];
     // 🛸 Step 2: hydrate() replaces fetch() for deterministic nomenclature
     hydrate: (branchId: string) => Promise<void>;
+    // 🛸 Step 1: One Awakening — hydrateFromSnapshot()
+    hydrateFromSnapshot: (payload: any) => void;
     applyOptimisticUpdate: (update: { id: string; item: any }) => void;
     rollbackOptimisticUpdate: (updateId: string) => void;
 }
@@ -75,5 +77,15 @@ export const useQRMenuStore = create<QRMenuState>((set, get) => ({
             data: state.data.filter((i) => i.id !== updateId),
             optimisticUpdates: state.optimisticUpdates.filter((u) => (u as any).id !== updateId),
         }));
+    },
+
+    hydrateFromSnapshot: (snapshot: any) => {
+        console.log('[HYDRATION_TRACE] qr_menu:snapshot_applied 🧬', { version: snapshot.version });
+        set({
+            data: snapshot.qr_menu || [],
+            items: snapshot.qr_menu || [],
+            version: snapshot.version,
+            status: 'success'
+        });
     }
 }));

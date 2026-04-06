@@ -11,6 +11,7 @@ interface POSState {
     error: string | null;
 
     hydrate: (branchId: string, staffId: string) => Promise<void>;
+    hydrateFromSnapshot: (snapshot: any) => void;
     createTransactionOptimistic: (tx: { id: string; amount: number }) => void;
     // 🛸 Step 2: New POS deterministic bridge
     applyOptimisticUpdate: (payload: { txId: string; items: any[] }) => void;
@@ -51,6 +52,22 @@ export const usePOSStore = create<POSState>((set, get) => ({
             if (cached) set({ ...JSON.parse(cached), status: 'success' });
             else set({ status: 'error', error: err.message });
         }
+    },
+
+    hydrateFromSnapshot: (snapshot: any) => {
+        console.log('[HYDRATION_TRACE] pos:snapshot_applied 🧬', { version: snapshot.version });
+        const ec = snapshot.execution_context;
+        set({
+            status: 'success',
+            shift: ec ? { id: ec.shift_id, version: ec.version } : null,
+            revenue: {
+                today: snapshot.revenue?.today || 0,
+                shift: snapshot.revenue?.shift_total || 0
+            },
+            openOrders: snapshot.orders?.open_orders || 0,
+            version: snapshot.version,
+            pendingTransactions: []
+        });
     },
 
     applyOptimisticUpdateByTxId: (txId: string, amount: number) => {
