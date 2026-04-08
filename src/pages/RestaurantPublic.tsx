@@ -1,62 +1,70 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { callRPC } from "@/lib/rpcClient";
-import { useDeterministicPolling } from "@/hooks/useDeterministicPolling";
-import { useSafeArray } from "@/hooks/useSafeArray";
-import toast from "react-hot-toast";
+import React, { useEffect, useState, Suspense } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Loader2, ArrowLeft } from 'lucide-react';
+const RestaurantMenu = React.lazy(() => import('@/components/RestaurantMenu'));
 
 export default function RestaurantPublic() {
-    const { branchId } = useParams<{ branchId: string }>();
-    const [menu, setMenu] = useState<any[]>([]);
-    const [fingerprint, setFingerprint] = useState<string>("");
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [location, setLocation] = useState<string | null>(null);
 
-    const loadMenu = async () => {
-        try {
-            // Public RPC - STRICT ENFORCEMENT
-            const payload = { p_branch_id: branchId };
-            const data = await callRPC<any>('public', 'get_qr_menu', payload);
-
-            // Assuming data returns an object like { menu: [] }
-            // We use data directly to mimic the backend response
-            const returnedMenu = data?.menu || [];
-            const newFingerprint = JSON.stringify(returnedMenu);
-
-            if (newFingerprint !== fingerprint) {
-                setMenu(returnedMenu);
-                setFingerprint(newFingerprint);
-                console.log("[QR] Menu updated");
-            }
-        } catch (err: any) {
-            // RULE 7: ERROR VISIBILITY PROTOCOL
-            console.error("💥 SYSTEM ERROR:", {
-                rpc: 'get_qr_menu',
-                payload: { p_branch_id: branchId },
-                error: err
-            });
-            toast.error(err?.message || 'Failed to load menu. Please refresh.');
-        }
-    };
-
-    useDeterministicPolling(async () => {
-        if (!branchId) return;
-        await loadMenu();
-    }, 5000);
-
-    // Initial load
     useEffect(() => {
-        if (branchId) loadMenu();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [branchId]);
+        let locId = searchParams.get('loc');
+        if (locId) {
+            setLocation(locId);
+            sessionStorage.setItem('qr_location_id', locId);
+        } else {
+            const stored = sessionStorage.getItem('qr_location_id');
+            if (stored) setLocation(stored);
+        }
+    }, [searchParams]);
 
     return (
-        <div className="qr-menu-container">
-            {useSafeArray(menu).map((item: any) => (
-                <div key={item.id} className="menu-item bg-white p-4 shadow mb-4 rounded">
-                    <h3 className="font-bold">{item.name}</h3>
-                    <p className="text-gray-600">{item.description}</p>
-                    <span className="text-emerald-600">${item.price}</span>
+        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+
+                {/* Header aligned seamlessly with Bar interface */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-4 sm:space-y-0 mb-6 pb-4 border-b border-gray-200">
+                    <div className="flex items-center space-x-4">
+                        <Link to="/" className="p-2 bg-white shadow-sm hover:bg-gray-100 rounded-full shrink-0">
+                            <ArrowLeft className="w-5 h-5 text-gray-500" />
+                        </Link>
+                        <div className="flex-1">
+                            <h1 className="text-3xl font-bold text-gray-900 font-serif">Fobbs Restaurant</h1>
+                            {location && (
+                                <div className="mt-2 inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
+                                    📍 You are ordering from: {location.toLowerCase().startsWith('r') || location.toLowerCase().includes('room') ? `Room ${location}` : `Table ${location}`}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* TOGGLE SWITCH - NAVIGATION */}
+                    <div className="flex bg-gray-200 p-1 rounded-xl shrink-0">
+                        <button
+                            onClick={() => navigate(`/bar${location ? `?loc=${location}` : ''}`)}
+                            className="px-5 py-2 rounded-lg font-bold text-sm transition-all text-gray-500 hover:text-gray-700"
+                        >
+                            🍸 Bar & Drinks
+                        </button>
+                        <button
+                            className="px-5 py-2 rounded-lg font-bold text-sm transition-all shadow-sm bg-white text-emerald-700 cursor-default"
+                        >
+                            🍽️ Restaurant Food
+                        </button>
+                    </div>
                 </div>
-            ))}
+
+                <Suspense fallback={
+                    <div className="flex justify-center items-center p-12 text-emerald-600 animate-pulse">
+                        <Loader2 className="w-8 h-8 animate-spin mr-3" />
+                        <span className="font-bold">Loading Menu Interface...</span>
+                    </div>
+                }>
+                    <RestaurantMenu />
+                </Suspense>
+
+            </div>
         </div>
     );
 }
