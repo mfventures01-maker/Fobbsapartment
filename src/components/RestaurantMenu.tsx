@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { ShoppingBag, Plus, Minus, Send, Phone as PhoneIcon, User, Loader2 } from 'lucide-react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-usH1ge0HFr6w16zPdNKdNyBMcpaFhkKdni4HkPN3uQ4W9t49QUjLAJ9waqUjp0Nf/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTcn9LO3erasQw7UWJK_eAf3WgcFyeI40JmmVLC_B2ZrUpolST2ENZDZkMyB7YfT9D/exec";
 
 interface MenuItem {
     id?: string;
     name: string;
     price: number;
     category?: string;
+    image_url?: string;
+    description?: string;
 }
 
 export default function RestaurantMenu() {
@@ -50,18 +52,26 @@ export default function RestaurantMenu() {
             }
         };
         fetchMenu();
+
+        const savedCart = localStorage.getItem('carss_food_cart');
+        if (savedCart) {
+            try { setCart(JSON.parse(savedCart)); } catch (e) { }
+        }
     }, []);
 
     const updateQty = (item: MenuItem, delta: number) => {
         setCart(prev => {
+            let newCart = prev;
             const existing = prev.find(c => c.item.name === item.name);
             if (existing) {
                 const newQty = existing.qty + delta;
-                if (newQty <= 0) return prev.filter(c => c.item.name !== item.name);
-                return prev.map(c => c.item.name === item.name ? { ...c, qty: newQty } : c);
+                if (newQty <= 0) newCart = prev.filter(c => c.item.name !== item.name);
+                else newCart = prev.map(c => c.item.name === item.name ? { ...c, qty: newQty } : c);
+            } else if (delta > 0) {
+                newCart = [...prev, { item, qty: 1 }];
             }
-            if (delta > 0) return [...prev, { item, qty: 1 }];
-            return prev;
+            localStorage.setItem('carss_food_cart', JSON.stringify(newCart));
+            return newCart;
         });
     };
 
@@ -109,12 +119,16 @@ export default function RestaurantMenu() {
                     </div>
                 )}
                 {menu.map((item, i) => (
-                    <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
-                        <div>
+                    <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 flex shadow-sm hover:shadow-md transition-shadow gap-4">
+                        {item.image_url && (
+                            <img src={item.image_url} alt={item.name} className="w-20 h-20 object-cover rounded-lg bg-gray-100 shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                        <div className="flex-1 flex flex-col justify-center">
                             <div className="font-bold text-gray-900">{item.name}</div>
+                            {item.description && <div className="text-gray-500 text-xs mb-1 line-clamp-2">{item.description}</div>}
                             <div className="text-emerald-700 font-medium">₦{Number(item.price).toLocaleString()}</div>
                         </div>
-                        <div className="flex items-center space-x-3 bg-emerald-50 rounded-full px-2 py-1">
+                        <div className="flex items-center space-x-3 bg-emerald-50 rounded-full px-2 h-10 self-center shrink-0">
                             <button onClick={() => updateQty(item, -1)} className="p-1 text-emerald-600 hover:bg-emerald-200 rounded-full transition-colors"><Minus className="w-4 h-4" /></button>
                             <span className="font-bold text-sm w-4 text-center text-emerald-900">{cart.find(c => c.item.name === item.name)?.qty || 0}</span>
                             <button onClick={() => updateQty(item, 1)} className="p-1 text-emerald-600 hover:bg-emerald-200 rounded-full transition-colors"><Plus className="w-4 h-4" /></button>
