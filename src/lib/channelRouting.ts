@@ -112,22 +112,20 @@ _Sent via CARSS_`;
 
 
 export function buildBarOrderMessage(payload: any): string {
-    const itemsList = payload.items.map((i: any) => `- ${i.name} (x${i.quantity})`).join('\n');
-    return `*NEW BAR ORDER* 🍸
-  
-*${HOTEL_CONFIG.business_name}*
-------------------------
-*ID:* ${payload.request_id}
-*Room:* ${payload.room_number}
-------------------------
-*Order Details:*
-${itemsList}
+    const itemsList = payload.items.map((i: any) => `[${i.name} x${i.quantity}]`).join(', ');
+    const displayId = String(payload.room_number !== "N/A" ? payload.room_number : (payload.table_number || "Unknown Location"));
+    const dept = payload.department || "Bar";
+    const branch = HOTEL_CONFIG.business_name || "Fobbs";
 
-*Subtotal:* ₦${safeNumber(payload.subtotal)}
+    return `📍 *Branch:* ${branch}
+🏷️ *Department:* ${dept}
+🪑 *Location:* ${displayId}
+🧾 *Order:* ${itemsList}
+💰 *Total:* ₦${safeNumber(payload.subtotal)}
+🔗 *Payment ref:* ${payload.request_id}
+--------------
 *Payment:* ${payload.payment_method || "Bill to Room"}
-------------------------
 *Notes:* ${payload.notes || "None"}
-
 _Sent via CARSS_`;
 }
 

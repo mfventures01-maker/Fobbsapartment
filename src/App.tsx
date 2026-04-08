@@ -19,6 +19,7 @@ import HotelLanding from './pages/HotelLanding';
 import RestaurantPublic from './pages/RestaurantPublic';
 import BarPublic from './pages/public/BarPublic';
 import ServicesHubPublic from './pages/public/ServicesHubPublic';
+import LocationRouter from './pages/public/LocationRouter';
 
 // 🔬 DIAGNOSTICS OVERLAY
 function DiagnosticsOverlay() {
@@ -138,6 +139,7 @@ export default function App() {
             <Route path="/menu/:branchId" element={<RestaurantPublic />} />
 
             {/* 🛸 ANTI-GRAVITY: Public portal routes — previously dead-link loops */}
+            <Route path="/l/:branch/:department/:locationId" element={<LocationRouter />} />
             <Route path="/restaurant" element={<RestaurantPublic />} />
             <Route path="/bar" element={<BarPublic />} />
             <Route path="/services" element={<ServicesHubPublic />} />

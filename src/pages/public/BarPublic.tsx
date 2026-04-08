@@ -30,6 +30,24 @@ const BarPublic: React.FC = () => {
     const [paymentMethod, setPaymentMethod] = useState('POS on Delivery');
     const [tableNumber, setTableNumber] = useState('');
 
+    // Pre-populate location from URL tracking or Session
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        let locId = params.get('loc') || sessionStorage.getItem('qr_location_id');
+
+        if (locId) {
+            if (locId.toLowerCase().startsWith('r') || locId.toLowerCase().includes('room')) {
+                setRoom(locId);
+                setDelivery('Room Delivery');
+                setPaymentMethod('Bill to Room');
+            } else {
+                setTableNumber(locId);
+                setDelivery('Dine In');
+                setPaymentMethod('POS on Delivery');
+            }
+        }
+    }, []);
+
     const addToCart = (item: any) => {
         setCart(prev => {
             const existing = prev.find(i => i.id === item.id);
@@ -86,6 +104,7 @@ const BarPublic: React.FC = () => {
                 p_metadata: {
                     source: 'qr_menu_bar',
                     room_number: room || 'N/A',
+                    table_number: tableNumber || 'N/A',
                     delivery_method: delivery,
                     notes: notes,
                     payment_method_preference: paymentMethod
@@ -132,8 +151,11 @@ const BarPublic: React.FC = () => {
                 sendRequest('Bar Order', buildBarOrderMessage, {
                     items: cart, subtotal,
                     payment_method: paymentMethod,
-                    notes: `Name: ${name}, Phone: ${phone}, Room: ${room || 'N/A'}, Table: ${tableNumber || 'N/A'}. Delivery: ${delivery}. ${notes}`,
+                    notes: `Name: ${name}, Phone: ${phone}. Delivery: ${delivery}. ${notes}`,
                     room_number: room || "N/A",
+                    table_number: tableNumber || "N/A",
+                    department: sessionStorage.getItem('qr_department') || 'Bar',
+                    request_id: orderId || idempotencyKeyRef.current,
                     summary: `${cart.length} drinks (₦${safeNumber(subtotal)})`
                 }, channel as any, 'kitchen');
             }
@@ -166,7 +188,12 @@ const BarPublic: React.FC = () => {
                     </Link>
                     <div className="flex-1">
                         <h1 className="text-3xl font-bold text-gray-900 font-serif">Fobbs Bar</h1>
-                        <p className="text-gray-500 text-sm">Drinks, Cocktails & Wines</p>
+                        <p className="text-gray-500 text-sm mb-2">Drinks, Cocktails & Wines</p>
+                        {(room || tableNumber) && (
+                            <div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">
+                                📍 You are ordering from: {room ? `Room ${room}` : `Table ${tableNumber}`}
+                            </div>
+                        )}
                     </div>
                 </div>
 
