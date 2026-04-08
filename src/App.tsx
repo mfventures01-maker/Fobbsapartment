@@ -13,6 +13,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import FullScreenLoader from './components/FullScreenLoader';
 
 // 📄 PAGES
+const DebugAuth = React.lazy(() => import('./pages/auth/DebugAuth'));
+const AnalyticsView = React.lazy(() => import('./pages/admin/AnalyticsView'));
 import Login from './pages/auth/Login';
 import DashboardEngine from './pages/dashboard/DashboardEngine';
 import HotelLanding from './pages/HotelLanding';
@@ -145,6 +147,8 @@ export default function App() {
             <Route path="/services" element={<ServicesHubPublic />} />
             {/* Services sub-routes: /services/cleaning, /services/transport, etc. */}
             <Route path="/services/:type" element={<ServicesHubPublic />} />
+
+            <Route path="/analytics" element={<AnalyticsView />} />
 
             {/* PROTECTED ROUTES (Staff/Admin/Kitchen) */}
             <Route

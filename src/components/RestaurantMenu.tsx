@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { ShoppingBag, Plus, Minus, Send, Phone as PhoneIcon, User, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTcn9LO3erasQw7UWJK_eAf3WgcFyeI40JmmVLC_B2ZrUpolST2ENZDZkMyB7YfT9D/exec";
 
@@ -24,6 +25,20 @@ export default function RestaurantMenu() {
 
     // Automatically retrieve location from LocationRouter session
     const locationContext = sessionStorage.getItem('qr_location_id') || 'Walk-in';
+    const [sessionId] = useState(() => crypto.randomUUID());
+
+    // Analytics: Log QR Scan
+    useEffect(() => {
+        if (locationContext && locationContext !== 'Walk-in') {
+            supabase.from('qr_scan_events').insert({
+                location_id: locationContext,
+                session_id: sessionId,
+                user_agent: navigator.userAgent
+            }).then(({ error }) => {
+                if (error) console.error('Analytics Scan Error:', error);
+            });
+        }
+    }, [locationContext, sessionId]);
 
     useEffect(() => {
         const fetchMenu = async () => {
@@ -77,9 +92,22 @@ export default function RestaurantMenu() {
 
     const total = cart.reduce((sum, c) => sum + (c.item.price * c.qty), 0);
 
-    const handleShare = (platform: 'whatsapp' | 'telegram') => {
+    const handleShare = async (platform: 'whatsapp' | 'telegram') => {
         if (cart.length === 0) return toast.error("Cart is empty");
         if (!name || !phone) return toast.error("Please provide name and phone");
+
+        const itemCount = cart.reduce((sum, c) => sum + c.qty, 0);
+
+        // Non-blocking background analytics submission
+        supabase.from('order_submission_events').insert({
+            location_id: locationContext,
+            platform,
+            total_amount: total,
+            item_count: itemCount,
+            session_id: sessionId
+        }).then(({ error }) => {
+            if (error) console.error('Analytics Order Error:', error);
+        });
 
         const itemsText = cart.map(c => `${c.item.name} x${c.qty}`).join(', ');
 
